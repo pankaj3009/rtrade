@@ -5,54 +5,15 @@
 
 using namespace Rcpp;
 
-// linkedsymbols
-StringVector linkedsymbols(StringVector initial, StringVector final, String symbol);
-RcppExport SEXP RTrade_linkedsymbols(SEXP initialSEXP, SEXP finalSEXP, SEXP symbolSEXP) {
+// Ref
+NumericVector Ref(NumericVector input, NumericVector shift);
+RcppExport SEXP RTrade_Ref(SEXP inputSEXP, SEXP shiftSEXP) {
 BEGIN_RCPP
     Rcpp::RObject __result;
     Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< StringVector >::type initial(initialSEXP);
-    Rcpp::traits::input_parameter< StringVector >::type final(finalSEXP);
-    Rcpp::traits::input_parameter< String >::type symbol(symbolSEXP);
-    __result = Rcpp::wrap(linkedsymbols(initial, final, symbol));
-    return __result;
-END_RCPP
-}
-// CalculateEquityCurve
-DataFrame CalculateEquityCurve(String symbol, DataFrame all, DataFrame trades, NumericVector size, double brokerage);
-RcppExport SEXP RTrade_CalculateEquityCurve(SEXP symbolSEXP, SEXP allSEXP, SEXP tradesSEXP, SEXP sizeSEXP, SEXP brokerageSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< String >::type symbol(symbolSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
-    Rcpp::traits::input_parameter< DataFrame >::type trades(tradesSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type size(sizeSEXP);
-    Rcpp::traits::input_parameter< double >::type brokerage(brokerageSEXP);
-    __result = Rcpp::wrap(CalculateEquityCurve(symbol, all, trades, size, brokerage));
-    return __result;
-END_RCPP
-}
-// GenerateTrades
-DataFrame GenerateTrades(DataFrame all);
-RcppExport SEXP RTrade_GenerateTrades(SEXP allSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
-    __result = Rcpp::wrap(GenerateTrades(all));
-    return __result;
-END_RCPP
-}
-// GenerateSignals
-DataFrame GenerateSignals(const DataFrame all, NumericVector amount);
-RcppExport SEXP RTrade_GenerateSignals(SEXP allSEXP, SEXP amountSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject __result;
-    Rcpp::RNGScope __rngScope;
-    Rcpp::traits::input_parameter< const DataFrame >::type all(allSEXP);
-    Rcpp::traits::input_parameter< NumericVector >::type amount(amountSEXP);
-    __result = Rcpp::wrap(GenerateSignals(all, amount));
+    Rcpp::traits::input_parameter< NumericVector >::type input(inputSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type shift(shiftSEXP);
+    __result = Rcpp::wrap(Ref(input, shift));
     return __result;
 END_RCPP
 }
@@ -88,6 +49,82 @@ BEGIN_RCPP
     Rcpp::RNGScope __rngScope;
     Rcpp::traits::input_parameter< NumericVector >::type vec1(vec1SEXP);
     __result = Rcpp::wrap(BarsSince(vec1));
+    return __result;
+END_RCPP
+}
+// Cross
+NumericVector Cross(NumericVector snake, NumericVector reference);
+RcppExport SEXP RTrade_Cross(SEXP snakeSEXP, SEXP referenceSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< NumericVector >::type snake(snakeSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type reference(referenceSEXP);
+    __result = Rcpp::wrap(Cross(snake, reference));
+    return __result;
+END_RCPP
+}
+// linkedsymbols
+StringVector linkedsymbols(StringVector initial, StringVector final, String symbol);
+RcppExport SEXP RTrade_linkedsymbols(SEXP initialSEXP, SEXP finalSEXP, SEXP symbolSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< StringVector >::type initial(initialSEXP);
+    Rcpp::traits::input_parameter< StringVector >::type final(finalSEXP);
+    Rcpp::traits::input_parameter< String >::type symbol(symbolSEXP);
+    __result = Rcpp::wrap(linkedsymbols(initial, final, symbol));
+    return __result;
+END_RCPP
+}
+// CalculatePortfolioEquityCurve
+DataFrame CalculatePortfolioEquityCurve(String symbol, DataFrame all, DataFrame trades, NumericVector size, double brokerage);
+RcppExport SEXP RTrade_CalculatePortfolioEquityCurve(SEXP symbolSEXP, SEXP allSEXP, SEXP tradesSEXP, SEXP sizeSEXP, SEXP brokerageSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< String >::type symbol(symbolSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
+    Rcpp::traits::input_parameter< DataFrame >::type trades(tradesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type size(sizeSEXP);
+    Rcpp::traits::input_parameter< double >::type brokerage(brokerageSEXP);
+    __result = Rcpp::wrap(CalculatePortfolioEquityCurve(symbol, all, trades, size, brokerage));
+    return __result;
+END_RCPP
+}
+// GenerateTrades
+DataFrame GenerateTrades(DataFrame all);
+RcppExport SEXP RTrade_GenerateTrades(SEXP allSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
+    __result = Rcpp::wrap(GenerateTrades(all));
+    return __result;
+END_RCPP
+}
+// ProcessPositionScore
+DataFrame ProcessPositionScore(DataFrame all, unsigned int maxposition, DatetimeVector dates);
+RcppExport SEXP RTrade_ProcessPositionScore(SEXP allSEXP, SEXP maxpositionSEXP, SEXP datesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type maxposition(maxpositionSEXP);
+    Rcpp::traits::input_parameter< DatetimeVector >::type dates(datesSEXP);
+    __result = Rcpp::wrap(ProcessPositionScore(all, maxposition, dates));
+    return __result;
+END_RCPP
+}
+// ApplyStop
+DataFrame ApplyStop(const DataFrame all, NumericVector amount);
+RcppExport SEXP RTrade_ApplyStop(SEXP allSEXP, SEXP amountSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< const DataFrame >::type all(allSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type amount(amountSEXP);
+    __result = Rcpp::wrap(ApplyStop(all, amount));
     return __result;
 END_RCPP
 }

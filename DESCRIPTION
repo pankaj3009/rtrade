@@ -1,11 +1,11 @@
 Package: RTrade
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.1.0
-Author: Who wrote it
-Maintainer: Who to complain to <yourfault@somewhere.net>
-Description: More about what it does (maybe more than one line)
-License: What license is it under?
+Title: Backtesting of Trading Strategies
+Version: 0.2.0
+Author: Pankaj Sharma
+Maintainer: <psharma@incurrency.com>
+Description: The package provides 1. Ability to retrieve equity and futures prices from kairosdb, hosted by incurrency. 2. basic vector manipulation utilities that are useful for backtesting. 3. Framework for backtesting of trading signals. 4. Bootstrapping of trades
+License: BSD-3-clause
 LazyData: TRUE
 Imports:
     httr,

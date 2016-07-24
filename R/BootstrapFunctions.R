@@ -9,11 +9,11 @@
 # calcDrawdownValues -> Returns the drawdown currency amount for each input row.
 # bootstrap -> bootstraps a sample for simulated returns
 
-RowShift <- function(x, shiftLen = 1L) {
-        r <- (1L + shiftLen):(length(x) + shiftLen)
-        r[r<1] <- NA
-        return(x[r])
-}
+# RowShift <- function(x, shiftLen = 1L) {
+#         r <- (1L + shiftLen):(length(x) + shiftLen)
+#         r[r<1] <- NA
+#         return(x[r])
+# }
 
 FillInTheBlanks <- function(S,value) {
         #http://stackoverflow.com/questions/1782704/propagating-data-within-a-vector
@@ -235,7 +235,7 @@ bootstrap<-function(returnvector,tradebarvector,samples,samplesize,drawdownDaysT
     return.validate.sim<-return.validate[return.validate.simind[,i]]
     bar.validate.sim<-bar.validate[return.validate.simind[,i]]
     position.validate.sim<-round(7-pmin(drawdownDaysThreshold,ddrun.validate.sim[,i])*7/drawdownDaysThreshold)
-    position.validate.sim<-RowShift(position.validate.sim,-1)
+    position.validate.sim<-Ref(position.validate.sim,-1)
     position.validate.sim[1]<-7
     notrades<-sum(position.validate.sim == 0)
     deriv.return.validate.sim=return.validate.sim*position.validate.sim/7

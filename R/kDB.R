@@ -1,23 +1,23 @@
 library(httr)
 library(jsonlite)
 
-ref <- function(x, shift) {
-  # x has to be a vector. Not a matrix or dataframe!!
-  if (shift < 0) {
-    addition <- rep(NA, abs(shift))
-    r1 <- seq(length(x) - abs(shift) + 1, length(x), 1)
-    out <- x[-r1]
-    out <- append(out, addition, 0)
-
-  } else if (shift > 0) {
-    addition <- rep(NA, abs(shift))
-    r1 <- seq(1, abs(shift), 1)
-    out <- x[-r1]
-    out <- append(out, addition, length(x))
-  } else{
-    x
-  }
-}
+# ref <- function(x, shift) {
+#   # x has to be a vector. Not a matrix or dataframe!!
+#   if (shift < 0) {
+#     addition <- rep(NA, abs(shift))
+#     r1 <- seq(length(x) - abs(shift) + 1, length(x), 1)
+#     out <- x[-r1]
+#     out <- append(out, addition, 0)
+#
+#   } else if (shift > 0) {
+#     addition <- rep(NA, abs(shift))
+#     r1 <- seq(1, abs(shift), 1)
+#     out <- x[-r1]
+#     out <- append(out, addition, length(x))
+#   } else{
+#     x
+#   }
+# }
 
 kQueryBody <- function(start, end, metrics, add.to = NULL) {
   if (is.null(add.to)) {
