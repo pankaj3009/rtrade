@@ -1,18 +1,20 @@
 Package: RTrade
 Type: Package
 Title: Backtesting of Trading Strategies
-Version: 0.2.0
+Version: 0.2.5
 Author: Pankaj Sharma
 Maintainer: <psharma@incurrency.com>
-Description: The package provides 1. Ability to retrieve equity and futures prices from kairosdb, hosted by incurrency. 2. basic vector manipulation utilities that are useful for backtesting. 3. Framework for backtesting of trading signals. 4. Bootstrapping of trades
+Description: The package provides 1. Ability to retrieve equity and futures prices from kairosdb, hosted by incurrency. 2. basic vector manipulation utilities that are useful for backtesting. 3. Framework for backtesting of trading signals. 4. Bootstrapping of trades. Added flag in bootstrap to reinstate tradingsize after target drawdown period.
 License: BSD-3-clause
 LazyData: TRUE
 Imports:
     httr,
-    jsonlite
+    jsonlite,
+    xts
 Depends:
     httr,
-    jsonlite
+    jsonlite,
+    xts
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:

@@ -77,6 +77,18 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// whichDate2
+IntegerVector whichDate2(DatetimeVector x, Datetime condition);
+RcppExport SEXP RTrade_whichDate2(SEXP xSEXP, SEXP conditionSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< DatetimeVector >::type x(xSEXP);
+    Rcpp::traits::input_parameter< Datetime >::type condition(conditionSEXP);
+    __result = Rcpp::wrap(whichDate2(x, condition));
+    return __result;
+END_RCPP
+}
 // CalculatePortfolioEquityCurve
 DataFrame CalculatePortfolioEquityCurve(String symbol, DataFrame all, DataFrame trades, NumericVector size, double brokerage);
 RcppExport SEXP RTrade_CalculatePortfolioEquityCurve(SEXP symbolSEXP, SEXP allSEXP, SEXP tradesSEXP, SEXP sizeSEXP, SEXP brokerageSEXP) {
@@ -103,6 +115,17 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// GenerateTradesShort
+DataFrame GenerateTradesShort(DataFrame all);
+RcppExport SEXP RTrade_GenerateTradesShort(SEXP allSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
+    __result = Rcpp::wrap(GenerateTradesShort(all));
+    return __result;
+END_RCPP
+}
 // ProcessPositionScore
 DataFrame ProcessPositionScore(DataFrame all, unsigned int maxposition, DatetimeVector dates);
 RcppExport SEXP RTrade_ProcessPositionScore(SEXP allSEXP, SEXP maxpositionSEXP, SEXP datesSEXP) {
@@ -113,6 +136,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< unsigned int >::type maxposition(maxpositionSEXP);
     Rcpp::traits::input_parameter< DatetimeVector >::type dates(datesSEXP);
     __result = Rcpp::wrap(ProcessPositionScore(all, maxposition, dates));
+    return __result;
+END_RCPP
+}
+// ProcessPositionScoreShort
+DataFrame ProcessPositionScoreShort(DataFrame all, unsigned int maxposition, DatetimeVector dates);
+RcppExport SEXP RTrade_ProcessPositionScoreShort(SEXP allSEXP, SEXP maxpositionSEXP, SEXP datesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< DataFrame >::type all(allSEXP);
+    Rcpp::traits::input_parameter< unsigned int >::type maxposition(maxpositionSEXP);
+    Rcpp::traits::input_parameter< DatetimeVector >::type dates(datesSEXP);
+    __result = Rcpp::wrap(ProcessPositionScoreShort(all, maxposition, dates));
     return __result;
 END_RCPP
 }

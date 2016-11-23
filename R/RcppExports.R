@@ -25,6 +25,10 @@ linkedsymbols <- function(initial, final, symbol) {
     .Call('RTrade_linkedsymbols', PACKAGE = 'RTrade', initial, final, symbol)
 }
 
+whichDate2 <- function(x, condition) {
+    .Call('RTrade_whichDate2', PACKAGE = 'RTrade', x, condition)
+}
+
 CalculatePortfolioEquityCurve <- function(symbol, all, trades, size, brokerage) {
     .Call('RTrade_CalculatePortfolioEquityCurve', PACKAGE = 'RTrade', symbol, all, trades, size, brokerage)
 }
@@ -33,8 +37,16 @@ GenerateTrades <- function(all) {
     .Call('RTrade_GenerateTrades', PACKAGE = 'RTrade', all)
 }
 
+GenerateTradesShort <- function(all) {
+    .Call('RTrade_GenerateTradesShort', PACKAGE = 'RTrade', all)
+}
+
 ProcessPositionScore <- function(all, maxposition, dates) {
     .Call('RTrade_ProcessPositionScore', PACKAGE = 'RTrade', all, maxposition, dates)
+}
+
+ProcessPositionScoreShort <- function(all, maxposition, dates) {
+    .Call('RTrade_ProcessPositionScoreShort', PACKAGE = 'RTrade', all, maxposition, dates)
 }
 
 ApplyStop <- function(all, amount) {

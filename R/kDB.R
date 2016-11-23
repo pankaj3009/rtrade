@@ -1,5 +1,6 @@
 library(httr)
 library(jsonlite)
+library(xts)
 
 # ref <- function(x, shift) {
 #   # x has to be a vector. Not a matrix or dataframe!!
@@ -109,6 +110,7 @@ kTags <- function(..., a) {
 
 kGetOHLCV <-
   function(...,
+           df=NULL,
            start = "",
            end = "",
            timezone = "Asia/Kolkata",
@@ -190,7 +192,9 @@ kGetOHLCV <-
     }
     #handle splits
     if (!is.null(splits)) {
-      md <- processSplits(md, splits, symbollist)
+      md <- processSplits(md, splits, symbollist,df)
+    }else{
+            md<-rbind(df,md)
     }
     if (is.character(filepath)) {
       save(md, file = paste(filepath, symbollist[1], ".Rdata", sep = ""))
@@ -198,72 +202,92 @@ kGetOHLCV <-
     md
   }
 
-processSplits <- function(md, splits, symbollist) {
+processSplits <- function(md, splits, symbollist,origmd) {
   if (nrow(md) > 0) {
     if (is.character(splits$date)) {
       splits[, 1] <-
         as.POSIXct(splits[, 1], format = "%Y-%m-%d") # col 1 is date
     }
+  }
+ if(is.na(match("splitadjust", names(origmd)))){
+    md<-rbind(origmd,md)
+    }else{
+        superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
+        superset<-superset[superset %in% names(origmd)]
+        md<-rbind(origmd[,superset],md)
+    }
+    if(!is.null(md) && nrow(md)>0){
+    md$splitadjust=1
     for (i in 1:length(symbollist)) {
       print(paste("Processing Split for symbol", symbollist[i], sep = " "))
       subset <-
         splits[splits[, 2] == symbollist[i],] # col 2 is symbols
       if (nrow(subset) > 0) {
         for (j in 1:nrow(subset)) {
+          md$splitadjust <-
+            ifelse(md$date < subset[, 1][j],
+                   md$splitadjust*subset[, 4][j]/subset[, 3][j],
+                   #row 3 is oldshare, row 4 is newshares
+                   md$splitadjust)
           if ("open" %in% colnames(md)) {
-            md$open <-
-              ifelse(md$date < subset[, 1][j],
-                     md$open * subset[, 3][j] / subset[, 4][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$open)
+            md$aopen <-md$open/md$splitadjust
           }
           if ("high" %in% colnames(md)) {
-            md$high <-
-              ifelse(md$date < subset[, 1][j],
-                     md$high * subset[, 3][j] / subset[, 4][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$high)
+            md$ahigh <- md$high/md$splitadjust
           }
           if ("low" %in% colnames(md)) {
-            md$low <-
-              ifelse(md$date < subset[, 1][j],
-                     md$low * subset[, 3][j] / subset[, 4][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$low)
+            md$alow <- md$low/md$splitadjust
           }
           if ("close" %in% colnames(md)) {
-            md$close <-
-              ifelse(md$date < subset[, 1][j],
-                     md$close * subset[, 3][j] / subset[, 4][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$close)
+            md$aclose <- md$close/md$splitadjust
           }
           if ("settle" %in% colnames(md)) {
-            md$settle <-
-              ifelse(md$date < subset[, 1][j],
-                     md$settle * subset[, 3][j] / subset[, 4][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$settle)
+            md$asettle <-md$settle/md$splitadjust
           }
           if ("volume" %in% colnames(md)) {
-            md$volume <-
-              ifelse(md$date < subset[, 1][j],
-                     md$volume * subset[, 4][j] / subset[, 3][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$volume)
+            md$avolume <-md$volume*md$splitadjust
           }
           if ("delivered" %in% colnames(md)) {
-            md$delivered <-
-              ifelse(md$date < subset[, 1][j],
-                     md$delivered * subset[, 4][j] / subset[, 3][j],
-                     #row 3 is oldshare, row 4 is newshares
-                     md$delivered)
+            md$adelivered <-md$delivered*md$splitadjust
           }
         }
+      }else{
+              # no splits. add columns for adjusted values
+              if ("open" %in% colnames(md)) {
+                      md$aopen <-md$open/md$splitadjust
+              }
+              if ("high" %in% colnames(md)) {
+                      md$ahigh <- md$high/md$splitadjust
+              }
+              if ("low" %in% colnames(md)) {
+                      md$alow <- md$low/md$splitadjust
+              }
+              if ("close" %in% colnames(md)) {
+                      md$aclose <- md$close/md$splitadjust
+              }
+              if ("settle" %in% colnames(md)) {
+                      md$asettle <-md$settle/md$splitadjust
+              }
+              if ("volume" %in% colnames(md)) {
+                      md$avolume <-md$volume*md$splitadjust
+              }
+              if ("delivered" %in% colnames(md)) {
+                      md$adelivered <-md$delivered*md$splitadjust
+              }
       }
     }
-  }
+    }
   md
+}
+
+convertToXTS<-function(md,columns=c("aopen","ahigh","alow","aclose","avolume")){
+  if(!is.null(md) && nrow(md)>0){
+  #symbol=md[1,c("symbol")]
+  out<-xts(md[,columns],md[,1])
+  #assign(paste(symbol,sep=""),out)
+  }
+  #return(paste(symbol,sep=""))
+  return(out)
 }
 #a <- merge(Matrix1, Matrix2, by = c("Col1", "Col3"), all = TRUE)
 #r<-kGetOHLCV(start="2014-10-30 00:00:00",end="2014-11-05 00:00:00",timezone="Asia/Kolkata",name="india.nse.future.s1.1min",aName=NULL,aValue=NULL,aUnit=NULL,"symbol=nsenifty","expiry=20141127")
