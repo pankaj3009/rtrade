@@ -192,7 +192,7 @@ kGetOHLCV <-
     }
     #handle splits
     if (!is.null(splits)) {
-      md <- processSplits(md, splits, symbollist,df)
+      md <- processSplits(md, splits, symbollist,df,end)
     }else{
             md<-rbind(df,md)
     }
@@ -202,21 +202,25 @@ kGetOHLCV <-
     md
   }
 
-processSplits <- function(md, splits, symbollist,origmd) {
+processSplits <- function(md, splits, symbollist,origmd,end) {
   if (nrow(md) > 0) {
     if (is.character(splits$date)) {
       splits[, 1] <-
         as.POSIXct(splits[, 1], format = "%Y-%m-%d") # col 1 is date
     }
   }
- if(is.na(match("splitadjust", names(origmd)))){
+if(nrow(origmd)>0){
+  if(is.na(match("splitadjust", names(origmd)))){
     md<-rbind(origmd,md)
-    }else{
-        superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
-        superset<-superset[superset %in% names(origmd)]
-        md<-rbind(origmd[,superset],md)
-    }
-    if(!is.null(md) && nrow(md)>0){
+  }else{
+    superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
+    superset<-superset[superset %in% names(origmd)]
+    md<-rbind(origmd[,superset],md)
+  }
+}
+
+if(!is.null(md) && nrow(md)>0){
+    endreference=as.POSIXct(end)
     md$splitadjust=1
     for (i in 1:length(symbollist)) {
       print(paste("Processing Split for symbol", symbollist[i], sep = " "))
@@ -224,8 +228,9 @@ processSplits <- function(md, splits, symbollist,origmd) {
         splits[splits[, 2] == symbollist[i],] # col 2 is symbols
       if (nrow(subset) > 0) {
         for (j in 1:nrow(subset)) {
+          #print(paste(endreference,subset[,1][j],subset[,1][j]<=endreference))
           md$splitadjust <-
-            ifelse(md$date < subset[, 1][j],
+            ifelse(md$date < subset[, 1][j] & subset[,1][j]<=endreference,
                    md$splitadjust*subset[, 4][j]/subset[, 3][j],
                    #row 3 is oldshare, row 4 is newshares
                    md$splitadjust)

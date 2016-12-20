@@ -108,20 +108,40 @@ NumericVector BarsSince(NumericVector vec1){
 
 // [[Rcpp::export]]
 NumericVector Cross(NumericVector snake,NumericVector reference){
-  int nSize=snake.size();
-  NumericVector result(nSize);
-  NumericVector referencevector(nSize,reference[0]);
-  if(reference.size()>1){
-    referencevector=reference;
-  }
+  int snakeSize=snake.size();
+  int referenceSize=reference.size();
+//  Rcout<<"ReferenceSize:"<<referenceSize<<endl;
+//  Rcout<<"SnakeSize:"<<snakeSize<<endl;
+
+  NumericVector snakevector(max(snakeSize,referenceSize));
+  NumericVector referencevector(max(snakeSize,referenceSize));
+ if(snakeSize==1 && referenceSize>1){
+   for(int i=0;i<referenceSize;i++){
+     snakevector[i]=snake[0];
+   }
+   referencevector=reference;
+ }
+
+ if(snakeSize>1 && referenceSize==1){
+   for(int i=0;i<snakeSize;i++){
+     referencevector[i]=reference[0];
+   }
+   snakevector=snake;
+ }
+ snakeSize=snakevector.size();
+ NumericVector result(snakeSize);
+ //Rcout<<"SnakeSize:"<<snakeSize<<endl;
+ //Rcout<<"ReferenceSize:"<<referencevector.size()<<endl;
+
+
   bool set=false;
-  for(int i=1;i<nSize;i++){
-    if((set==false) && (snake[i]>referencevector[i])){
+  for(int i=1;i<snakeSize;i++){
+    if((set==false) && (snakevector[i]>referencevector[i])){
       result[i]=1;
       set=true;
-    //  Rcout<<"Snake above reference. Set to true for bar:"<<i<<",Snake:"<<snake[i]<<",Ref:"<<referencevector[i]<<endl;
-    }else if(snake[i]<referencevector[i]){
-      //Rcout<<"Snake below reference. Set to false for bar:"<<i<<",Snake:"<<snake[i]<<",Ref:"<<referencevector[i]<<endl;
+     // Rcout<<"Snake above reference. Set to true for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
+    }else if(snakevector[i]<referencevector[i]){
+    //  Rcout<<"Snake below reference. Set to false for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
       set=false;
     }
 
