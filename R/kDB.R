@@ -37,7 +37,9 @@ kQueryBody <- function(start, end, metrics, add.to = NULL) {
     result <- append(add.to$metrics, metrics)
   }
 
+
   result
+
 
 }
 
@@ -58,6 +60,7 @@ kMetrics <- function(tags, name, aggregators) {
     names(result) <- c("tags", "name", "aggregators")
     #print(result)
 
+
   } else{
     result <- list(tags, jsonlite::unbox(name))
     names(result) <- c("tags", "name")
@@ -77,12 +80,13 @@ kAggregators <- function(x, y, z) {
   return(result)
 }
 
-kTags <- function(..., a) {
-  input <- list(...)[-length(list(...))]
-  # print("input")
-  # print(input)
-  # print("length input")
-  # print(length(input))
+kTags <- function(value) {
+  input=as.list(strsplit(value,",")[[1]])
+  #input <- list(...)[-length(list(...))]
+  #print("input")
+  #print(input)
+  #print("length input")
+  #print(length(input))
   tags <- list()
   names <- vector()
   for (i in 1:length(input)) {
@@ -103,9 +107,62 @@ kTags <- function(..., a) {
   }
   names(tags) <- names
 
-  #    print("tags")
-  #    print(tags)
+
+  #print("tags")
+  #print(tags)
   tags
+}
+
+kgetTags<-function(...,start,end,timezone = "Asia/Kolkata",name,ts,tagname){
+
+
+
+  input = strsplit(list(...)[[1]], "=")[[1]][2]
+
+  md <- data.frame(symbol = character(),tagname=character(),stringsAsFactors = FALSE)
+  if (!is.null(symbolchange)) {
+    symbollist = c(toupper(input))
+
+  }
+  for (j in length(symbollist):1) {
+    a <- list(...)
+    a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
+    newargs = paste(a, collapse = ",")
+    startUnix <-
+      as.numeric(as.POSIXct(paste(start, timezone))) * 1000
+    endUnix <- as.numeric(as.POSIXct(paste(end, timezone))) * 1000
+    startLong <- kDate(startUnix)
+    endLong <- kDate(endUnix)
+    tags <- kTags(newargs)
+    out <- matrix()
+    aggr = list()
+    for (i in 1:length(ts)) {
+      tempname = paste(name, ts[i], sep = ".")
+      metrics <- kMetrics(tags, tempname, NULL)
+
+
+      query <- kQueryBody(startLong, endLong, metrics)
+      myjson <- toJSON(query, pretty = TRUE)
+      r <-
+        POST(
+          "http://91.121.165.108:8085/api/v1/datapoints/query/tags",
+          body = myjson,
+          encode = "json"
+        )
+      if (length(content(r)$queries[[1]]$results[[1]]$tags[tagname]) > 0) {
+        print(content(r)$queries[[1]]$results[[1]]$tags["strike"])
+        df<-data.frame(tagname=unlist(content(r)$queries[[1]]$results[[1]]$tags["strike"]),symbol=symbollist[j],stringsAsFactors = FALSE)
+        md=rbind(md,df)
+      }
+    }
+
+
+
+
+  }
+  rownames(md)<-NULL
+  colnames(md)<-c(tagname,"symbol")
+  md
 }
 
 kGetOHLCV <-
@@ -134,21 +191,23 @@ kGetOHLCV <-
       symbollist = c(toupper(input))
     }
 
+
     for (j in length(symbollist):1) {
       a <- list(...)
       a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
-      newargs = paste(a, sep = ",")
+      newargs = paste(a, collapse = ",")
       startUnix <-
         as.numeric(as.POSIXct(paste(start, timezone))) * 1000
       endUnix <- as.numeric(as.POSIXct(paste(end, timezone))) * 1000
       startLong <- kDate(startUnix)
       endLong <- kDate(endUnix)
-      tags <- kTags(newargs, NULL)
+      tags <- kTags(newargs)
       out <- matrix()
       aggr = list()
       for (i in 1:length(ts)) {
         tempname = paste(name, ts[i], sep = ".")
         aggr <- kAggregators(aggregators[i], aValue, aUnit)
+
 
         if (!is.null(aggr)) {
           metrics <- kMetrics(tags, tempname, aggr)
@@ -174,6 +233,7 @@ kGetOHLCV <-
           colnames(m) <- c("date", ts[i])
           out <- merge(out, m, by = 1, all = TRUE)
 
+
         }
       }
       if (dim(out)[2] == length(ts) + 1) {
@@ -183,6 +243,7 @@ kGetOHLCV <-
         d <- data.frame(out)
         md <- rbind(md, d)
       }
+
 
     }
     if (nrow(md) > 0) {
@@ -194,7 +255,7 @@ kGetOHLCV <-
     if (!is.null(splits)) {
       md <- processSplits(md, splits, symbollist,df,end)
     }else{
-            md<-rbind(df,md)
+      md<-rbind(df,md)
     }
     if (is.character(filepath)) {
       save(md, file = paste(filepath, symbollist[1], ".Rdata", sep = ""))
@@ -209,17 +270,18 @@ processSplits <- function(md, splits, symbollist,origmd,end) {
         as.POSIXct(splits[, 1], format = "%Y-%m-%d") # col 1 is date
     }
   }
-if(nrow(origmd)>0){
-  if(is.na(match("splitadjust", names(origmd)))){
-    md<-rbind(origmd,md)
-  }else{
-    superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
-    superset<-superset[superset %in% names(origmd)]
-    md<-rbind(origmd[,superset],md)
+  if(nrow(origmd)>0){
+    if(is.na(match("splitadjust", names(origmd)))){
+      md<-rbind(origmd,md)
+    }else{
+      superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
+      superset<-superset[superset %in% names(origmd)]
+      md<-rbind(origmd[,superset],md)
+    }
   }
-}
 
-if(!is.null(md) && nrow(md)>0){
+
+  if(!is.null(md) && nrow(md)>0){
     endreference=as.POSIXct(end)
     md$splitadjust=1
     for (i in 1:length(symbollist)) {
@@ -257,39 +319,39 @@ if(!is.null(md) && nrow(md)>0){
           }
         }
       }else{
-              # no splits. add columns for adjusted values
-              if ("open" %in% colnames(md)) {
-                      md$aopen <-md$open/md$splitadjust
-              }
-              if ("high" %in% colnames(md)) {
-                      md$ahigh <- md$high/md$splitadjust
-              }
-              if ("low" %in% colnames(md)) {
-                      md$alow <- md$low/md$splitadjust
-              }
-              if ("close" %in% colnames(md)) {
-                      md$aclose <- md$close/md$splitadjust
-              }
-              if ("settle" %in% colnames(md)) {
-                      md$asettle <-md$settle/md$splitadjust
-              }
-              if ("volume" %in% colnames(md)) {
-                      md$avolume <-md$volume*md$splitadjust
-              }
-              if ("delivered" %in% colnames(md)) {
-                      md$adelivered <-md$delivered*md$splitadjust
-              }
+        # no splits. add columns for adjusted values
+        if ("open" %in% colnames(md)) {
+          md$aopen <-md$open/md$splitadjust
+        }
+        if ("high" %in% colnames(md)) {
+          md$ahigh <- md$high/md$splitadjust
+        }
+        if ("low" %in% colnames(md)) {
+          md$alow <- md$low/md$splitadjust
+        }
+        if ("close" %in% colnames(md)) {
+          md$aclose <- md$close/md$splitadjust
+        }
+        if ("settle" %in% colnames(md)) {
+          md$asettle <-md$settle/md$splitadjust
+        }
+        if ("volume" %in% colnames(md)) {
+          md$avolume <-md$volume*md$splitadjust
+        }
+        if ("delivered" %in% colnames(md)) {
+          md$adelivered <-md$delivered*md$splitadjust
+        }
       }
     }
-    }
+  }
   md
 }
 
 convertToXTS<-function(md,columns=c("aopen","ahigh","alow","aclose","avolume")){
   if(!is.null(md) && nrow(md)>0){
-  #symbol=md[1,c("symbol")]
-  out<-xts(md[,columns],md[,1])
-  #assign(paste(symbol,sep=""),out)
+    #symbol=md[1,c("symbol")]
+    out<-xts(md[,columns],md[,1])
+    #assign(paste(symbol,sep=""),out)
   }
   #return(paste(symbol,sep=""))
   return(out)
@@ -303,3 +365,8 @@ convertToXTS<-function(md,columns=c("aopen","ahigh","alow","aclose","avolume")){
 #r<-kGetOHLCV(start="1990-05-21 09:15:00",end="2014-10-21 15:30:00",timezone="Asia/Kolkata",name="india.nse.index.s4.daily",aName=NULL,aValue=NULL,aUnit=NULL,"symbol=nsenifty")
 #sum(abs(diff(r$close)))
 #which(is.na(r$close))
+
+b<-paste("symbol=nsenifty","expiry=20170125","option=CALL",sep=",")
+start="2016-12-29 00:00:00"
+end= "2016-12-29 00:00:00"
+symbol="nsenifty"

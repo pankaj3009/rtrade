@@ -10,11 +10,15 @@ LazyData: TRUE
 Imports:
     httr,
     jsonlite,
-    xts
+    xts,
+    rredis,
+    RQuantLib
 Depends:
     httr,
     jsonlite,
-    xts
+    xts,
+    rredis,
+    RQuantLib
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:

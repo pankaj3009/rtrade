@@ -83,7 +83,7 @@ NumericVector ExRem(NumericVector vec1, NumericVector vec2){
 NumericVector Flip(NumericVector vec1, NumericVector vec2){
   NumericVector result=ExRem(vec1,vec2);
   for(int i=1;i<result.size();i++){
-    if(result[i-1]>0 && vec2[i]==0){
+    if((result[i-1]>0 && vec2[i]==0)||(result[i-1]>0 && vec2[i]>0 && vec1[i]>0)){
       result[i]=result[i-1];
     }
   }
@@ -257,8 +257,8 @@ DataFrame CalculateEquityCurve(String symbol,DataFrame all, DataFrame trades,Num
 
                         if(entrytime[j]>=timestamp[0]){ //only process if the trade entry is after the first timestamp provided
                                 if((entrytime[j]==timestamp[i]) && (symbols[j]==symbol)){
-                                        value[i]=(trade[j].find("Short")==string::npos)?(value[i]-(size[i]*entryprice[j])):(value[i]+(size[i]*entryprice[j]));
-                                        contracts[i]=(trade[j].find("Short")==string::npos)?contracts[i]+size[i]:contracts[i]-size[i];
+                                        value[i]=(trade[j].find("SHORT")==string::npos)?(value[i]-(size[i]*entryprice[j])):(value[i]+(size[i]*entryprice[j]));
+                                        contracts[i]=(trade[j].find("SHORT")==string::npos)?contracts[i]+size[i]:contracts[i]-size[i];
                                         brokeragecost[i]=brokeragecost[i]+brokerage*size[i]*entryprice[j];
                                         entrysize=size[i];
                                         if(i<0){
@@ -267,8 +267,8 @@ DataFrame CalculateEquityCurve(String symbol,DataFrame all, DataFrame trades,Num
                                         }
                                 }
                                 if ((exittime[j]==timestamp[i]) && (symbols[j]==symbol)){
-                                        value[i]=(trade[j].find("Long")==string::npos)?(value[i]-(entrysize*exitprice[j])):(value[i]+(entrysize*exitprice[j]));
-                                        contracts[i]=(trade[j].find("Long")==string::npos)?contracts[i]+entrysize:contracts[i]-entrysize;
+                                        value[i]=(trade[j].find("BUY")==string::npos)?(value[i]-(entrysize*exitprice[j])):(value[i]+(entrysize*exitprice[j]));
+                                        contracts[i]=(trade[j].find("BUY")==string::npos)?contracts[i]+entrysize:contracts[i]-entrysize;
                                         brokeragecost[i]=brokeragecost[i]+brokerage*entrysize*exitprice[j];
                                         if(i<0){
                                                 //Rcout << " Exit bar:"<<i <<" ,trade bar:" << j <<" ,trade:"<<trade[j] <<" ,current contracts:"<<contracts[i]<<+
@@ -337,8 +337,8 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
       int j=tradeindices[b];
       if(entrytime[j]>=subtimestamp[0]){ //only process if the trade entry is after the first timestamp provided
         if((entrytime[j]==subtimestamp[i]) && (tradesymbols[j]==symbol)){
-          value[a]=(trade[j].find("Short")==string::npos)?(value[a]-(size[i]*entryprice[j])):(value[a]+(size[i]*entryprice[j]));
-          contracts[a]=(trade[j].find("Short")==string::npos)?contracts[a]+size[i]:contracts[a]-size[i];
+          value[a]=(trade[j].find("SHORT")==string::npos)?(value[a]-(size[i]*entryprice[j])):(value[a]+(size[i]*entryprice[j]));
+          contracts[a]=(trade[j].find("SHORT")==string::npos)?contracts[a]+size[i]:contracts[a]-size[i];
           brokeragecost[a]=brokeragecost[a]+brokerage*size[i]*entryprice[j];
           entrysize[i]=size[i];
           //Rcout<<"Entry"<<",Trade:"<<trade[j]<<",value:"<<value[a]<<",contracts:"<<contracts[a]<<",entrysize:"<<entrysize[i]<<",i:"<<i<<",a:"<<a<<",j:"<<j<<endl;
@@ -351,8 +351,8 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
           IntegerVector entryindex= whichDate2(subtimestamp,entrytime[j]) ;//index of corresponding purchase.
           //Rcout<<"EntryIndex:"<<entryindex[0]<<endl;
           int exitsize=entrysize[entryindex[0]];
-          value[a]=(trade[j].find("Long")==string::npos)?(value[a]-(exitsize*exitprice[j])):(value[a]+(exitsize*exitprice[j]));
-          contracts[a]=(trade[j].find("Long")==string::npos)?contracts[a]+exitsize:contracts[a]-exitsize;
+          value[a]=(trade[j].find("BUY")==string::npos)?(value[a]-(exitsize*exitprice[j])):(value[a]+(exitsize*exitprice[j]));
+          contracts[a]=(trade[j].find("BUY")==string::npos)?contracts[a]+exitsize:contracts[a]-exitsize;
           brokeragecost[a]=brokeragecost[a]+brokerage*exitsize*exitprice[j];
           if(i<0){
             //Rcout << " Exit bar:"<<i <<" ,trade bar:" << j <<" ,trade:"<<trade[j] <<" ,current contracts:"<<contracts[i]<<+
@@ -422,16 +422,17 @@ DataFrame GenerateTrades(DataFrame all){
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
     //Rf_PrintValue(uniquesymbol[z]);
     //Rf_PrintValue(indices);
+    //for the specified uniquesymbol, indices contains the vector of index values to "all"
     for(int a=0;a<indices.size();a++){
-      int i=indices[a];
+      int i=indices[a]; //i is the scalar index into "all"
       int entrybar=0;
       if((buyprocessed[i]==false) && ((buy[i]>0) && (buy[i]<999))){
         tradesize++;
         tradesymbol[tradesize]=symbol[i];
         if(buy[i]==1){
-          trade[tradesize]="Long";
+          trade[tradesize]="BUY";
         }else if(buy[i]==2){
-          trade[tradesize]="ReplacementLong";
+          trade[tradesize]="ReplacementBUY";
         }
         entrytime[tradesize]=timestamp[i];
         entryprice[tradesize]=buyprice[i];
@@ -453,7 +454,9 @@ DataFrame GenerateTrades(DataFrame all){
           //Rcout<<"Sell"<<",Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
           exittime[tradesize]=timestamp[k];
           exitprice[tradesize]=sellprice[k];
-          bars[tradesize]=k-entrybar;
+          //bars[tradesize]=k-entrybar;
+          //Rcout<<"1, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
+          bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
           percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
           //we have found a sell. Check for any scaleinlong
           if(a+1<b){
@@ -464,13 +467,15 @@ DataFrame GenerateTrades(DataFrame all){
                 tradesize++;
                 //Rcout<<"ScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                 tradesymbol[tradesize]=symbol[j];
-                trade[tradesize]="ScaleInLong";
+                trade[tradesize]="ScaleInBUY";
                 entrytime[tradesize]=timestamp[j];
                 entryprice[tradesize]=buyprice[j];
                 buyprocessed[j]=true;
                 exittime[tradesize]=timestamp[k];
                 exitprice[tradesize]=sellprice[k];
-                bars[tradesize]=k-j;
+                //bars[tradesize]=k-j;
+                //Rcout<<"2, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                 percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                 sellprocessed[j]=true;
                 //Rcout<<"SellScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
@@ -490,13 +495,15 @@ DataFrame GenerateTrades(DataFrame all){
               tradesize++;
               //Rcout<<"ScaleInLongOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
               tradesymbol[tradesize]=symbol[j];
-              trade[tradesize]="ScaleInLong";
+              trade[tradesize]="ScaleInBUY";
               entrytime[tradesize]=timestamp[j];
               entryprice[tradesize]=buyprice[j];
               buyprocessed[j]=true;
 //              exittime[tradesize]=0;
               exitprice[tradesize]=sellprice[k];
-              bars[tradesize]=k-j;
+              //bars[tradesize]=k-j;
+              //Rcout<<"3, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+              bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
               percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
               sellprocessed[j]=true;
               //Rcout<<"SellScaleInLongOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
@@ -507,10 +514,11 @@ DataFrame GenerateTrades(DataFrame all){
         tradesize++;
         tradesymbol[tradesize]=symbol[i];
         if(shrt[i]==1){
-          trade[tradesize]="Short";
+          trade[tradesize]="SHORT";
         }else if(shrt[i]==2){
-          trade[tradesize]="ReplacementShort";
+          trade[tradesize]="ReplacementSHORT";
         }
+
         entrytime[tradesize]=timestamp[i];
         entryprice[tradesize]=shortprice[i];
         entrybar=i;
@@ -530,7 +538,9 @@ DataFrame GenerateTrades(DataFrame all){
           //Rcout<<"Cover"<<"Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
           exittime[tradesize]=timestamp[k];
           exitprice[tradesize]=coverprice[k];
-          bars[tradesize]=k-entrybar;
+          //bars[tradesize]=k-entrybar;
+          //Rcout<<"4, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
+          bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
           percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
           //we have found a cover. Check for any scaleinshort
           if(a+1<b){
@@ -541,13 +551,15 @@ DataFrame GenerateTrades(DataFrame all){
                 tradesize++;
                 //Rcout<<"ScaleInShort"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                 tradesymbol[tradesize]=symbol[j];
-                trade[tradesize]="ScaleInShort";
+                trade[tradesize]="ScaleInSHORT";
                 entrytime[tradesize]=timestamp[j];
                 entryprice[tradesize]=shortprice[j];
                 shortprocessed[j]=true;
                 exittime[tradesize]=timestamp[k];
                 exitprice[tradesize]=coverprice[k];
-                bars[tradesize]=k-j;
+                //bars[tradesize]=k-j;
+                //Rcout<<"5, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                 percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                 coverprocessed[j]=true;
                 //Rcout<<"ScaleInCover"<<",Symbol:"<<symbol[c]<<"TradeSize:"<<tradesize<<",SignalBar:"<<c<<endl;
@@ -563,13 +575,15 @@ DataFrame GenerateTrades(DataFrame all){
               tradesize++;
 //              Rcout<<"ScaleInShortOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
               tradesymbol[tradesize]=symbol[j];
-              trade[tradesize]="ScaleInShort";
+              trade[tradesize]="ScaleInSHORT";
               entrytime[tradesize]=timestamp[j];
               entryprice[tradesize]=shortprice[j];
               shortprocessed[j]=true;
   //            exittime[tradesize]=0;
               exitprice[tradesize]=coverprice[k];
-              bars[tradesize]=k-j;
+              //bars[tradesize]=k-j;
+             // Rcout<<"6, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+              bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
               percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
               coverprocessed[j]=true;
               //Rcout<<"ScaleInCover"<<",Symbol:"<<symbol[c]<<"TradeSize:"<<tradesize<<",SignalBar:"<<c<<endl;
@@ -638,9 +652,9 @@ DataFrame GenerateTradesShort(DataFrame all){
                                 tradesize++;
                                 tradesymbol[tradesize]=symbol[i];
                                 if(buy[i]==1){
-                                        trade[tradesize]="Long";
+                                        trade[tradesize]="BUY";
                                 }else if(buy[i]==2){
-                                        trade[tradesize]="ReplacementLong";
+                                        trade[tradesize]="ReplacementBUY";
                                 }
                                 entrytime[tradesize]=timestamp[i];
                                 entryprice[tradesize]=buyprice[i];
@@ -662,7 +676,9 @@ DataFrame GenerateTradesShort(DataFrame all){
                                         //Rcout<<"Sell"<<",Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
                                         exittime[tradesize]=timestamp[k];
                                         exitprice[tradesize]=sellprice[k];
-                                        bars[tradesize]=k-entrybar;
+                                        //bars[tradesize]=k-entrybar;
+                                        //Rcout<<"7, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
+                                        bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
                                         percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                         //we have found a sell. Check for any scaleinlong
                                         if(a+1<b){
@@ -673,13 +689,15 @@ DataFrame GenerateTradesShort(DataFrame all){
                                                                 tradesize++;
                                                                 //Rcout<<"ScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                                                                 tradesymbol[tradesize]=symbol[j];
-                                                                trade[tradesize]="ScaleInLong";
+                                                                trade[tradesize]="ScaleInBUY";
                                                                 entrytime[tradesize]=timestamp[j];
                                                                 entryprice[tradesize]=buyprice[j];
                                                                 buyprocessed[j]=true;
                                                                 exittime[tradesize]=timestamp[k];
                                                                 exitprice[tradesize]=sellprice[k];
-                                                                bars[tradesize]=k-j;
+                                                                //bars[tradesize]=k-j;
+                                                                //Rcout<<"8, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                                                                bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                                                                 percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                                                 sellprocessed[j]=true;
                                                                 //Rcout<<"SellScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
@@ -699,13 +717,15 @@ DataFrame GenerateTradesShort(DataFrame all){
                                                         tradesize++;
                                                         //Rcout<<"ScaleInLongOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                                                         tradesymbol[tradesize]=symbol[j];
-                                                        trade[tradesize]="ScaleInLong";
+                                                        trade[tradesize]="ScaleInBUY";
                                                         entrytime[tradesize]=timestamp[j];
                                                         entryprice[tradesize]=buyprice[j];
                                                         buyprocessed[j]=true;
                                                         //              exittime[tradesize]=0;
                                                         exitprice[tradesize]=sellprice[k];
-                                                        bars[tradesize]=k-j;
+                                                        //bars[tradesize]=k-j;
+                                                        //Rcout<<"9, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                                                        bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                                                         percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                                         sellprocessed[j]=true;
                                                         //Rcout<<"SellScaleInLongOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
@@ -716,9 +736,9 @@ DataFrame GenerateTradesShort(DataFrame all){
                                 tradesize++;
                                 tradesymbol[tradesize]=symbol[i];
                                 if(shrt[i]==1){
-                                        trade[tradesize]="Short";
+                                        trade[tradesize]="SHORT";
                                 }else if(shrt[i]==2){
-                                        trade[tradesize]="ReplacementShort";
+                                        trade[tradesize]="ReplacementSHORT";
                                 }
                                 entrytime[tradesize]=timestamp[i];
                                 entryprice[tradesize]=shortprice[i];
@@ -739,7 +759,9 @@ DataFrame GenerateTradesShort(DataFrame all){
                                         //Rcout<<"Cover"<<"Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
                                         exittime[tradesize]=timestamp[k];
                                         exitprice[tradesize]=coverprice[k];
-                                        bars[tradesize]=k-entrybar;
+                                        //bars[tradesize]=k-entrybar;
+                                        //Rcout<<"10, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
+                                        bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
                                         percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                         //we have found a cover. Check for any scaleinshort
                                         if(a+1<b){
@@ -750,13 +772,15 @@ DataFrame GenerateTradesShort(DataFrame all){
                                                                 tradesize++;
                                                                 //Rcout<<"ScaleInShort"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                                                                 tradesymbol[tradesize]=symbol[j];
-                                                                trade[tradesize]="ScaleInShort";
+                                                                trade[tradesize]="ScaleInSHORT";
                                                                 entrytime[tradesize]=timestamp[j];
                                                                 entryprice[tradesize]=buyprice[j];
                                                                 shortprocessed[j]=true;
                                                                 exittime[tradesize]=timestamp[k];
                                                                 exitprice[tradesize]=sellprice[k];
-                                                                bars[tradesize]=k-j;
+                                                                //bars[tradesize]=k-j;
+                                                                //Rcout<<"11, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                                                                bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                                                                 percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                                                 coverprocessed[j]=true;
                                                                 //Rcout<<"ScaleInCover"<<",Symbol:"<<symbol[c]<<"TradeSize:"<<tradesize<<",SignalBar:"<<c<<endl;
@@ -772,13 +796,15 @@ DataFrame GenerateTradesShort(DataFrame all){
                                                         tradesize++;
                                                         //              Rcout<<"ScaleInShortOpen"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                                                         tradesymbol[tradesize]=symbol[j];
-                                                        trade[tradesize]="ScaleInShort";
+                                                        trade[tradesize]="ScaleInSHORT";
                                                         entrytime[tradesize]=timestamp[j];
                                                         entryprice[tradesize]=buyprice[j];
                                                         shortprocessed[j]=true;
                                                         //            exittime[tradesize]=0;
                                                         exitprice[tradesize]=sellprice[k];
-                                                        bars[tradesize]=k-j;
+                                                        //bars[tradesize]=k-j;
+                                                        //Rcout<<"12, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+                                                        bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                                                         percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                                                         coverprocessed[j]=true;
                                                         //Rcout<<"ScaleInCover"<<",Symbol:"<<symbol[c]<<"TradeSize:"<<tradesize<<",SignalBar:"<<c<<endl;

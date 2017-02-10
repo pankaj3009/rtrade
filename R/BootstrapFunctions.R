@@ -203,14 +203,22 @@ calcRecoveryValues <-
 bootstrap <-
   function(...,
            returnvector = 1,
+           derivedreturn=1,
            tradebarvector = 1,
            samples = 1,
            samplesize = 1,
            contractsize = 1,
            derivedleg = 0) {
+    #naming convention
+    # .validate => validation data, first leg (level1)
+    # .derived => derived data, second leg (level1)
+    # ..sim =>sim (level2)
+    # ..simind => index of sim (level 2)
+    # ...metric => metric on level 2
     set.seed(567)
     par(mfrow = c(2, 4), oma = c(2, 1, 2, 1))
     return.validate = returnvector
+    return.derived=derivedreturn
     bar.validate = tradebarvector
     samplelist <- list()
     for (i in 1:samples) {
@@ -407,7 +415,7 @@ bootstrap <-
 
 
     for (i in 1:samples) {
-      return.validate.sim <- return.validate[return.validate.simind[, i]]
+      return.derived.sim <- return.derived[return.validate.simind[, i]]
       bar.validate.sim <- bar.validate[return.validate.simind[, i]]
 
       if (derivedleg == 0) {
@@ -465,23 +473,23 @@ bootstrap <-
         }
 
       }
-      deriv.return.validate.sim = return.validate.sim * position.validate.sim /
+      deriv.return.derived.sim = return.derived.sim * position.validate.sim /
         (contractsize * margin)
       deriv.ddrun.validate.sim <-
         calcDrawdownDayCount(seq(1, samplesize, 1),
-                             deriv.return.validate.sim,
+                             deriv.return.derived.sim,
                              bar.validate.sim)
-      returnlist[[i]] = deriv.return.validate.sim
+      returnlist[[i]] = deriv.return.derived.sim
       ddrunlist[[i]] = deriv.ddrun.validate.sim
-      ddvalue = calcDrawdownValues(seq(1, samplesize, 1), deriv.return.validate.sim)
+      ddvalue = calcDrawdownValues(seq(1, samplesize, 1), deriv.return.derived.sim)
       ddvaluelist[[i]] = ddvalue
       ddlength = calcDrawdownVector(seq(1, samplesize, 1),
-                                    deriv.return.validate.sim,
+                                    deriv.return.derived.sim,
                                     bar.validate.sim)
       ddlengthlist[[i]] = ddlength$dddays
       ddtrades <-
         calcDrawdownVector(seq(1, samplesize, 1),
-                           deriv.return.validate.sim,
+                           deriv.return.derived.sim,
                            rep(1, samplesize))
       ddtradeslist[[i]] <- ddtrades
     }
@@ -489,9 +497,9 @@ bootstrap <-
     ddlengthadj = unlist(ddlengthlist)
     ddtradesadj <- unlist(ddtradeslist)
 
-    deriv.return.validate.sim = data.frame(returnlist)
-    colnames(deriv.return.validate.sim) <- seq(1, samples, 1)
-    rownames(deriv.return.validate.sim) <- seq(1, samplesize, 1)
+    deriv.return.derived.sim = data.frame(returnlist)
+    colnames(deriv.return.derived.sim) <- seq(1, samples, 1)
+    rownames(deriv.return.derived.sim) <- seq(1, samplesize, 1)
 
     deriv.ddrun.validate.sim = data.frame(ddrunlist)
     colnames(deriv.ddrun.validate.sim) <- seq(1, samples, 1)
@@ -502,9 +510,9 @@ bootstrap <-
     rownames(deriv.ddvalue.validate.sim) <- seq(1, samplesize, 1)
 
     #plot 5(Row2, Col 1)
-    deriv.return.validate.sim.periodreturn = apply(deriv.return.validate.sim, 2, sum)
+    deriv.return.derived.sim.periodreturn = apply(deriv.return.derived.sim, 2, sum)
     hist(
-      deriv.return.validate.sim.periodreturn,
+      deriv.return.derived.sim.periodreturn,
       breaks = "FD",
       prob = TRUE,
       ylab = "relative frequency",
@@ -512,18 +520,18 @@ bootstrap <-
       main = "Expected Absolute % Return"
     )
     lines(
-      density(deriv.return.validate.sim.periodreturn),
+      density(deriv.return.derived.sim.periodreturn),
       lwd = 2,
       col = "blue"
     )
-    expectedret = round(mean(deriv.return.validate.sim.periodreturn), 2)
-    sd = round(sd(deriv.return.validate.sim.periodreturn), 2)
+    expectedret = round(mean(deriv.return.derived.sim.periodreturn), 2)
+    sd = round(sd(deriv.return.derived.sim.periodreturn), 2)
     mtext(side = 3,
           text = (paste(
             "Expected Return: ", round(mean(
-              deriv.return.validate.sim.periodreturn
+              deriv.return.derived.sim.periodreturn
             ), 2), "sd: ", round(sd(
-              deriv.return.validate.sim.periodreturn
+              deriv.return.derived.sim.periodreturn
             ), 2)
           )),
           cex = 0.75)
@@ -646,15 +654,15 @@ bootstrap <-
     metrics$maxdd99perc[1] = round(quantile(ddrun.validate.sim.max, 0.99), 0)
     metrics$maxdd99perc[2] = round(quantile(deriv.ddrun.validate.sim.max, 0.99), 0)
     metrics$retavg[1] = round(mean(return.validate.sim.periodreturn), 2)
-    metrics$retavg[2] = round(mean(deriv.return.validate.sim.periodreturn), 2)
+    metrics$retavg[2] = round(mean(deriv.return.derived.sim.periodreturn), 2)
     metrics$retmax[1] = round(max(return.validate.sim.periodreturn), 2)
-    metrics$retmax[2] = round(max(deriv.return.validate.sim.periodreturn), 2)
+    metrics$retmax[2] = round(max(deriv.return.derived.sim.periodreturn), 2)
     metrics$retmin[1] = round(min(return.validate.sim.periodreturn), 2)
-    metrics$retmin[2] = round(min(deriv.return.validate.sim.periodreturn), 2)
+    metrics$retmin[2] = round(min(deriv.return.derived.sim.periodreturn), 2)
     metrics$retworst95perc[1] = round(quantile(return.validate.sim.periodreturn, 0.05), 1)
-    metrics$retworst95perc[2] = round(quantile(deriv.return.validate.sim.periodreturn, 0.05), 1)
+    metrics$retworst95perc[2] = round(quantile(deriv.return.derived.sim.periodreturn, 0.05), 1)
     metrics$retworst99perc[1] = round(quantile(return.validate.sim.periodreturn, 0.01), 1)
-    metrics$retworst99perc[2] = round(quantile(deriv.return.validate.sim.periodreturn, 0.01), 1)
+    metrics$retworst99perc[2] = round(quantile(deriv.return.derived.sim.periodreturn, 0.01), 1)
     metrics$dddaysavg[1] = round(mean(ddrun.validate.sim.mean), 0)
     metrics$dddaysavg[2] = round(mean(deriv.ddrun.validate.sim.mean), 0)
     metrics$dddaysmax[1] = round(max(ddrun.validate.sim.mean), 0)
