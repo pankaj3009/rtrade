@@ -19,10 +19,268 @@
 
 #include <Rcpp.h>
 #include <cmath>
+#include <boost/date_time.hpp>
+#include <boost/lexical_cast.hpp>
+
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 
 using namespace Rcpp;
 using namespace std;
+
+bool contains(NumericVector X, int z) {
+  return std::find(X.begin(), X.end(), z)!=X.end();
+  }
+
+
+// [[Rcpp::export]]
+DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
+  StringVector esymbol=expected["symbol"];
+  StringVector eentryside=expected["trade"];
+  StringVector eentrytimestamp=expected["entrytimetext"];
+  StringVector eexittimestamp=expected["exittimetext"];
+  NumericVector eentrysize=expected["entrysize"];
+  NumericVector eentryprice=expected["entryprice"];
+  NumericVector eexitprice=expected["exitprice"];
+  StringVector asymbol=actual["symbol"];
+  StringVector aentryside=actual["trade"];
+  StringVector aentrytimestamp=actual["entrytimetext"];
+  StringVector aexittimestamp=actual["exittimetext"];
+  NumericVector aentrysize=actual["entrysize"];
+  NumericVector aentryprice=actual["entryprice"];
+  NumericVector aexitprice=actual["exitprice"];
+  vector<int>aindex;
+  vector<int>eindex;
+  vector<const char*> symbol;
+  vector<const char*> entryside;
+  vector<int> entrysizediff;
+  vector<double> entrypricediff;
+  vector<double> exitpricediff;
+  vector<double> pnlimpact;
+  Rcout << " eentrytimestamp length:"<<eentrytimestamp.size()<<std::endl;
+  for(int i=0;i<eentrytimestamp.size();i++){
+    for(int j=0;j<aentrytimestamp.size();j++){
+      Rcout << "i: "<<i<<",eentrytimestamp[i]: "<<eentrytimestamp[i]<<",aentrytimestamp[j]: "<<aentrytimestamp[j]<<std::endl;
+      if(eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]==aentryside[j] && esymbol[i]==asymbol[j]){
+        aindex.push_back(i);
+        eindex.push_back(j);
+        symbol.push_back(esymbol[i]);
+        entryside.push_back(eentryside[i]);
+        entrysizediff.push_back(aentrysize[j]-eentrysize[i]);
+        if(eentryside[i]=="BUY"){
+          entrypricediff.push_back(eentryprice[i]-aentryprice[j]);
+          exitpricediff.push_back(aexitprice[j]-eexitprice[i]);
+          }else{
+          entrypricediff.push_back(aentryprice[i]-eentryprice[j]);
+          exitpricediff.push_back(eexitprice[j]-aexitprice[i]);
+        }
+      }
+    }
+  }
+  StringVector expentrydate(eindex.size());
+  StringVector expexitdate(eindex.size());
+  StringVector actexitdate(aindex.size());
+//  Rcout << " asize#:"<<aindex.size()<< " ,esize:"<<eindex.size()<<std::endl;
+
+  for(int i=0;i<eindex.size();i++){
+    Rcout << " index#:"<<i<< " ,i value:"<<eindex.at(i)<<std::endl;
+    expentrydate[i]=eentrytimestamp[eindex.at(i)];
+    expexitdate[i]=eexittimestamp[eindex.at(i)];
+    actexitdate[i]=aexittimestamp[aindex.at(i)];
+  }
+
+  for(int j=0;j<aindex.size();j++){
+    Rcout << " index#:"<<j<< " ,j value:"<<aindex.at(j)<<std::endl;
+    actexitdate[j]=aexittimestamp[aindex.at(j)];
+  }
+
+  StringVector pnldiff(eindex.size());
+
+  for(int i=0;i<aindex.size();i++){
+    Rcout << " entrysize:"<<aentrysize[aindex.at(i)]<< ",entrypricediff:"<<entrypricediff.at(i)<<",exitpricediff:"<<exitpricediff.at(i)<<std::endl;
+      pnldiff[i]=aentrysize[aindex.at(i)]*(entrypricediff.at(i)+exitpricediff.at(i));
+  }
+
+  return DataFrame::create(_("symbol")=wrap(symbol),_("entrydate")=expentrydate,_("entrypricediff")=wrap(entrypricediff),
+                             _("expexitdate")=expexitdate,_("actexitdate")=actexitdate,_("exitpricediff")=wrap(exitpricediff),_("entrysizediff")=wrap(entrysizediff),
+                             _("pnldiff")=wrap(pnldiff),_("aindex")=wrap(aindex),_("eindex")=wrap(eindex));
+}
+
+
+// [[Rcpp::export]]
+DataFrame ExecutionSideDiff(DataFrame expected,DataFrame actual,bool option=true){
+  StringVector eentrytimestamp=expected["entrytimetext"];
+  StringVector aentrytimestamp=actual["entrytimetext"];
+  StringVector eexittimestamp=expected["exittimetext"];
+  StringVector aexittimestamp=actual["exittimetext"];
+  StringVector esymbol=expected["symbol"];
+  StringVector asymbol=actual["symbol"];
+  StringVector eentryside=expected["trade"];
+  StringVector aentryside=actual["trade"];
+  NumericVector aentrysize=actual["entrysize"];
+  NumericVector eentrysize=expected["entrysize"];
+  NumericVector aentryprice=actual["entryprice"];
+  NumericVector eentryprice=expected["entryprice"];
+  NumericVector aexitprice=actual["exitprice"];
+  NumericVector eexitprice=expected["exitprice"];
+  vector<int>aindex;
+  vector<int>eindex;
+  vector<const char*> symbol;
+  vector<const char*> entryside;
+  vector<int> entrysizediff;
+  vector<double> entrypricediff;
+  vector<double> exitpricediff;
+  vector<double> pnlimpact;
+  Rcout << " eentrytimestamp length:"<<eentrytimestamp.size()<<std::endl;
+  for(int i=0;i<eentrytimestamp.size();i++){
+    for(int j=0;j<aentrytimestamp.size();j++){
+      Rcout << "i: "<<i<<",eentrytimestamp[i]: "<<eentrytimestamp[i]<<",aentrytimestamp[j]: "<<aentrytimestamp[j]<<std::endl;
+      bool check=false;
+      if(option){
+        check=eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]==aentryside[j] && esymbol[i]!=asymbol[j];
+        if(check){
+          // check if options have opposite values CALL vs PUT.
+        }
+      }else{
+        check=eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]!=aentryside[j] && esymbol[i]==asymbol[j];
+      }
+      if(check){
+        aindex.push_back(i);
+        eindex.push_back(j);
+        symbol.push_back(esymbol[i]);
+        entryside.push_back(eentryside[i]);
+        entrysizediff.push_back(aentrysize[j]-eentrysize[i]);
+        entrypricediff.push_back(eentryprice[i]+aentryprice[j]);
+        exitpricediff.push_back(aexitprice[j]+eexitprice[i]);
+
+      }
+    }
+  }
+  StringVector expentrydate(eindex.size());
+  StringVector expexitdate(eindex.size());
+  StringVector actexitdate(aindex.size());
+  for(int i=0;i<eindex.size();i++){
+    Rcout << " index#:"<<i<< " ,i value:"<<eindex.at(i)<<std::endl;
+    expentrydate[i]=eentrytimestamp[eindex.at(i)];
+    expexitdate[i]=eexittimestamp[eindex.at(i)];
+    actexitdate[i]=aexittimestamp[aindex.at(i)];
+  }
+  for(int j=0;j<aindex.size();j++){
+    Rcout << " index#:"<<j<< " ,j value:"<<aindex.at(j)<<std::endl;
+    actexitdate[j]=aexittimestamp[aindex.at(j)];
+  }
+
+  StringVector pnldiff(eindex.size());
+
+  for(int i=0;i<eindex.size();i++){
+    Rcout << " entrysize:"<<aentrysize[aindex.at(i)]<< ",entrypricediff:"<<entrypricediff.at(i)<<",exitpricediff:"<<exitpricediff.at(i)<<std::endl;
+//    if(std::strncmp(entryside.at(i),"BUY",3)){
+    if (strncmp(entryside.at(i),"BUY",3)==0){
+      pnldiff[i]=aentrysize[aindex.at(i)]*(entrypricediff.at(i)-exitpricediff.at(i));
+    }
+    else{
+      pnldiff[i]=aentrysize[aindex.at(i)]*(exitpricediff.at(i)-entrypricediff.at(i));
+    }
+  }
+  return DataFrame::create(_("symbol")=wrap(symbol),_("entrydate")=expentrydate,_("entrypricediff")=wrap(entrypricediff),
+                             _("expexitdate")=expexitdate,_("actexitdate")=actexitdate,_("exitpricediff")=wrap(exitpricediff),_("entrysizediff")=wrap(entrysizediff),
+                               _("pnldiff")=wrap(pnldiff),_("aindex")=wrap(aindex),_("eindex")=wrap(eindex));
+}
+
+// [[Rcpp::export]]
+DataFrame MissingTrades(DataFrame expected,DataFrame recon){
+  NumericVector eindex=recon["eindex"];
+  StringVector esymbol=expected["symbol"];
+  StringVector eentryside=expected["trade"];
+  NumericVector eentrysize=expected["entrysize"];
+  StringVector eentrytime=expected["entrytimetext"];
+  NumericVector eentryprice=expected["entryprice"];
+  StringVector eexittime=expected["exittimetext"];
+  NumericVector eexitprice=expected["exitprice"];
+
+  vector<const char*> symbol;
+  vector<const char*> entryside;
+  vector<int> entrysize;
+  vector<const char*> entrytime;
+  vector<double> entryprice;
+  vector<const char*> exittime;
+  vector<double> exitprice;
+  vector<double> pnlimpact;
+  for(int i=0;i<esymbol.size();i++){
+    if(!contains(eindex,i)){
+      //add row
+      symbol.push_back(esymbol[i]);
+      entryside.push_back(eentryside[i]);
+      entrysize.push_back(eentrysize[i]);
+      entrytime.push_back(eentrytime[i]);
+      entryprice.push_back(eentryprice[i]);
+      exittime.push_back(eexittime[i]);
+      exitprice.push_back(eexitprice[i]);
+    }
+  }
+
+  StringVector pnldiff(symbol.size());
+  for(int i=0;i<symbol.size();i++){
+    if(strncmp(entryside.at(i),"BUY",3)==0){
+      pnldiff[i]=entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
+    }
+    else{
+      pnldiff[i]=entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
+    }
+  }
+  return DataFrame::create(_("symbol")=wrap(symbol),_("side")=wrap(entryside),_("size")=wrap(entrysize),
+                             _("entrytime")=wrap(entrytime),_("entryprice")=wrap(entryprice),_("exittime")=wrap(exittime),_("exitprice")=wrap(exitprice),
+                               _("pnldiff")=wrap(pnldiff));
+}
+
+// [[Rcpp::export]]
+DataFrame ExtraTrades(DataFrame actual,DataFrame recon){
+  NumericVector aindex=recon["aindex"];
+  StringVector esymbol=actual["symbol"];
+  StringVector eentryside=actual["trade"];
+  NumericVector eentrysize=actual["entrysize"];
+  StringVector eentrytime=actual["entrytimetext"];
+  NumericVector eentryprice=actual["entryprice"];
+  StringVector eexittime=actual["exittimetext"];
+  NumericVector eexitprice=actual["exitprice"];
+
+  vector<const char*> symbol;
+  vector<const char*> entryside;
+  vector<int> entrysize;
+  vector<const char*> entrytime;
+  vector<double> entryprice;
+  vector<const char*> exittime;
+  vector<double> exitprice;
+  vector<double> pnlimpact;
+  for(int i=0;i<esymbol.size();i++){
+    if(!contains(aindex,i)){
+      //add row
+      symbol.push_back(esymbol[i]);
+      entryside.push_back(eentryside[i]);
+      entrysize.push_back(eentrysize[i]);
+      entrytime.push_back(eentrytime[i]);
+      entryprice.push_back(eentryprice[i]);
+      exittime.push_back(eexittime[i]);
+      exitprice.push_back(eexitprice[i]);
+    }
+  }
+
+  StringVector pnldiff(symbol.size());
+  for(int i=0;i<symbol.size();i++){
+    if(strncmp(entryside.at(i),"BUY",3)==0){
+      pnldiff[i]=-entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
+    }
+    else{
+      pnldiff[i]=-entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
+    }
+  }
+  return DataFrame::create(_("symbol")=wrap(symbol),_("side")=wrap(entryside),_("size")=wrap(entrysize),
+                           _("entrytime")=wrap(entrytime),_("entryprice")=wrap(entryprice),_("exittime")=wrap(exittime),_("exitprice")=wrap(exitprice),
+                           _("pnldiff")=wrap(pnldiff));
+}
+
 
 // [[Rcpp::export]]
 NumericVector Ref(NumericVector input,NumericVector shift){
@@ -55,7 +313,10 @@ NumericVector Ref(NumericVector input,NumericVector shift){
 NumericVector ExRem(NumericVector vec1, NumericVector vec2){
   int nSize=vec1.size();
   NumericVector result(nSize);
-  bool vec2received=false;
+  // made vec2received default state to true on 5-Apr-2017.
+  //bool vec2received=false;
+
+  bool vec2received=true;
   for(int i=1;i<nSize;i++){
 
     if((vec1[i]>0 && vec2received)){
@@ -110,8 +371,8 @@ NumericVector BarsSince(NumericVector vec1){
 NumericVector Cross(NumericVector snake,NumericVector reference){
   int snakeSize=snake.size();
   int referenceSize=reference.size();
-//  Rcout<<"ReferenceSize:"<<referenceSize<<endl;
-//  Rcout<<"SnakeSize:"<<snakeSize<<endl;
+  //Rcout<<"ReferenceSize:"<<referenceSize<<endl;
+  //Rcout<<"SnakeSize:"<<snakeSize<<endl;
 
   NumericVector snakevector(max(snakeSize,referenceSize));
   NumericVector referencevector(max(snakeSize,referenceSize));
@@ -128,6 +389,11 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
    }
    snakevector=snake;
  }
+
+ if(snakeSize==referenceSize){
+         referencevector=reference;
+         snakevector=snake;
+ }
  snakeSize=snakevector.size();
  NumericVector result(snakeSize);
  //Rcout<<"SnakeSize:"<<snakeSize<<endl;
@@ -136,12 +402,12 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
 
   bool set=false;
   for(int i=1;i<snakeSize;i++){
-    if((set==false) && (snakevector[i]>referencevector[i])){
+     if((set==false) && (snakevector[i]>referencevector[i])){
       result[i]=1;
       set=true;
-     // Rcout<<"Snake above reference. Set to true for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
+   //   Rcout<<"Snake above reference. Set to true for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
     }else if(snakevector[i]<referencevector[i]){
-    //  Rcout<<"Snake below reference. Set to false for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
+     // Rcout<<"Snake below reference. Set to false for bar:"<<i<<",Snake:"<<snakevector[i]<<",Ref:"<<referencevector[i]<<endl;
       set=false;
     }
 
@@ -405,7 +671,7 @@ DataFrame GenerateTrades(DataFrame all){
     }
   }
   tradecount=tradecount;
-  //Rcout<<"TradeCount:"<<tradecount<<endl;
+//  Rcout<<"TradeCount:"<<tradecount<<endl;
 
   CharacterVector tradesymbol(tradecount);
   StringVector trade(tradecount);
@@ -420,30 +686,32 @@ DataFrame GenerateTrades(DataFrame all){
   StringVector uniquesymbol=unique(symbol);
   for(int z=0;z<uniquesymbol.size();z++){
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
-    //Rf_PrintValue(uniquesymbol[z]);
-    //Rf_PrintValue(indices);
+  //  Rf_PrintValue(uniquesymbol[z]);
+  //  Rf_PrintValue(indices);
     //for the specified uniquesymbol, indices contains the vector of index values to "all"
     for(int a=0;a<indices.size();a++){
       int i=indices[a]; //i is the scalar index into "all"
       int entrybar=0;
-      if((buyprocessed[i]==false) && ((buy[i]>0) && (buy[i]<999))){
+      if((buyprocessed[i]==false) && ((buy[i]>0) && (buy[i]<=999))){
         tradesize++;
         tradesymbol[tradesize]=symbol[i];
         if(buy[i]==1){
           trade[tradesize]="BUY";
         }else if(buy[i]==2){
           trade[tradesize]="ReplacementBUY";
+        }else if(buy[i]==999){
+                trade[tradesize]="ScaleInBUY";
         }
         entrytime[tradesize]=timestamp[i];
         entryprice[tradesize]=buyprice[i];
         entrybar=i;
         buyprocessed[i]=true;
-        //Rcout<<"Buy"<<",Symbol:"<<symbol[i]<<",TradeSize:"<<tradesize<<",SignalBar:"<<i<<endl;
+    //    Rcout<<"Buy"<<",Symbol:"<<symbol[i]<<",TradeSize:"<<tradesize<<",SignalBar:"<<i<<endl;
         int b=a+1;
-        //Rcout<<"Starting Checking Sell"<<",Symbol:"<<symbol[i]<<",b:"<<b<<",indices.size:"<<indices.size()<<endl;
+    //    Rcout<<"Starting Checking Sell"<<",Symbol:"<<symbol[i]<<",b:"<<b<<",indices.size:"<<indices.size()<<endl;
         if(b<indices.size()){
           while ((b<indices.size()) && (sell[indices[b]]==0)) {
-            //Rcout<<"Checking Sell"<<",Symbol:"<<symbol[i]<<",b:"<<b<<",indices.size:"<<indices.size()<<endl;
+    //        Rcout<<"Checking Sell"<<",Symbol:"<<symbol[i]<<",b:"<<b<<",indices.size:"<<indices.size()<<endl;
             sellprocessed[indices[b]]=true;
             b++;
           }
@@ -451,7 +719,7 @@ DataFrame GenerateTrades(DataFrame all){
         if(b<indices.size()){
           int k=indices[b];
           sellprocessed[k]=true;
-          //Rcout<<"Sell"<<",Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
+    //      Rcout<<"Sell"<<",Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
           exittime[tradesize]=timestamp[k];
           exitprice[tradesize]=sellprice[k];
           //bars[tradesize]=k-entrybar;
@@ -465,7 +733,7 @@ DataFrame GenerateTrades(DataFrame all){
               int k=indices[b];
               if(buy[j]==999){
                 tradesize++;
-                //Rcout<<"ScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
+    //            Rcout<<"ScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
                 tradesymbol[tradesize]=symbol[j];
                 trade[tradesize]="ScaleInBUY";
                 entrytime[tradesize]=timestamp[j];
@@ -474,11 +742,11 @@ DataFrame GenerateTrades(DataFrame all){
                 exittime[tradesize]=timestamp[k];
                 exitprice[tradesize]=sellprice[k];
                 //bars[tradesize]=k-j;
-                //Rcout<<"2, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
+    //            Rcout<<"2, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
                 bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                 percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
                 sellprocessed[j]=true;
-                //Rcout<<"SellScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
+    //            Rcout<<"SellScaleInLong"<<",Symbol:"<<symbol[j]<<",TradeSize:"<<tradesize<<",SignalBar:"<<j<<endl;
               }
             }
           }
@@ -510,13 +778,15 @@ DataFrame GenerateTrades(DataFrame all){
             }
           }
         }
-      }else if((shortprocessed[i]==false) && ((shrt[i]>0) && (shrt[i]<999))){
+      }else if((shortprocessed[i]==false) && ((shrt[i]>0) && (shrt[i]<=999))){
         tradesize++;
         tradesymbol[tradesize]=symbol[i];
         if(shrt[i]==1){
           trade[tradesize]="SHORT";
         }else if(shrt[i]==2){
           trade[tradesize]="ReplacementSHORT";
+        }else if(shrt[i]==999){
+                trade[tradesize]="ScaleInSHORT";
         }
 
         entrytime[tradesize]=timestamp[i];
@@ -1011,7 +1281,7 @@ DataFrame ProcessPositionScoreShort(DataFrame all,unsigned int maxposition,Datet
 
 
 // [[Rcpp::export]]
-DataFrame ApplyStop(const DataFrame all,NumericVector amount){
+DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=false){
         //stop mode can be 1: points
         int nSize=all.nrows();
         const NumericVector inlongtrade=all["inlongtrade"];
@@ -1080,7 +1350,12 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount){
             if(!stoplosstriggered){//stoplossnottriggered
               if(inlongtrade[i-1]==1){
                 //check if stoploss triggered for a long trade
-                double slprice=buyprice[barstart]-damount[barstart];
+                double slprice=0;
+                if(volatilesl){
+                  slprice=buyprice[barstart]-damount[i-1];
+                }else{
+                  slprice=buyprice[barstart]-damount[barstart];
+                }
                 //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<damount[barstart] <<std::endl;
                 if(open[i]<=slprice){
                   lsellprice[i]=open[i];
@@ -1094,7 +1369,12 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount){
                 }
               }else if(inshorttrade[i-1]==1){
                 //check if stoploss triggered for a short trade
-                double slprice=shortprice[barstart]+damount[barstart];
+                double slprice=0;
+                if(volatilesl){
+                  slprice=shortprice[barstart]+damount[i-1];
+                }else{
+                  slprice=shortprice[barstart]+damount[barstart];
+                }
                 if(open[i]>=slprice){
                   lcoverprice[i]=open[i];
                   stoplosstriggered=true;
@@ -1344,3 +1624,256 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                                    _("swinglevel")=swinglevel);
 }
 
+bool highestSinceNBars(NumericVector price,int index, int level=1){
+  int priorindex=index-level;
+  Rcout << "Index: " << index <<",Level: "<< level << ",price: " <<price[index] << ",prior price: " << price[priorindex]<<std::endl;
+  bool valid=false;
+     if(level>1){
+      return highestSinceNBars(price, index,(level-1));
+    }else{
+      if(price[index]>price[index-level]){
+        valid=true;
+      }else{
+        valid=false;
+      }
+      Rcout << "Returning Index: " << index <<",Level: "<< level << ",valid: "<<valid <<std::endl;
+      return valid;
+    }
+    Rcout << "Returning Final Index: " << index <<",Level: "<< level << ",valid: "<<valid <<std::endl;
+    return false;
+
+}
+
+bool highestSorrundingNBars(NumericVector price,int index, int level=1){
+  int priorindex=index-level;
+  int futureindex=index+level;
+  //Rcout << "Index: " << index <<",Level: "<< level << ",price: " <<price[index] << ",prior price: " << price[priorindex]<< ",future price: " << price[futureindex]<<std::endl;
+  bool valid=true;
+  if(level>1){
+    bool out=highestSorrundingNBars(price, index,(level-1));
+    //Rcout << "Intermediate Result:" <<out <<",level: "<<(level-1)<<std::endl;
+    valid=price[index]>price[index-level] & price[index]>price[index+level] & out;
+  }else{
+    if(price[index]>price[index-level] & price[index]>price[index+level]){
+      valid=true;
+    }else{
+      valid=false;
+    }
+    return valid;
+    //Rcout << "Last Result:" <<valid <<std::endl;
+  }
+  //Rcout << "Returning Final Index: " << index <<",Level: "<< level << ",valid: "<<valid <<std::endl;
+  return valid;
+
+}
+
+bool lowestSorrundingNBars(NumericVector price,int index, int level=1){
+  int priorindex=index-level;
+  int futureindex=index+level;
+  //Rcout << "Index: " << index <<",Level: "<< level << ",price: " <<price[index] << ",prior price: " << price[priorindex]<< ",future price: " << price[futureindex]<<std::endl;
+  bool valid=true;
+  if(level>1){
+    bool out=lowestSorrundingNBars(price, index,(level-1));
+    //Rcout << "Intermediate Result:" <<out <<",level: "<<(level-1)<<std::endl;
+    valid=price[index]<price[index-level] & price[index]<price[index+level] & out;
+  }else{
+    if(price[index]<price[index-level] & price[index]<price[index+level]){
+      valid=true;
+    }else{
+      valid=false;
+    }
+    return valid;
+    //Rcout << "Last Result:" <<valid <<std::endl;
+  }
+  //Rcout << "Returning Final Index: " << index <<",Level: "<< level << ",valid: "<<valid <<std::endl;
+  return valid;
+
+}
+
+// [[Rcpp::export]]
+
+DataFrame TDSupplyPoints(DatetimeVector dates,NumericVector price, int level=1){
+  int nSize=price.size();
+  vector<int>index;
+  vector<double>tdprices;
+  if(nSize>level){
+    for(int i=level;i<nSize-level;i++){
+      int tdsupplypoint=0;
+      //Rcout << "Making Call: " <<std::endl;
+      tdsupplypoint=highestSorrundingNBars(price,i,level);
+      //Rcout << "TDSupplyPoint: " << tdsupplypoint <<std::endl;
+      if(tdsupplypoint==1){
+        index.push_back(i+1);
+        tdprices.push_back(price[i]);
+        //Rcout << "TDSupplyPoint Index: " << i+1 <<",TDPrice: "<< price[i] <<std::endl;
+      }
+    }
+  }
+  DatetimeVector timestamp(index.size());
+  for(int i=0;i<index.size();i++){
+    timestamp[i]=dates[index.at(i)];
+  }
+  return DataFrame::create(_("date")=timestamp,_("tdsupplyprices")=wrap(tdprices),_("index")=wrap(index));
+
+}
+
+
+// [[Rcpp::export]]
+
+DataFrame TDDemandPoints(DatetimeVector dates,NumericVector price, int level=1){
+  int nSize=price.size();
+  vector<int>index;
+  vector<double>tdprices;
+  if(nSize>level){
+    for(int i=level;i<nSize-level;i++){
+      bool tddemandpoint=false;
+     // Rcout << "Making Call: " <<std::endl;
+      tddemandpoint=lowestSorrundingNBars(price,i,level);
+      //Rcout << "TDSupplyPoint: " << tdsupplypoint <<std::endl;
+      if(tddemandpoint){
+        index.push_back(i);
+        tdprices.push_back(price[i]);
+        //Rcout << "TDSupplyPoint Index: " << i+1 <<",TDPrice: "<< price[i] <<std::endl;
+      }
+    }
+  }
+  DatetimeVector timestamp(index.size());
+  for(int i=0;i<index.size();i++){
+    timestamp[i]=dates[index.at(i)];
+  }
+
+  return DataFrame::create(_("date")=timestamp,_("tddemandprices")=wrap(tdprices),_("index")=wrap(index));
+
+}
+
+// [[Rcpp::export]]
+
+DataFrame TDDemandLine(DatetimeVector dates,NumericVector price,NumericVector origindices){
+  int nSize=price.size();
+  vector<int>index;
+  vector<double>tdprices;
+  if(nSize>0){
+    index.push_back(nSize-1);
+    tdprices.push_back(price[nSize-1]);
+    if(nSize>=2){
+      for(int i=nSize-2;i>=0;i--){
+        if(price[i]<tdprices.back()){
+          index.push_back(i);
+          tdprices.push_back(price[i]);
+          //Rcout << "TDSupplyPoint Index: " << i+1 <<",TDPrice: "<< price[i] <<std::endl;
+        }
+      }
+    }
+  }
+  DatetimeVector timestamp(index.size());
+  NumericVector shortlistedindices(index.size());
+  for(int i=0;i<index.size();i++){
+    timestamp[i]=dates[index.at(i)];
+    shortlistedindices[i]=origindices[index.at(i)];
+  }
+  return DataFrame::create(_("date")=timestamp,_("tddemandline")=wrap(tdprices),_("index")=shortlistedindices);
+}
+
+// [[Rcpp::export]]
+
+DataFrame TDSupplyLine(DatetimeVector dates,NumericVector price,NumericVector origindices){
+  int nSize=price.size();
+  vector<int>index;
+  vector<double>tdprices;
+  if(nSize>0){
+    index.push_back(nSize-1);
+    tdprices.push_back(price[nSize-1]);
+    if(nSize>=2){
+      for(int i=nSize-2;i>=0;i--){
+        if(price[i]>tdprices.back()){
+          index.push_back(i);
+          tdprices.push_back(price[i]);
+          //Rcout << "TDSupplyPoint Index: " << i+1 <<",TDPrice: "<< price[i] <<std::endl;
+        }
+      }
+    }
+  }
+  DatetimeVector timestamp(index.size());
+  NumericVector shortlistedindices(index.size());
+  for(int i=0;i<index.size();i++){
+    timestamp[i]=dates[index.at(i)];
+    shortlistedindices[i]=origindices[index.at(i)];
+
+  }
+  return DataFrame::create(_("date")=timestamp,_("tdsupplyline")=wrap(tdprices),_("index")=shortlistedindices);
+}
+
+NumericVector CustomSubset(NumericVector input, int start, int end){
+NumericVector out(end-start);
+int j=0;
+for(int i=start;i<end;i++){
+        out[j]=input[i];
+        j++;
+}
+}
+
+// [[Rcpp::export]]
+
+DataFrame TDSupplyPoints1(DatetimeVector dates,NumericVector price, int level=1){
+        vector<vector<int> > outindex ;
+        vector<vector<double> > outprices ;
+        for(int j=0;j<price.size();j++){
+                NumericVector subprice=CustomSubset(price,0,j);
+                vector<int>index;
+                vector<double>tdprices;
+                int nSize=subprice.size();
+                if(nSize>2*level+1){
+                        for(int i=level;i<nSize-level;i++){
+                                int tdsupplypoint=0;
+                                //Rcout << "Making Call: " <<std::endl;
+                                tdsupplypoint=highestSorrundingNBars(subprice,i,level);
+                                //Rcout << "TDSupplyPoint: " << tdsupplypoint <<std::endl;
+                                if(tdsupplypoint==1){
+                                        index.push_back(i+1);
+                                        tdprices.push_back(price[i]);
+                                        //Rcout << "TDSupplyPoint Index: " << i+1 <<",TDPrice: "<< price[i] <<std::endl;
+                                }
+                        }
+                }
+                outindex.push_back(index);
+                outprices.push_back(tdprices);
+
+        }
+
+        return DataFrame::create(_("index")=wrap(outindex),_("prices")=wrap(outprices));
+
+}
+
+// [[Rcpp::export]]
+NumericVector getBuyIndices(DataFrame all, int sellIndex){
+        NumericVector buy=all["buy"];
+        vector<int>index;
+        for(int i=(sellIndex-2);i>=0;i--){
+//                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
+                if(buy[i]>=1 && buy[i]<999){
+                        index.push_back(i+1);
+                        break;
+                }else if(buy[i]==999){
+                        index.push_back(i+1);
+                }
+        }
+        return wrap(index);
+
+}
+
+// [[Rcpp::export]]
+NumericVector getShortIndices(DataFrame all, int coverIndex){
+  NumericVector shrt=all["short"];
+  vector<int>index;
+  for(int i=(coverIndex-2);i>=0;i--){
+    //                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
+    if(shrt[i]>=1 && shrt[i]<999){
+      index.push_back(i+1);
+      break;
+    }else if(shrt[i]==999){
+      index.push_back(i+1);
+    }
+  }
+  return wrap(index);
+
+}

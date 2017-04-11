@@ -88,7 +88,8 @@ calcDrawdownVector <- function(orderingvector, returns, tradedays) {
   } else{
     indrawdown = TRUE
   }
-  for (i in 2:length(orderingvector)) {
+  #for (i in 2:19) {
+    for (i in 2:length(orderingvector)) {
     if (equity[i] >= highwatermark) {
       highwatermark = equity[i]
       if (indrawdown) {
@@ -199,6 +200,9 @@ calcRecoveryValues <-
     }
     recoveryvalues
   }
+
+#dlparameters=paste("symbol=nsenifty","expiry=20170125","option=CALL",sep=",")
+#b=paste("dddays=0","ddamt=0.1","recoverybonus=0","ddcost=0","stop=0","margin=1","charttitle=swing02",sep=",")
 
 bootstrap <-
   function(...,
@@ -617,7 +621,7 @@ bootstrap <-
       cex = 1.5
     )
     mtext(side = 1,
-          paste("comfort : ", round(expectedret - sd - tailvalue, 2), sep = ""),
+          paste("comfort : ", round((expectedret - sd) / tailvalue, 2), sep = ""),
           outer = TRUE)
 
     #create dataframe of metrics
@@ -659,6 +663,8 @@ bootstrap <-
     metrics$retmax[2] = round(max(deriv.return.derived.sim.periodreturn), 2)
     metrics$retmin[1] = round(min(return.validate.sim.periodreturn), 2)
     metrics$retmin[2] = round(min(deriv.return.derived.sim.periodreturn), 2)
+    metrics$retsd[1] = round(sd(return.validate.sim.periodreturn), 2)
+    metrics$retsd[2] = round(sd(deriv.return.derived.sim.periodreturn), 2)
     metrics$retworst95perc[1] = round(quantile(return.validate.sim.periodreturn, 0.05), 1)
     metrics$retworst95perc[2] = round(quantile(deriv.return.derived.sim.periodreturn, 0.05), 1)
     metrics$retworst99perc[1] = round(quantile(return.validate.sim.periodreturn, 0.01), 1)
@@ -673,6 +679,8 @@ bootstrap <-
     metrics$dddays99perc[2] = round(quantile(ddlengthadj, 0.99), 0)
     metrics$ddtradesavg[1] = round(mean(ddtradesraw), 0)
     metrics$ddtradesavg[2] = round(mean(ddtradesadj) - mean(notrades), 0)
+    metrics$ddvalue95percavg[1]=round(mean(ddvalue.validate.sim.max[which(ddvalue.validate.sim.max >quantile(ddvalue.validate.sim.max, 0.95))]),2)
+    metrics$ddvalue95percavg[2]=round(mean(deriv.ddvalue.validate.sim.max[which(deriv.ddvalue.validate.sim.max >quantile(deriv.ddvalue.validate.sim.max, 0.95))]),2)
     metrics
 
   }
