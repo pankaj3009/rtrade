@@ -648,7 +648,7 @@ optionTradeSignalsLongOnly <- function(signals,
         ((signals$inlongtrade &
             Ref(signals$inlongtrade,-1)) |
            (signals$inshorttrade & Ref(signals$inshorttrade,-1)))
-      for (i in 2:nrow(signals)) {
+      for (i in 1:nrow(signals)) {
         if (signals$rolloverorders[i] == TRUE) {
           if (signals$inlongtrade[i] == 1) {
             df.copy = signals[i,]
@@ -1120,7 +1120,7 @@ optionTradeSignalsShortOnly <-
         ((signals$inlongtrade &
             Ref(signals$inlongtrade,-1)) |
            (signals$inshorttrade & Ref(signals$inshorttrade,-1)))
-      for (i in 2:nrow(signals)) {
+      for (i in 1:nrow(signals)) {
         if (signals$rolloverorders[i] == TRUE) {
           if (signals$inlongtrade[i] == 1) {
             df.copy = signals[i,]
@@ -1575,7 +1575,7 @@ futureTradeSignals <-
         ((signals$inlongtrade &
             Ref(signals$inlongtrade,-1)) |
            (signals$inshorttrade & Ref(signals$inshorttrade,-1)))
-      for (i in 2:nrow(signals)) {
+      for (i in 1:nrow(signals)) {
         if (signals$rolloverorders[i] == TRUE) {
           if (signals$inlongtrade[i] == 1) {
             df.copy = signals[i,]
