@@ -674,10 +674,9 @@ optionTradeSignalsLongOnly <- function(signals,
               } else{
                 df.copy$short[1] = 999
               }
-            }
             df.copy$strike[1] = signals$strike[indexofshort[j]]
             signals <- rbind(signals, df.copy)
-
+                }
           }
         }
       }
@@ -813,7 +812,7 @@ optionTradeSignalsLongOnly <- function(signals,
                         expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
                         if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                 signals$sell[i] = 1
-                        }                
+                        }
         }
 
         }
@@ -826,7 +825,7 @@ optionTradeSignalsLongOnly <- function(signals,
                         if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                 signals$cover[i] = 1
                         }
-                }                
+                }
         }
 
       }
@@ -1146,10 +1145,9 @@ optionTradeSignalsShortOnly <-
               } else{
                 df.copy$short[1] = 999
               }
+              df.copy$strike[1] = signals$strike[indexofshort[j]]
+              signals <- rbind(signals, df.copy)
             }
-            df.copy$strike[1] = signals$strike[indexofshort[j]]
-            signals <- rbind(signals, df.copy)
-
           }
         }
       }
@@ -1281,9 +1279,9 @@ optionTradeSignalsShortOnly <-
                                     expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
                                     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                             signals$sell[i] = 1
-                                    }                
+                                    }
                             }
-                            
+
                     }
             } else if (signals$inshorttrade[i] > 0) {
                     indexofshort = getShortIndices(signals, i)
@@ -1294,9 +1292,9 @@ optionTradeSignalsShortOnly <-
                                     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                             signals$cover[i] = 1
                                     }
-                            }                
+                            }
                     }
-                    
+
             }
     }
 
@@ -1601,10 +1599,9 @@ futureTradeSignals <-
               } else{
                 df.copy$short[1] = 999
               }
+              df.copy$strike[1] = signals$strike[indexofshort[j]]
+              signals <- rbind(signals, df.copy)
             }
-            df.copy$strike[1] = signals$strike[indexofshort[j]]
-            signals <- rbind(signals, df.copy)
-
           }
         }
       }
@@ -1724,9 +1721,9 @@ futureTradeSignals <-
                                     expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
                                     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                             signals$sell[i] = 1
-                                    }                
+                                    }
                             }
-                            
+
                     }
             } else if (signals$inshorttrade[i] > 0) {
                     indexofshort = getShortIndices(signals, i)
@@ -1737,9 +1734,9 @@ futureTradeSignals <-
                                     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                             signals$cover[i] = 1
                                     }
-                            }                
+                            }
                     }
-                    
+
             }
     }
 
@@ -2052,7 +2049,8 @@ futureTradeSignals <-
             )
           }
         }
-        dfsignals[!is.na(dfsignals$strike),]
+        dfsignals
+        #dfsignals[!is.na(dfsignals$strike),]
 
       }
 
