@@ -681,8 +681,7 @@ optionTradeSignalsLongOnly <- function(signals,
         }
       }
     }
-    signals <-
-      getClosestStrikeUniverse(signals, fnodatafolder, equitydatafolder, kTimeZone)
+    signals <-  getClosestStrikeUniverse(signals, fnodatafolder, equitydatafolder, kTimeZone)
     signals <- signals[order(signals$date),]
 
     #Entry
@@ -2039,14 +2038,18 @@ futureTradeSignals <-
               dfsignals$sell[i] > 0 || dfsignals$short[i] > 0 ||
               dfsignals$cover[i] > 0) {
             symbolsvector = unlist(strsplit(dfsignals$symbol[i], "_"))
-            dfsignals$strike[i] = getClosestStrike(
-              dfsignals$date[i],
-              symbolsvector[1],
-              strftime(dfsignals$entrycontractexpiry[i], "%Y%m%d", tz =
-                         timeZone),
-              fnodatafolder,
-              equitydatafolder
-            )
+            if(symbolsvector[1]=="NSENIFTY"){
+              dfsignals$strike[i]=round((signals$buyprice[i]+signals$shortprice[i]) / 100) * 100
+            }else{
+              dfsignals$strike[i] = getClosestStrike(
+                dfsignals$date[i],
+                symbolsvector[1],
+                strftime(dfsignals$entrycontractexpiry[i], "%Y%m%d", tz =
+                           timeZone),
+                fnodatafolder,
+                equitydatafolder
+              )              
+            }
           }
         }
         dfsignals
