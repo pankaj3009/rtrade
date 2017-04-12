@@ -475,20 +475,20 @@ getPriceArrayFromRedis <-
 GetCurrentPosition <-
   function(scrip,
            portfolio,
-           startdate = Sys.Date(),
-           enddate = Sys.Date()) {
+           trades.till = Sys.Date(),
+           position.on = Sys.Date()) {
     # Returns the current position for a scrip after calculating all rows in portfolio.
     #scrip = String
     #Portfolio = df containing columns[symbol,exittime,trade,size]
-    # date is the optional threhold date for calculating positions. If not specified, current date is used.
+    # optional startdate is compared to the entrytime to filter records used for position calculation. All records equal or before startdate are included for position calc
+    # optional enddate is compared to the exittime to filter records used for position calculation. All records AFTER enddate are included for position calc.
+    # final position calculation subset is intersection of optional startdate/ optional enddate filters.
     position <- 0
     if (nrow(portfolio) > 0) {
+      portfolio<-portfolio[as.Date(portfolio$entrytime,tz="Asia/Kolkata")<=trades.till,]
       for (row in 1:nrow(portfolio)) {
-        if ((is.na(portfolio[row, 'exittime']) ||
-             as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") >= enddate) &&
-            portfolio[row, 'symbol'] == scrip &&
-            as.Date(portfolio[row, 'entrytime'], tz = "Asia/Kolkata") <=
-            startdate) {
+        if ((is.na(portfolio[row, 'exittime']) || as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") > position.on) 
+            &&  portfolio[row, 'symbol'] == scrip) {
           position = position + ifelse(grepl("BUY", portfolio[row, 'trade']),
                                        portfolio[row, 'size'], -portfolio[row, 'size'])
         }
