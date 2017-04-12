@@ -516,7 +516,7 @@ CalculateDailyPNL <-
       brokerage = rep(brokerage, nrow(portfolio))
     }
     if (nrow(portfolio) > 0) {
-      #for (l in 1:7){
+      #for (l in 1:135){
       for (l in 1:nrow(portfolio)) {
         #print(paste("portfolio line:",l,sep=""))
         name = portfolio[l, 'symbol']
@@ -532,12 +532,13 @@ CalculateDailyPNL <-
         }
         entryindex = which(as.Date(md$date, tz = "Asia/Kolkata") ==
                              entrydate)
-        exitindex = ifelse(!is.na(exitdate),which(as.Date(md$date, tz = "Asia/Kolkata") ==
-                            exitdate),which(as.Date(md$date,tz="Asia/Kolkata")==pnl$bizdays[nrow(pnl)]))
+        exitindex = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
         unrealizedpnlexists = FALSE
         if (length(exitindex) == 0) {
           # we do not have an exit date
           exitindex = nrow(md)
+          altexitindex=which(as.Date(md$date,tz="Asia/Kolkata")==pnl$bizdays[nrow(pnl)])
+          exitindex=ifelse(length(altexitindex)>0,altexitindex,exitindex)
           unrealizedpnlexists = TRUE
         }
 
@@ -610,9 +611,6 @@ CalculateDailyPNL <-
       }
 
     }
-    #pnl$realized=cumsum(pnl$realized)
-    #pnl$unrealized=cumsum(pnl$unrealized)
-    #pnl$brokerage=cumsum(pnl$brokerage)
     pnl
 
   }
@@ -2048,7 +2046,7 @@ futureTradeSignals <-
                            timeZone),
                 fnodatafolder,
                 equitydatafolder
-              )              
+              )
             }
           }
         }
