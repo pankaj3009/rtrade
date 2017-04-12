@@ -532,8 +532,8 @@ CalculateDailyPNL <-
         }
         entryindex = which(as.Date(md$date, tz = "Asia/Kolkata") ==
                              entrydate)
-        exitindex = which(as.Date(md$date, tz = "Asia/Kolkata") ==
-                            exitdate)
+        exitindex = ifelse(!is.na(exitdate),which(as.Date(md$date, tz = "Asia/Kolkata") ==
+                            exitdate),which(as.Date(md$date,tz="Asia/Kolkata")==pnl$bizdays[nrow(pnl)]))
         unrealizedpnlexists = FALSE
         if (length(exitindex) == 0) {
           # we do not have an exit date
