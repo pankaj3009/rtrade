@@ -644,7 +644,16 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
 
 // [[Rcpp::export]]
 DataFrame GenerateTrades(DataFrame all){
-  int nSize=all.nrows();
+ int nSize=all.nrows();
+ //if(Rf_isNull(all)){
+ if(nSize==0){
+     //Rcout<<"Zero size df:"<<endl;
+     return DataFrame::create(_["symbol"]=CharacterVector::create(),_["trade"]=CharacterVector::create(),_["entrytime"]=NumericVector::create(),
+                                         _["entryprice"]=NumericVector::create(),_["exittime"]=NumericVector::create(),_["exitprice"]=NumericVector::create(),
+                                         _["percentprofit"]=NumericVector::create(),_["bars"]=NumericVector::create(), _["stringsAsFactors"] = false
+                );
+                
+  }        
   const NumericVector buy=all["buy"];
   const NumericVector sell=all["sell"];
   const NumericVector shrt=all["short"];
@@ -659,6 +668,7 @@ DataFrame GenerateTrades(DataFrame all){
   LogicalVector sellprocessed(nSize);
   LogicalVector shortprocessed(nSize);
   LogicalVector coverprocessed(nSize);
+
 
   //calculate # of trades
   int tradecount=0;
