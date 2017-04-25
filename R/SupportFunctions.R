@@ -521,15 +521,30 @@ getPriceArrayFromRedis <-
 GetCurrentPosition <-
         function(scrip,
                  portfolio,
+                 path = NULL,
+                 deriv=FALSE,
                  trades.till = Sys.Date(),
                  position.on = Sys.Date()) {
                 # Returns the current position for a scrip after calculating all rows in portfolio.
                 #scrip = String
                 #Portfolio = df containing columns[symbol,exittime,trade,size]
+                # path of market data file that holds split information, if any
                 # optional startdate is compared to the entrytime to filter records used for position calculation. All records equal or before startdate are included for position calc
                 # optional enddate is compared to the exittime to filter records used for position calculation. All records AFTER enddate are included for position calc.
                 # final position calculation subset is intersection of optional startdate/ optional enddate filters.
                 position <- 0
+                handlesplits=FALSE
+                if(!is.null(path)){
+                  if(deriv){
+                    symbolsvector = unlist(strsplit(name, "_"))
+                    load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+                  }else{
+                    load(paste(path,scrip,".Rdata",sep=""))
+                  }
+                  if("splitadjust" %in% colnames(md)){
+                                handlesplits=TRUE
+                  }
+                }
                 if (nrow(portfolio) > 0) {
                         portfolio <-
                                 portfolio[as.Date(portfolio$entrytime, tz = "Asia/Kolkata") <= trades.till, ]
@@ -539,9 +554,21 @@ GetCurrentPosition <-
                                         as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") > position.on
                                 )
                                 &&  portfolio[row, 'symbol'] == scrip) {
+                                        splitadjustment=1
+                                        if(handlesplits){
+                                          if(deriv){
+                                            symbolsvector = unlist(strsplit(name, "_"))
+                                            load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+                                          }else{
+                                                load(paste(path,scrip,".Rdata",sep=""))
+                                          }
+                                          buyindex= which(as.Date(md$date, tz = "Asia/Kolkata") == portfolio[row,'entrytime'])
+                                          currentindex= which(as.Date(md$date, tz = "Asia/Kolkata") == position.on)
+                                          splitadjustment=md$splitadjust[buyindex]/md$splitadjust[currentindex]
+                                        }
                                         position = position + ifelse(grepl("BUY", portfolio[row, 'trade']),
-                                                                     portfolio[row, 'size'],
-                                                                     -portfolio[row, 'size'])
+                                                                     floor(portfolio[row, 'size']*splitadjustment),
+                                                                     -floor(portfolio[row, 'size']*splitadjustment))
                                 }
                         }
                 }
@@ -567,7 +594,7 @@ CalculateDailyPNL <-
                         brokerage = rep(brokerage, nrow(portfolio))
                 }
                 if (nrow(portfolio) > 0) {
-                        #for (l in 1:24){
+                        #for (l in 1:5){
                         for (l in 1:nrow(portfolio)) {
                                 #print(paste("portfolio line:",l,sep=""))
                                 name = portfolio[l, 'symbol']
@@ -579,16 +606,19 @@ CalculateDailyPNL <-
                                         load(paste(path, name, ".Rdata", sep = ""))
                                 } else{
                                         symbolsvector = unlist(strsplit(name, "_"))
-                                        load(
-                                                paste(
-                                                        path,
-                                                        symbolsvector[3],
-                                                        "/",
-                                                        name,
-                                                        ".Rdata",
-                                                        sep = ""
-                                                )
-                                        )
+                                        load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+                                }
+                                handlesplits=FALSE
+                                if(!is.null(path)){
+                                if (!deriv) {
+                                        load(paste(path, name, ".Rdata", sep = ""))
+                                } else{
+                                        symbolsvector = unlist(strsplit(name, "_"))
+                                        load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+                                }
+                                 if("splitadjust" %in% colnames(md)){
+                                    handlesplits=TRUE
+                                  }
                                 }
                                 entryindex = which(as.Date(md$date, tz = "Asia/Kolkata") ==
                                                            entrydate)
@@ -607,6 +637,7 @@ CalculateDailyPNL <-
                                 }
 
                                 mtm = portfolio[l, "entryprice"]
+                                #priorsplitadjustment=1
                                 size = portfolio[l, 'size']
                                 dtindex = 0
                                 if (length(entryindex) == 1) {
@@ -622,6 +653,7 @@ CalculateDailyPNL <-
                                                             length.out = (dtindexend -
                                                                                   dtindexstart + 1))
                                         side = portfolio[l, 'trade']
+                                        #for (index in entryindex:1338) {
                                         for (index in entryindex:(exitindex - 1)) {
                                                 #entryindex,exitindex are indices for portfolio
                                                 #dtindex,dtindexstart,dtindexend are indices for pnl
@@ -632,73 +664,49 @@ CalculateDailyPNL <-
                                                 )
                                                 if (length(dtindex) > 0) {
                                                         # only proceed if bizdays has the specified md$date[index] value
-                                                        if (!deriv) {
-                                                                newprice = md$asettle[index]
-                                                        } else{
-                                                                newprice = md$settle[index]
+                                                        newprice = md$settle[index]
+                                                        newsplitadjustment=1
+                                                        if(handlesplits){
+                                                          if(index==entryindex){
+                                                            newsplitadjustment=1
+                                                          }else{
+                                                            newsplitadjustment=md$splitadjust[(index-1)]/md$splitadjust[index]
+                                                        }
                                                         }
                                                         pnl$unrealized[dtindex:nrow(pnl)] <-
-                                                                pnl$unrealized[dtindex:nrow(pnl)] + ifelse(
-                                                                        grepl("BUY", side),
-                                                                        (
-                                                                                newprice - mtm
-                                                                        ) * size,
-                                                                        (
-                                                                                mtm - newprice
-                                                                        ) * size
-                                                                )
+                                                                pnl$unrealized[dtindex:nrow(pnl)] + ifelse(grepl("BUY", side),(newprice*newsplitadjustment - mtm)*size,
+                                                                                                           (mtm - newprice*newsplitadjustment) * size)
                                                         cumunrealized[(dtindex -
-                                                                               dtindexstart + 1)] = ifelse(
-                                                                                       grepl("BUY", side),
-                                                                                       (
-                                                                                               newprice - mtm
-                                                                                       ) * size,
-                                                                                       (
-                                                                                               mtm - newprice
-                                                                                       ) * size
-                                                                               )
+                                                                               dtindexstart + 1)] = ifelse(grepl("BUY", side),(newprice*newsplitadjustment - mtm) * size,
+                                                                                                           (mtm - newprice*newsplitadjustment ) * size )
                                                         mtm <- newprice
+                                                        #priorsplitadjustment <- newsplitadjustment
                                                         if (index == entryindex) {
                                                                 if (per.contract.brokerage) {
-                                                                        pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] *
-                                                                                size
+                                                                        pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] * size
                                                                 } else{
-                                                                        pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] *
-                                                                                size * portfolio[l, 'entryprice']
+                                                                        pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] * size * portfolio[l, 'entryprice']
                                                                 }
                                                         }
                                                         # it is possible that bizdays does not match the md$dates!
                                                 }
                                         }
-                                        lastdaypnl = ifelse(
-                                                grepl("BUY", side),
-                                                (portfolio[l, 'exitprice'] - mtm) * size,
-                                                (mtm - portfolio[l, 'exitprice']) * size
-                                        )
+                                        newsplitadjustment=md$splitadjust[(exitindex)]/md$splitadjust[(exitindex-1)]
+                                        lastdaypnl = ifelse(grepl("BUY", side),(portfolio[l, 'exitprice']*newsplitadjustment - mtm) * size,(mtm - portfolio[l, 'exitprice']*newsplitadjustment) * size)
                                         if (!unrealizedpnlexists) {
                                                 if (length(dtindex) == 0) {
-                                                        dtindex = which(
-                                                                pnl$bizdays == as.Date(
-                                                                        portfolio[l, "exittime"],
-                                                                        tz = "Asia/Kolkata"
-                                                                )
-                                                        ) -
-                                                                1
+                                                        dtindex = which(pnl$bizdays == as.Date(portfolio[l, "exittime"],tz = "Asia/Kolkata")) - 1
                                                 }
-                                                pnl$realized[(dtindex + 1):nrow(pnl)] <-
-                                                        pnl$realized[(dtindex + 1):nrow(pnl)] + sum(cumunrealized) + lastdaypnl
+                                                pnl$realized[(dtindex + 1):nrow(pnl)] <-pnl$realized[(dtindex + 1):nrow(pnl)] + sum(cumunrealized) + lastdaypnl
                                                 if (per.contract.brokerage) {
-                                                        pnl$brokerage[(dtindex + 1):nrow(pnl)] = pnl$brokerage[(dtindex + 1):nrow(pnl)] +
-                                                                brokerage[l] * size
+                                                        pnl$brokerage[(dtindex + 1):nrow(pnl)] = pnl$brokerage[(dtindex + 1):nrow(pnl)] + brokerage[l] * size
                                                 } else{
                                                         pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] *
-                                                                size * portfolio[l, 'exitprice']
+                                                                size * portfolio[l, 'exitprice']*md$splitadjust[(index)]/md$splitadjust[exitindex]
                                                 }
-                                                pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex +
-                                                                                                                  1):nrow(pnl)] - sum(cumunrealized)
+                                                pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex + 1):nrow(pnl)] - sum(cumunrealized)
                                         } else{
-                                                pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex + 1):nrow(pnl)] +
-                                                        lastdaypnl
+                                                pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex + 1):nrow(pnl)] + lastdaypnl
                                         }
 
                                 }
