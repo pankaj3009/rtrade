@@ -270,10 +270,10 @@ DataFrame ExtraTrades(DataFrame actual,DataFrame recon){
   StringVector pnldiff(symbol.size());
   for(int i=0;i<symbol.size();i++){
     if(strncmp(entryside.at(i),"BUY",3)==0){
-      pnldiff[i]=-entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
+      pnldiff[i]=entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
     }
     else{
-      pnldiff[i]=-entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
+      pnldiff[i]=entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
     }
   }
   return DataFrame::create(_("symbol")=wrap(symbol),_("side")=wrap(entryside),_("size")=wrap(entrysize),
