@@ -483,7 +483,7 @@ getExpiryDate <- function(mydate) {
 }
 
 getPriceArrayFromRedis <-
-        function(redisdb, symbol, duration, type, todaydate) {
+        function(redisdb, symbol, duration, type, starttime,enddtime) {
                 # Retrieves OHLCS prices from redisdb (currently no 9) starting from todaydate till end date.
                 #symbol = redis symbol name in db=9
                 #duration = [tick,daily]
@@ -491,10 +491,12 @@ getPriceArrayFromRedis <-
                 # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
                 redisConnect()
                 redisSelect(as.numeric(redisdb))
-                start = as.numeric(as.POSIXct(todaydate, format = "%Y-%m-%d %H:%M:%S", tz =
+                start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz =
                                                       "Asia/Kolkata")) * 1000
+                end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz =
+                                                "Asia/Kolkata")) * 1000
                 a <-
-                        redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, "+inf")
+                        redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
                 redisClose()
                 price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
                 if (nrow(price) > 0) {
@@ -504,7 +506,7 @@ getPriceArrayFromRedis <-
                         open = price$value[1]
                         close = price$value[nrow(price)]
                         out = data.frame(
-                                date = as.POSIXct(todaydate, format = "%Y-%m-%d"),
+                                date = as.POSIXct(starttime, format = "%Y-%m-%d"),
                                 open = open,
                                 high = high,
                                 low = low,
@@ -2528,7 +2530,7 @@ chart <-
                             theme = customTheme)
         }
 
-createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath){
+createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
   #generates trades dataframe using information in redis
   redisConnect()
   redisSelect(redisdb)
@@ -2558,11 +2560,24 @@ createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath){
     entrydate=data["entrytime"]
     exitdate=data["exittime"]
     entrydate=as.Date(entrydate,tz="Asia/Kolkata")
-    exitdate=as.Date(ifelse(is.na(exitdate),Sys.Date(),as.Date(exitdate,tz="Asia/Kolkata")))
+    exitdate=ifelse(is.na(exitdate),Sys.Date(),as.Date(exitdate,tz="Asia/Kolkata"))
     if(exitdate>=periodstartdate && entrydate<=periodenddate){
       if(grepl("opentrades",rediskeysShortList[i])){
         symbol=data["entrysymbol"]
-        load(paste(mdpath,symbol,".Rdata",sep=""))
+        symbolsvector = unlist(strsplit(symbol, "_"))
+        symbol<-symbolsvector[1]
+        if (!deriv) {
+                load(paste(mdpath, symbolsvector[1], ".Rdata", sep = ""))
+        } else{
+                load(paste(
+                        fnodatafolder,
+                        symbolsvector[3],
+                        "/",
+                        symbol,
+                        ".Rdata",
+                        sep = ""
+                ))
+        }
         index=which(as.Date(md$date,tz="Asia/Kolkata")==exitdate)
         if(length(index)==0){
           index=nrow(md)
@@ -2577,11 +2592,20 @@ createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath){
       netpercentprofit=percentprofit-(brokerage/(as.numeric(data["entryprice"])*as.numeric(data["entrysize"])))
       netprofit=(exitprice-as.numeric(data["entryprice"]))*as.numeric(data["entrysize"])-brokerage
       netprofit=ifelse(data["entryside"]=="BUY",netprofit,-netprofit)
-      df=data.frame(symbol=data["parentsymbol"],trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
-                    entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
-                    percentprofit=percentprofit,bars=0,brokerage=brokerage,
-                    netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
-      )
+      if(!deriv){
+              df=data.frame(symbol=symbol,trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
+                            entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
+                            percentprofit=percentprofit,bars=0,brokerage=brokerage,
+                            netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
+              )
+      }else{
+              df=data.frame(symbol=data["parentsymbol"],trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
+                            entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
+                            percentprofit=percentprofit,bars=0,brokerage=brokerage,
+                            netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
+              )              
+      }
+
       rownames(df)<-NULL
       actualtrades=rbind(actualtrades,df)
 

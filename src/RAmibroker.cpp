@@ -64,8 +64,8 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
     for(int j=0;j<aentrytimestamp.size();j++){
       Rcout << "i: "<<i<<",eentrytimestamp[i]: "<<eentrytimestamp[i]<<",aentrytimestamp[j]: "<<aentrytimestamp[j]<<std::endl;
       if(eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]==aentryside[j] && esymbol[i]==asymbol[j]){
-        aindex.push_back(i);
-        eindex.push_back(j);
+        eindex.push_back(i);
+        aindex.push_back(j);
         symbol.push_back(esymbol[i]);
         entryside.push_back(eentryside[i]);
         entrysizediff.push_back(aentrysize[j]-eentrysize[i]);
@@ -82,7 +82,7 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
   StringVector expentrydate(eindex.size());
   StringVector expexitdate(eindex.size());
   StringVector actexitdate(aindex.size());
-//  Rcout << " asize#:"<<aindex.size()<< " ,esize:"<<eindex.size()<<std::endl;
+  Rcout << " asize#:"<<aindex.size()<< " ,esize:"<<eindex.size()<<std::endl;
 
   for(int i=0;i<eindex.size();i++){
     Rcout << " index#:"<<i<< " ,i value:"<<eindex.at(i)<<std::endl;
@@ -96,7 +96,7 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
     actexitdate[j]=aexittimestamp[aindex.at(j)];
   }
 
-  StringVector pnldiff(eindex.size());
+  NumericVector pnldiff(eindex.size());
 
   for(int i=0;i<aindex.size();i++){
     Rcout << " entrysize:"<<aentrysize[aindex.at(i)]<< ",entrypricediff:"<<entrypricediff.at(i)<<",exitpricediff:"<<exitpricediff.at(i)<<std::endl;
@@ -147,8 +147,8 @@ DataFrame ExecutionSideDiff(DataFrame expected,DataFrame actual,bool option=true
         check=eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]!=aentryside[j] && esymbol[i]==asymbol[j];
       }
       if(check){
-        aindex.push_back(i);
-        eindex.push_back(j);
+        eindex.push_back(i);
+        aindex.push_back(j);
         symbol.push_back(esymbol[i]);
         entryside.push_back(eentryside[i]);
         entrysizediff.push_back(aentrysize[j]-eentrysize[i]);
@@ -224,10 +224,10 @@ DataFrame MissingTrades(DataFrame expected,DataFrame recon){
   StringVector pnldiff(symbol.size());
   for(int i=0;i<symbol.size();i++){
     if(strncmp(entryside.at(i),"BUY",3)==0){
-      pnldiff[i]=entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
+      pnldiff[i]=-entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
     }
     else{
-      pnldiff[i]=entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
+      pnldiff[i]=-entrysize.at(i)*(entryprice.at(i)-exitprice.at(i));
     }
   }
   return DataFrame::create(_("symbol")=wrap(symbol),_("side")=wrap(entryside),_("size")=wrap(entrysize),
