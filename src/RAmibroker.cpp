@@ -30,6 +30,115 @@
 using namespace Rcpp;
 using namespace std;
 
+// [[Rcpp::export]]
+
+DatetimeVector UniqueDateTime(DatetimeVector label){
+  vector<Datetime> out;
+  for(int i=0;i<label.size();i++){
+    if(std::find(out.begin(), out.end(), label[i]) == out.end()){
+      out.push_back(label[i]);
+    }
+  }
+  return wrap(out);
+}
+
+// [[Rcpp::depends(BH)]]
+
+namespace bt = boost::posix_time;
+
+const std::locale formats[] = {    // this shows a subset only, see the source file for full list
+  std::locale(std::locale::classic(), new bt::time_input_facet("%Y-%m-%d %H:%M:%S%f")),
+  std::locale(std::locale::classic(), new bt::time_input_facet("%Y/%m/%d %H:%M:%S%f")),
+
+  std::locale(std::locale::classic(), new bt::time_input_facet("%Y-%m-%d")),
+  std::locale(std::locale::classic(), new bt::time_input_facet("%b/%d/%Y")),
+};
+const size_t nformats = sizeof(formats)/sizeof(formats[0]);
+
+double stringToTime(const std::string s) {
+  bt::ptime pt,ptbase;
+  // loop over formats and try them til one fits
+  for (size_t i=0; pt == ptbase && i < nformats; ++i) {
+    std::istringstream is(s);
+    is.imbue(formats[i]);
+    is >> pt;
+  }
+
+  if (pt == ptbase) {
+    return NAN;
+  } else {
+    const bt::ptime timet_start(boost::gregorian::date(1970,1,1));
+    bt::time_duration diff = pt - timet_start;
+
+    // Define BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG to use nanoseconds
+    // (and then use diff.total_nanoseconds()/1.0e9;  instead)
+    return diff.total_microseconds()/1.0e6;
+  }
+}
+
+template <int RTYPE>
+Rcpp::DatetimeVector toPOSIXct_impl(const Rcpp::Vector<RTYPE>& sv) {
+
+  int n = sv.size();
+  Rcpp::DatetimeVector pv(n);
+
+  for (int i=0; i<n; i++) {
+    std::string s = boost::lexical_cast<std::string>(sv[i]);
+    //Rcpp::Rcout << sv[i] << " -- " << s << std::endl;
+
+    // Boost Date_Time gets the 'YYYYMMDD' format wrong, even
+    // when given as an explicit argument. So we need to test here.
+    // While we are at it, may as well test for obviously wrong data.
+    int l = s.size();
+    if ((l < 8) ||          // impossibly short
+        (l == 9)) {         // 8 or 10 works, 9 cannot
+      Rcpp::stop("Inadmissable input: %s", s);
+    } else if (l == 8) {    // turn YYYYMMDD into YYYY/MM/DD
+      s = s.substr(0, 4) + "/" + s.substr(4, 2) + "/" + s.substr(6,2);
+    }
+    pv[i] = stringToTime(s);
+  }
+  return pv;
+}
+
+
+Rcpp::DatetimeVector toPOSIXct(SEXP x) {
+  if (Rcpp::is<Rcpp::CharacterVector>(x)) {
+    return toPOSIXct_impl<STRSXP>(x);
+  } else if (Rcpp::is<Rcpp::IntegerVector>(x)) {
+    return toPOSIXct_impl<INTSXP>(x);
+  } else if (Rcpp::is<Rcpp::NumericVector>(x)) {
+    // here we have two cases: either we are an int like
+    // 200150315 'mistakenly' cast to numeric, or we actually
+    // are a proper large numeric (ie as.numeric(Sys.time())
+    Rcpp::NumericVector v(x);
+    if (v[0] < 21990101) {  // somewhat arbitrary cuttoff
+      // actual integer date notation: convert to string and parse
+      return toPOSIXct_impl<REALSXP>(x);
+    } else {
+      // we think it is a numeric time, so treat it as one
+      return Rcpp::DatetimeVector(x);
+    }
+  } else {
+    Rcpp::stop("Unsupported Type");
+    return R_NilValue;//not reached
+  }
+}
+// [[Rcpp::export]]
+DatetimeVector subsetDateVector(DatetimeVector dv,IntegerVector iv) {
+
+ Function formatDate("format.Date");
+  CharacterVector dvc(dv.size());
+  for (int i = 0; i < dv.size(); i++) {
+    dvc[i] = as<std::string>(formatDate(wrap(dv[i])));
+  }
+  CharacterVector dv1 = dvc[iv];
+  DatetimeVector out= toPOSIXct(dv1);
+  return out;
+
+}
+
+
 bool contains(NumericVector X, int z) {
   return std::find(X.begin(), X.end(), z)!=X.end();
   }
@@ -652,8 +761,8 @@ DataFrame GenerateTrades(DataFrame all){
                                          _["entryprice"]=NumericVector::create(),_["exittime"]=NumericVector::create(),_["exitprice"]=NumericVector::create(),
                                          _["percentprofit"]=NumericVector::create(),_["bars"]=NumericVector::create(), _["stringsAsFactors"] = false
                 );
-                
-  }        
+
+  }
   const NumericVector buy=all["buy"];
   const NumericVector sell=all["sell"];
   const NumericVector shrt=all["short"];
@@ -1427,6 +1536,187 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
         return DataFrame::create(_["date"]=timestamp,_["symbol"]=symbol,_["buy"]=lbuy,_["sell"]=lsell,_["short"]=lshrt,_["cover"]=lcover,
                                  _["buyprice"]= lbuyprice, _["sellprice"]= lsellprice,_["shortprice"]=lshortprice,_["coverprice"]=lcoverprice,
                                    _["stringsAsFactors"] = false);
+
+}
+
+// [[Rcpp::export]]
+DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false){
+  //stop mode can be 1: points
+  int nSize=all.nrows();
+  const NumericVector inlongtrade=all["inlongtrade"];
+  const NumericVector inshorttrade=all["inshorttrade"];
+  const NumericVector open=all["aopen"];
+  const NumericVector high=all["ahigh"];
+  const NumericVector low=all["alow"];
+  const NumericVector close=all["aclose"];
+  const NumericVector buy=all["buy"];
+  const NumericVector sell=all["sell"];
+  const NumericVector shrt=all["short"];
+  const NumericVector cover=all["cover"];
+  const StringVector symbol=all["symbol"];
+
+  const NumericVector buyprice=all["buyprice"];
+  const NumericVector sellprice=all["sellprice"];
+  const NumericVector shortprice=all["shortprice"];
+  const NumericVector coverprice=all["coverprice"];
+  const DatetimeVector timestamp=all["date"];
+
+  NumericVector lbuy(nSize);
+  NumericVector lsell(nSize);
+  NumericVector lshrt(nSize);
+  NumericVector lcover(nSize);
+
+  NumericVector lbuyprice(nSize);
+  NumericVector lsellprice(nSize);
+  NumericVector lshortprice(nSize);
+  NumericVector lcoverprice(nSize);
+
+  // update tp
+  NumericVector damount=tpamount;
+
+  for(int i=0;i<nSize;i++){
+    if(buy[i]>0){
+      lbuy[i]=buy[i];
+      lbuyprice[i]=buyprice[i];
+    }
+    if(shrt[i]>0){
+      lshrt[i]=shrt[i];
+      lshortprice[i]=shortprice[i];
+    }
+    if(sell[i]>0){
+      lsell[i]=sell[i];
+      lsellprice[i]=sellprice[i];
+    }
+    if(cover[i]>0){
+      lcover[i]=cover[i];
+      lcoverprice[i]=coverprice[i];
+    }
+  }
+  StringVector uniquesymbol=unique(symbol);
+  for(int z=0;z<uniquesymbol.size();z++){
+    bool tptriggered =false;
+    bool sltriggered=false;
+    int barstart=0;
+    IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
+    for(int a=0;a<indices.size();a++){
+      int i=indices[a];
+      tptriggered=false;
+      sltriggered=false;
+      bool newtrade= (a>0 & (lbuy[indices[(a-1)]]>0)|(lshrt[indices[(a-1)]]>0));
+      //Rcout << "The value NewTrade at i: " << i <<" is "<< newtrade << ", lbuy[i-1]: "<<lbuy[i-1] <<" ,shrt[i-1]"<<shrt[i-1] <<std::endl;
+      if(newtrade){ //reset stoplosstriggered flag.
+        tptriggered=false;
+        sltriggered=false;
+        barstart=indices[(a-1)];
+      }
+
+      if(!tptriggered & !sltriggered){//stoplossnottriggered
+        if(inlongtrade[indices[(a-1)]]==1){
+          //check if stoploss triggered for a long trade
+          double slprice=0;
+          double tpprice=0;
+          if(volatiletp){
+            tpprice=buyprice[barstart]+damount[indices[(a-1)]];
+          }else{
+            tpprice=buyprice[barstart]+damount[barstart];
+          }
+          if(volatilesl){
+            slprice=buyprice[barstart]-damount[indices[(a-1)]];
+          }else{
+            slprice=buyprice[barstart]-damount[barstart];
+          }
+          //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<damount[barstart] <<std::endl;
+          if(open[i]<=slprice){
+            lsellprice[i]=open[i];
+            sltriggered=true;
+            lsell[i]=3;
+          }else if ((low[i]<=slprice) && (high[i]>=slprice)){
+            lsellprice[i]=slprice;
+            sltriggered=true;
+            lsell[i]=2;//maxsl
+            //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
+          }
+          if(!sltriggered){
+            if(open[i]>=tpprice){
+              lsellprice[i]=open[i];
+              tptriggered=true;
+              lsell[i]=3;
+            }else if ((low[i]<=tpprice) && (high[i]>=tpprice)){
+              lsellprice[i]=tpprice;
+              tptriggered=true;
+              lsell[i]=2;//maxsl
+              //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
+            }
+          }
+        }else if(inshorttrade[indices[(a-1)]]==1){
+          //check if stoploss triggered for a short trade
+          double slprice=0;
+          double tpprice=0;
+          if(volatiletp){
+            tpprice=shortprice[barstart]-damount[indices[(a-1)]];
+          }else{
+            tpprice=shortprice[barstart]-damount[barstart];
+          }
+          if(volatilesl){
+            slprice=shortprice[barstart]+damount[indices[(a-1)]];
+          }else{
+            slprice=shortprice[barstart]+damount[barstart];
+          }
+          if(open[i]>=slprice){
+            lcoverprice[i]=open[i];
+            sltriggered=true;
+            lcover[i]=3;
+          }else if ((low[i]<=slprice) && (high[i]>=slprice)){
+            lcoverprice[i]=slprice;
+            sltriggered=true;
+            lcover[i]=2;
+            //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
+          }
+          if(!sltriggered){
+            if(open[i]<=tpprice){
+              lcoverprice[i]=open[i];
+              tptriggered=true;
+              lcover[i]=3;
+            }else if ((low[i]<=tpprice) && (high[i]>=tpprice)){
+              lcoverprice[i]=tpprice;
+              tptriggered=true;
+              lcover[i]=2;
+              //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
+            }
+
+          }
+        }
+      }
+
+      if(tptriggered ||sltriggered){//check if a replacement trade is needed
+        //needed if intrade is true at the bar
+        if(inlongtrade[i]==1 && cover[i]==0 ){
+          //enter fresh long trade. Update all buyprices for bars ahead, till you arrive at a non-zero buyprice.
+          int j=i;
+          lbuy[i]=2;//replacement trade
+          tptriggered=false;
+          while((inlongtrade[j]!=0) && (j<nSize)) {
+            lbuyprice[j]=close[i];
+            j++;
+          };
+
+        }else if((inshorttrade[i]==1) && (sell[i]==0)){
+          //enter fresh short trade
+          int j=i;
+          tptriggered=false;
+          lshrt[i]=2;//replacement trade
+          while((inshorttrade[j]!=0) && (j<nSize)){
+            lshortprice[j]=close[i];
+            j++;
+          };
+        }
+      }
+    }
+  }
+
+  return DataFrame::create(_["date"]=timestamp,_["symbol"]=symbol,_["buy"]=lbuy,_["sell"]=lsell,_["short"]=lshrt,_["cover"]=lcover,
+                           _["buyprice"]= lbuyprice, _["sellprice"]= lsellprice,_["shortprice"]=lshortprice,_["coverprice"]=lcoverprice,
+                             _["stringsAsFactors"] = false);
 
 }
 
