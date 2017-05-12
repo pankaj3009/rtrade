@@ -483,7 +483,7 @@ getExpiryDate <- function(mydate) {
 }
 
 getPriceArrayFromRedis <-
-        function(redisdb, symbol, duration, type, starttime,enddtime) {
+        function(redisdb, symbol, duration, type, starttime,endtime) {
                 # Retrieves OHLCS prices from redisdb (currently no 9) starting from todaydate till end date.
                 #symbol = redis symbol name in db=9
                 #duration = [tick,daily]
@@ -491,10 +491,8 @@ getPriceArrayFromRedis <-
                 # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
                 redisConnect()
                 redisSelect(as.numeric(redisdb))
-                start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz =
-                                                      "Asia/Kolkata")) * 1000
-                end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz =
-                                                "Asia/Kolkata")) * 1000
+                start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
+                end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
                 a <-
                         redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
                 redisClose()
@@ -1047,7 +1045,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         ),
                                                                         expiry
                                                                 )
-                                                                vol = EuropeanOptionImpliedVolatility(
+                                                                vol=tryCatch({EuropeanOptionImpliedVolatility(
                                                                         tolower(
                                                                                 symbolsvector[4]
                                                                         ),
@@ -1059,8 +1057,8 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         0.015,
                                                                         0.06,
                                                                         dte / 365,
-                                                                        0.1
-                                                                )
+                                                                        0.01
+                                                                )},error=function(err){0.01})
                                                                 greeks <- EuropeanOption(
                                                                         tolower(
                                                                                 symbolsvector[4]
@@ -1199,7 +1197,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         ),
                                                                         expiry
                                                                 )
-                                                                vol = EuropeanOptionImpliedVolatility(
+                                                                vol = tryCatch({EuropeanOptionImpliedVolatility(
                                                                         tolower(
                                                                                 symbolsvector[4]
                                                                         ),
@@ -1212,7 +1210,8 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         0.06,
                                                                         dte / 365,
                                                                         0.1
-                                                                )
+                                                                )},error=function(err){0.01})
+
                                                                 greeks <- EuropeanOption(
                                                                         tolower(
                                                                                 symbolsvector[4]
@@ -2603,7 +2602,7 @@ createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FAL
                             entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
                             percentprofit=percentprofit,bars=0,brokerage=brokerage,
                             netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
-              )              
+              )
       }
 
       rownames(df)<-NULL
@@ -2614,4 +2613,5 @@ createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FAL
   #return(actualtrades[with(trades,order(entrytime)),])
   return(actualtrades)
 }
+
 
