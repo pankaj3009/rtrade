@@ -419,6 +419,34 @@ NumericVector Ref(NumericVector input,NumericVector shift){
 }
 
 // [[Rcpp::export]]
+CharacterVector CRef(CharacterVector input,NumericVector shift){
+
+  int nSize=input.size();
+  NumericVector newshift(nSize);
+  if(shift.size()==1){
+    for(int i=0;i<nSize;i++){
+      newshift[i]=shift[0];
+    }
+  }else{
+    newshift=shift;
+  }
+  CharacterVector result(nSize);
+  for(int i=0;i<nSize;i++){
+    if((newshift[i]>=0) && ((i+newshift[i])<nSize)){
+      //Rcout<<"input[i+newshift[i]]:"<<input[i+newshift[i]]<<"bar:"<<i<<std::endl;
+      result[i]=input[i+newshift[i]];
+    }else if((newshift[i]<0) && ((i+newshift[i])>=0)){
+      result[i]=input[i+newshift[i]];
+    } else{
+      //Rcout << "bar:"<<i<<std::endl;
+      result[i]=NA_STRING;
+    }
+  }
+  return result;
+}
+
+
+// [[Rcpp::export]]
 NumericVector ExRem(NumericVector vec1, NumericVector vec2){
   int nSize=vec1.size();
   NumericVector result(nSize);
@@ -1540,11 +1568,12 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
 }
 
 // [[Rcpp::export]]
-DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false){
+DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false,bool preventReplacement=false){
+  //preventReplacementTrade should be set as true if the signals are not being checked daily for BUY, SELL or AVOID        
   //stop mode can be 1: points
   int nSize=all.nrows();
-  const NumericVector inlongtrade=all["inlongtrade"];
-  const NumericVector inshorttrade=all["inshorttrade"];
+  NumericVector inlongtrade=all["inlongtrade"];
+  NumericVector inshorttrade=all["inshorttrade"];
   const NumericVector open=all["aopen"];
   const NumericVector high=all["ahigh"];
   const NumericVector low=all["alow"];
@@ -1687,9 +1716,15 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }
         }
       }
+      if(preventReplacement){
+              //Rcout << "Old:"<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
+              inlongtrade=Flip(lbuy,lsell);
+              inshorttrade=Flip(lshrt,lcover);     
+      }
 
       if(tptriggered ||sltriggered){//check if a replacement trade is needed
         //needed if intrade is true at the bar
+        //Rcout << "New:"<< preventReplacement<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
         if(inlongtrade[i]==1 && cover[i]==0 ){
           //enter fresh long trade. Update all buyprices for bars ahead, till you arrive at a non-zero buyprice.
           int j=i;
