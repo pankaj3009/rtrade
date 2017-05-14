@@ -2348,8 +2348,12 @@ getAllStrikesForExpiry <-
                 d <- sapply(c, tail, n = 1L)
                 e <- sapply(d, strsplit, "\\.Rdata")
                 #as.numeric(sapply(e,function(x){x[length(x)-1]}))
-                as.numeric(e)
-
+                e<-as.numeric(e)
+                if(underlyingshortname=="NSENIFTY"){
+                   inclusion=which(e%%100==0)
+                   e<-e[inclusion]
+                }
+                e
         }
 
 getClosestStrike <-
@@ -2406,24 +2410,7 @@ getClosestStrikeUniverse <-
                             dfsignals$sell[i] > 0 || dfsignals$short[i] > 0 ||
                             dfsignals$cover[i] > 0) {
                                 symbolsvector = unlist(strsplit(dfsignals$symbol[i], "_"))
-                                if (symbolsvector[1] == "NSENIFTY") {
-                                        dfsignals$strike[i] = round((
-                                                signals$buyprice[i] + signals$shortprice[i]
-                                        ) / 100) * 100
-                                } else{
-                                        dfsignals$strike[i] = getClosestStrike(
-                                                dfsignals$date[i],
-                                                symbolsvector[1],
-                                                strftime(
-                                                        dfsignals$entrycontractexpiry[i],
-                                                        "%Y%m%d",
-                                                        tz =
-                                                                timeZone
-                                                ),
-                                                fnodatafolder,
-                                                equitydatafolder
-                                        )
-                                }
+                                dfsignals$strike[i] = getClosestStrike(dfsignals$date[i],symbolsvector[1],strftime(dfsignals$entrycontractexpiry[i],"%Y%m%d",tz = timeZone),fnodatafolder,equitydatafolder)
                         }
                 }
                 dfsignals
