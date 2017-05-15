@@ -18,7 +18,8 @@ Depends:
     jsonlite,
     xts,
     rredis,
-    RQuantLib
+    RQuantLib,
+    BH
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:

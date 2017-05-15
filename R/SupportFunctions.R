@@ -2393,7 +2393,20 @@ getClosestStrike <-
                                 }, s = strikes)
                         out = strikes[strikeIndex]
                 } else{
-                        out = NA_real_
+                  longsymbol=paste(underlyingshortname,"_FUT_",expiry,"__",sep="")
+                  today<-strftime(as.Date(dates[1],format="%Y%m%d",tz=kTimeZone),format="%Y-%m-%d",tz=kTimeZone)
+                  newrow <- getPriceArrayFromRedis(9,longsymbol,"tick","close",paste(today, " 09:12:00"), paste(today, " 15:30:00"))
+                  if(nrow(newrow)==1){
+                    prices = newrow$close
+                    strikeIndex <-
+                      sapply(prices[1], function(x, s) {
+                        which.min(abs(s - x))
+                      }, s = strikes)
+                    out = strikes[strikeIndex]
+                  }else{
+                    out = NA_real_  
+                  }      
+                  
                 }
                 out
                 #data.frame(date=as.POSIXct(datesubset,tz="Asia/Kolkata"),strike=strikes[strikeIndex])
@@ -2479,7 +2492,7 @@ chart <-
                 if (!deriv) {
                         load(paste(equitydatafolder, symbol, ".Rdata", sep = ""))
                 } else{
-                        symbolsvector = unlist(strsplit(name, "_"))
+                        symbolsvector = unlist(strsplit(symbol, "_"))
                         load(paste(
                                 fnodatafolder,
                                 symbolsvector[3],
