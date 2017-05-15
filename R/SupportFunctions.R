@@ -2404,9 +2404,9 @@ getClosestStrike <-
                       }, s = strikes)
                     out = strikes[strikeIndex]
                   }else{
-                    out = NA_real_  
-                  }      
-                  
+                    out = NA_real_
+                  }
+
                 }
                 out
                 #data.frame(date=as.POSIXct(datesubset,tz="Asia/Kolkata"),strike=strikes[strikeIndex])
@@ -2505,7 +2505,13 @@ chart <-
                 if (symbol == "NSENIFTY") {
                         md$aclose = md$asettle
                 }
-                symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "aclose", "avolume"))
+          symbolname=NULL
+          if(length(grep("aopen",names(md)))>0){
+            symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"))
+          }else{
+            symbolname = convertToXTS(md, c("open", "high", "low", "settle", "volume"))
+          }
+          #      symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "aclose", "avolume"))
                 customTheme = chartTheme(
                         "white",
                         up.col = "dark green",
@@ -2524,9 +2530,12 @@ chart <-
                         dn.dn.border = "#000000",
                         up.dn.border = "#000000"
                 )
+                names(symbolname)<-c("open","high","low","close","volume")
+                name<-as.character(md$symbol[1])
                 chartSeries(symbolname,
                             subset = paste(start, "::", end, sep = ""),
-                            theme = customTheme)
+                            theme = customTheme,
+                            name=name)
         }
 
 createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
