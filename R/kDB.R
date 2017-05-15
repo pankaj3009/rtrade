@@ -184,8 +184,8 @@ kGetOHLCV <-
     md <- data.frame()
     if (!is.null(symbolchange)) {
       symbollist <-
-        linkedsymbols(symbolchange[, 1], #key
-                      symbolchange[, 2], #newsymbol
+        linkedsymbols(symbolchange[, 2], #key
+                      symbolchange[, 3], #newsymbol
                       toupper(input))
     } else{
       symbollist = c(toupper(input))
