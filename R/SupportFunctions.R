@@ -734,7 +734,7 @@ optionTradeSignalsLongOnly <- function(signals,
                 stringsAsFactors = FALSE
         )
 
-        # amend signals for any rollover
+        #### Amend signals for any rollover ####
         signals$inlongtrade <- RTrade::Flip(signals$buy, signals$sell)
         signals$inshorttrade <-
                 RTrade::Flip(signals$short, signals$cover)
@@ -790,7 +790,7 @@ optionTradeSignalsLongOnly <- function(signals,
                 getClosestStrikeUniverse(signals, fnodatafolder, equitydatafolder, kTimeZone)
         signals <- signals[order(signals$date), ]
 
-        #Entry
+        #### Entry ####
         expiry = format(signals[, c("entrycontractexpiry")], format = "%Y%m%d")
         signals$symbol = ifelse(
                 signals$buy > 0,
@@ -958,7 +958,7 @@ optionTradeSignalsLongOnly <- function(signals,
                 }
         }
 
-        #Exit
+        #### Exit ####
         for (i in 1:nrow(signals)) {
                 if (signals$sell[i] > 0) {
                         indexofbuy = getBuyIndices(signals, i)
@@ -1101,11 +1101,9 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                 out$sell[indexofsignal] = signals$sell[i]
                                                                 out$sellprice[indexofsignal] = sellprice
                                                         }
-                                                } else{
-                                                        # check if record is for today
-                                                        if (as.Date(signals$date[i],
-                                                                    tz = "Asia/Kolkata") ==
-                                                            Sys.Date()) {
+                                                }
+                                                # check if record is for today
+                                                else  if (as.Date(signals$date[i],tz = "Asia/Kolkata") == Sys.Date()) {
                                                                 if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
                                                                         # add row to signals
                                                                         out = rbind(
@@ -1135,8 +1133,10 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         out$sellprice[indexofsignal] =
                                                                                 0
                                                                 }
+                                                }else{
+                                                        print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                         }
-                                                }
+                                                
                                         }
                                 }
 
@@ -1253,9 +1253,9 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                 out$sell[indexofsignal] = signals$cover[i]
                                                                 out$sellprice[indexofsignal] = coverprice
                                                         }
-                                                } else{
+                                                } 
                                                         # check if record is for today
-                                                        if (as.Date(signals$date[i],
+                                                     else if (as.Date(signals$date[i],
                                                                     tz = "Asia/Kolkata") == Sys.Date()) {
                                                                 if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
                                                                         # add row to signals
@@ -1283,8 +1283,10 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         out$sell[indexofsignal] = signals$cover[i]
                                                                         out$sellprice[indexofsignal] = 0
                                                                 }
+                                                     }else{
+                                                             print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                         }
-                                                }
+                                                
                                         }
 
                                 }
@@ -1648,9 +1650,9 @@ optionTradeSignalsShortOnly <-
                                                                         out$cover[indexofsignal] = signals$sell[i]
                                                                         out$coverprice[indexofsignal] = sellprice
                                                                 }
-                                                        } else{
+                                                        } 
                                                                 # check if record is for today
-                                                                if (as.Date(signals$date[i],
+                                                              else  if (as.Date(signals$date[i],
                                                                             tz = "Asia/Kolkata") == Sys.Date()) {
                                                                         if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
                                                                                 # add row to signals
@@ -1678,8 +1680,10 @@ optionTradeSignalsShortOnly <-
                                                                                 out$cover[indexofsignal] = signals$sell[i]
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
+                                                              }else{
+                                                                      print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        }
+                                                        
                                                 }
 
 
@@ -1796,9 +1800,8 @@ optionTradeSignalsShortOnly <-
                                                                         out$cover[indexofsignal] = signals$cover[i]
                                                                         out$coverprice[indexofsignal] = coverprice
                                                                 }
-                                                        } else{
-                                                                # check if record is for today
-                                                                if (as.Date(signals$date[i],
+                                                        }     # check if record is for today
+                                                               else if (as.Date(signals$date[i],
                                                                             tz = "Asia/Kolkata") == Sys.Date()) {
                                                                         if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
                                                                                 # add row to signals
@@ -1826,8 +1829,10 @@ optionTradeSignalsShortOnly <-
                                                                                 out$cover[indexofsignal] = signals$cover[i]
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
+                                                               }else{
+                                                                       print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        }
+                                                        
                                                 }
 
                                         }
@@ -2163,9 +2168,8 @@ futureTradeSignals <-
                                                                         out$sell[indexofsignal] = signals$sell[i]
                                                                         out$sellprice[indexofsignal] = sellprice
                                                                 }
-                                                        } else{
-                                                                # check if record is for today
-                                                                if (as.Date(signals$date[i],
+                                                        }       # check if record is for today
+                                                                else if (as.Date(signals$date[i],
                                                                             tz = "Asia/Kolkata") == Sys.Date()) {
                                                                         if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
                                                                                 # add row to signals
@@ -2193,8 +2197,10 @@ futureTradeSignals <-
                                                                                 out$sell[indexofsignal] = signals$sell[i]
                                                                                 out$sellprice[indexofsignal] = 0
                                                                         }
+                                                                }else{
+                                                                        print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        }
+                                                        
                                                 }
                                         }
 
@@ -2291,9 +2297,8 @@ futureTradeSignals <-
                                                                         out$cover[indexofsignal] = signals$cover[i]
                                                                         out$coverprice[indexofsignal] = coverprice
                                                                 }
-                                                        } else{
-                                                                # check if record is for today
-                                                                if (as.Date(signals$date[i],
+                                                        }       # check if record is for today
+                                                                else if (as.Date(signals$date[i],
                                                                             tz = "Asia/Kolkata") == Sys.Date()) {
                                                                         if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
                                                                                 # add row to signals
@@ -2321,8 +2326,10 @@ futureTradeSignals <-
                                                                                 out$cover[indexofsignal] = signals$cover[i]
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
+                                                                }else{
+                                                                        print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        }
+                                                        
                                                 }
                                         }
                                 }
