@@ -13,6 +13,7 @@ Imports:
     xts,
     rredis,
     RQuantLib
+    quantmod
 Depends:
     httr,
     jsonlite,
