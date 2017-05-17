@@ -1136,7 +1136,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                 }else{
                                                         print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                         }
-                                                
+
                                         }
                                 }
 
@@ -1253,7 +1253,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                 out$sell[indexofsignal] = signals$cover[i]
                                                                 out$sellprice[indexofsignal] = coverprice
                                                         }
-                                                } 
+                                                }
                                                         # check if record is for today
                                                      else if (as.Date(signals$date[i],
                                                                     tz = "Asia/Kolkata") == Sys.Date()) {
@@ -1286,7 +1286,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                      }else{
                                                              print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                         }
-                                                
+
                                         }
 
                                 }
@@ -1650,7 +1650,7 @@ optionTradeSignalsShortOnly <-
                                                                         out$cover[indexofsignal] = signals$sell[i]
                                                                         out$coverprice[indexofsignal] = sellprice
                                                                 }
-                                                        } 
+                                                        }
                                                                 # check if record is for today
                                                               else  if (as.Date(signals$date[i],
                                                                             tz = "Asia/Kolkata") == Sys.Date()) {
@@ -1683,7 +1683,7 @@ optionTradeSignalsShortOnly <-
                                                               }else{
                                                                       print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        
+
                                                 }
 
 
@@ -1832,7 +1832,7 @@ optionTradeSignalsShortOnly <-
                                                                }else{
                                                                        print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        
+
                                                 }
 
                                         }
@@ -2200,7 +2200,7 @@ futureTradeSignals <-
                                                                 }else{
                                                                         print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        
+
                                                 }
                                         }
 
@@ -2329,7 +2329,7 @@ futureTradeSignals <-
                                                                 }else{
                                                                         print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
                                                                 }
-                                                        
+
                                                 }
                                         }
                                 }
@@ -2491,8 +2491,8 @@ getMaxOIStrike <-
 
 chart <-
         function(symbol,
-                 start,
-                 end,
+                 start=NULL,
+                 end=NULL,
                  deriv = FALSE,
                  fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
                  equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/") {
@@ -2539,11 +2539,32 @@ chart <-
                 )
                 names(symbolname)<-c("open","high","low","close","volume")
                 name<-as.character(md$symbol[1])
+                if(is.null(start)){
+                  start=''
+                }
+                if(is.null(end)){
+                  end=''
+                }
+
                 chartSeries(symbolname,
                             subset = paste(start, "::", end, sep = ""),
                             theme = customTheme,
                             name=name)
         }
+
+loadSymbol<-function(symbol){
+  symbolsvector = unlist(strsplit(symbol, "_"))
+  if(length(symbolsvector)==1){
+    load(paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep=""))
+    return(md)
+  }else{
+    load(paste(mdpath,symbolsvector[3],"/",symbol,".Rdata",sep =""))
+         return(md)
+  }
+}
+
+
+}
 
 createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
   #generates trades dataframe using information in redis
