@@ -2564,8 +2564,6 @@ loadSymbol<-function(symbol){
 }
 
 
-}
-
 createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
   #generates trades dataframe using information in redis
   redisConnect()
