@@ -361,6 +361,13 @@ convertToXTS<-function(md,columns=c("aopen","ahigh","alow","aclose","avolume"),d
   #return(paste(symbol,sep=""))
   return(out)
 }
+
+convertToDF<-function(out){
+  md<-as.data.frame(out)
+  md$date<-index(out)
+  md
+}
+
 #a <- merge(Matrix1, Matrix2, by = c("Col1", "Col3"), all = TRUE)
 #r<-kGetOHLCV(start="2014-10-30 00:00:00",end="2014-11-05 00:00:00",timezone="Asia/Kolkata",name="india.nse.future.s1.1min",aName=NULL,aValue=NULL,aUnit=NULL,"symbol=nsenifty","expiry=20141127")
 #result<-content(r)$queries[[1]]$results[[1]]$values
