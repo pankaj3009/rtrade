@@ -1569,7 +1569,7 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
 
 // [[Rcpp::export]]
 DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false,bool preventReplacement=false){
-  //preventReplacementTrade should be set as true if the signals are not being checked daily for BUY, SELL or AVOID        
+  //preventReplacementTrade should be set as true if the signals are not being checked daily for BUY, SELL or AVOID
   //stop mode can be 1: points
   int nSize=all.nrows();
   NumericVector inlongtrade=all["inlongtrade"];
@@ -1719,7 +1719,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
       if(preventReplacement){
               //Rcout << "Old:"<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
               inlongtrade=Flip(lbuy,lsell);
-              inshorttrade=Flip(lshrt,lcover);     
+              inshorttrade=Flip(lshrt,lcover);
       }
 
       if(tptriggered ||sltriggered){//check if a replacement trade is needed
@@ -1928,6 +1928,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                         swinglevel[j] = 0;
                 }
         }
+        swinglevel[0]=swinglevel[1]; //ensure first swinglevel is never zero. else it goes outside plot
 
 
         // update trend
