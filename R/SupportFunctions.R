@@ -1134,7 +1134,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                                 0
                                                                 }
                                                 }else{
-                                                        print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
+                                                        print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
                                                         }
 
                                         }
@@ -1284,7 +1284,7 @@ optionTradeSignalsLongOnly <- function(signals,
                                                                         out$sellprice[indexofsignal] = 0
                                                                 }
                                                      }else{
-                                                             print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
+                                                             print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
                                                         }
 
                                         }
@@ -1681,7 +1681,7 @@ optionTradeSignalsShortOnly <-
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
                                                               }else{
-                                                                      print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
+                                                                      print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
                                                                 }
 
                                                 }
@@ -1830,7 +1830,7 @@ optionTradeSignalsShortOnly <-
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
                                                                }else{
-                                                                       print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
+                                                                       print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
                                                                 }
 
                                                 }
@@ -2198,7 +2198,7 @@ futureTradeSignals <-
                                                                                 out$sellprice[indexofsignal] = 0
                                                                         }
                                                                 }else{
-                                                                        print(paste("Missing data for symbol",signals$symbol[indexofbuy[j]],"for date",signals$date[i],sep=""))
+                                                                        print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
                                                                 }
 
                                                 }
@@ -2327,7 +2327,7 @@ futureTradeSignals <-
                                                                                 out$coverprice[indexofsignal] = 0
                                                                         }
                                                                 }else{
-                                                                        print(paste("Missing data for symbol",signals$symbol[indexofshort[j]],"for date",signals$date[i],sep=""))
+                                                                        print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
                                                                 }
 
                                                 }
