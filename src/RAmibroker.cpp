@@ -1601,7 +1601,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
   NumericVector lcoverprice(nSize);
 
   // update tp
-  NumericVector damount=tpamount;
+  //NumericVector damount=tpamount;
 
   for(int i=0;i<nSize;i++){
     if(buy[i]>0){
@@ -1645,16 +1645,18 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           double slprice=0;
           double tpprice=0;
           if(volatiletp){
-            tpprice=buyprice[barstart]+damount[indices[(a-1)]];
+            tpprice=buyprice[barstart]+tpamount[indices[(a-1)]];
           }else{
-            tpprice=buyprice[barstart]+damount[barstart];
+            tpprice=buyprice[barstart]+tpamount[barstart];
           }
           if(volatilesl){
-            slprice=buyprice[barstart]-damount[indices[(a-1)]];
+            slprice=buyprice[barstart]-slamount[indices[(a-1)]];
           }else{
-            slprice=buyprice[barstart]-damount[barstart];
+            slprice=buyprice[barstart]-slamount[barstart];
+             //Rcout << "sl amount at barstart: " << barstart <<" is "<< slamount[barstart] << std::endl;
+                  
           }
-          //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<damount[barstart] <<std::endl;
+          //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<slamount[barstart] <<std::endl;
           if(open[i]<=slprice){
             lsellprice[i]=open[i];
             sltriggered=true;
@@ -1682,14 +1684,14 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           double slprice=0;
           double tpprice=0;
           if(volatiletp){
-            tpprice=shortprice[barstart]-damount[indices[(a-1)]];
+            tpprice=shortprice[barstart]-tpamount[indices[(a-1)]];
           }else{
-            tpprice=shortprice[barstart]-damount[barstart];
+            tpprice=shortprice[barstart]-tpamount[barstart];
           }
           if(volatilesl){
-            slprice=shortprice[barstart]+damount[indices[(a-1)]];
+            slprice=shortprice[barstart]+slamount[indices[(a-1)]];
           }else{
-            slprice=shortprice[barstart]+damount[barstart];
+            slprice=shortprice[barstart]+slamount[barstart];
           }
           if(open[i]>=slprice){
             lcoverprice[i]=open[i];
