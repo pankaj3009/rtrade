@@ -2558,7 +2558,7 @@ loadSymbol<-function(symbol){
     load(paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep=""))
     return(md)
   }else{
-    load(paste(mdpath,symbolsvector[3],"/",symbol,".Rdata",sep =""))
+    load(paste("/home/psharma/Dropbox/rfiles/dailyfno/",symbolsvector[3],"/",symbol,".Rdata",sep =""))
          return(md)
   }
 }
