@@ -2553,6 +2553,16 @@ chart <-
                 symbolname[paste(start, "::", end, sep = "")]
         }
 
+QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
+        out<-chart(symbol,startdate,enddate)
+        out.md<-convertToDF(out)
+        trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
+        swinglevel=xts(trend.md$swinglevel,out.md$date)
+        plot(addTA(swinglevel,on=1, type='s'))
+        trend=xts(trend.md$trend,out.md$date)
+        plot(addTA(trend,type='s'))
+}
+
 loadSymbol<-function(symbol){
   symbolsvector = unlist(strsplit(symbol, "_"))
   if(length(symbolsvector)==1){
