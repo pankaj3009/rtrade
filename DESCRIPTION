@@ -20,7 +20,8 @@ Depends:
     xts,
     rredis,
     RQuantLib,
-    BH
+    BH,
+    quantmod
 Imports:
     Rcpp (>= 0.12.3)
 LinkingTo:

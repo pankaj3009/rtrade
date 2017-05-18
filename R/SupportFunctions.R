@@ -2550,6 +2550,7 @@ chart <-
                             subset = paste(start, "::", end, sep = ""),
                             theme = customTheme,
                             name=name)
+                symbolname[paste(start, "::", end, sep = "")]
         }
 
 loadSymbol<-function(symbol){
