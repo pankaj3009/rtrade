@@ -807,6 +807,7 @@ DataFrame GenerateTrades(DataFrame all){
   LogicalVector coverprocessed(nSize);
 
 
+
   //calculate # of trades
   int tradecount=0;
   for(int i=0;i<nSize;i++){
@@ -818,7 +819,7 @@ DataFrame GenerateTrades(DataFrame all){
     }
   }
   tradecount=tradecount;
-//  Rcout<<"TradeCount:"<<tradecount<<endl;
+ // Rcout<<"TradeCount:"<<tradecount<<endl;
 
   CharacterVector tradesymbol(tradecount);
   StringVector trade(tradecount);
@@ -828,6 +829,7 @@ DataFrame GenerateTrades(DataFrame all){
   NumericVector exitprice(tradecount);
   NumericVector percentprofit(tradecount);
   NumericVector bars(tradecount);
+  StringVector exitreason(tradecount);
   Function formatDate("format.POSIXct");
   int tradesize=-1;
   StringVector uniquesymbol=unique(symbol);
@@ -869,7 +871,16 @@ DataFrame GenerateTrades(DataFrame all){
     //      Rcout<<"Sell"<<",Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
           exittime[tradesize]=timestamp[k];
           exitprice[tradesize]=sellprice[k];
-          //bars[tradesize]=k-entrybar;
+          if(sell[k]==1){
+                  exitreason[tradesize]="RegularExit";
+          }else if(sell[k]==2){
+                  exitreason[tradesize]="SL";
+          }else if (sell[k]==3){
+                  exitreason[tradesize]="GapSL";
+          }else{
+                  exitreason[tradesize]="Undefined";
+          }
+          //Rcout <<"Sell"<<exitreason[tradesize]<<endl;
           //Rcout<<"1, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
           bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
           percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -888,7 +899,16 @@ DataFrame GenerateTrades(DataFrame all){
                 buyprocessed[j]=true;
                 exittime[tradesize]=timestamp[k];
                 exitprice[tradesize]=sellprice[k];
-                //bars[tradesize]=k-j;
+                if(sell[k]==1){
+                        exitreason[tradesize]="RegularExit";
+                }else if(sell[k]==2){
+                        exitreason[tradesize]="SL";
+                }else if (sell[k]==3){
+                        exitreason[tradesize]="GapSL";
+                }else{
+                        exitreason[tradesize]="Undefined";
+                }
+                //Rcout <<"Scale Sell"<<exitreason[tradesize]<<endl;
     //            Rcout<<"2, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
                 bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                 percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -916,7 +936,16 @@ DataFrame GenerateTrades(DataFrame all){
               buyprocessed[j]=true;
 //              exittime[tradesize]=0;
               exitprice[tradesize]=sellprice[k];
-              //bars[tradesize]=k-j;
+              if(sell[k]==1){
+                      exitreason[tradesize]="RegularExit";
+              }else if(sell[k]==2){
+                      exitreason[tradesize]="SL";
+              }else if (sell[k]==3){
+                      exitreason[tradesize]="GapSL";
+              }else{
+                      exitreason[tradesize]="Undefined";
+              }
+              //Rcout <<"Open Sell"<<exitreason[tradesize]<<endl;
               //Rcout<<"3, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
               bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
               percentprofit[tradesize]=(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -955,7 +984,17 @@ DataFrame GenerateTrades(DataFrame all){
           //Rcout<<"Cover"<<"Symbol:"<<symbol[k]<<",TradeSize:"<<tradesize<<",SignalBar:"<<k<<endl;
           exittime[tradesize]=timestamp[k];
           exitprice[tradesize]=coverprice[k];
-          //bars[tradesize]=k-entrybar;
+          if(cover[k]==1){
+                  exitreason[tradesize]="RegularExit";
+          }else if(cover[k]==2){
+                  exitreason[tradesize]="SL";
+          }else if (cover[k]==3){
+                  exitreason[tradesize]="GapSL";
+          }else{
+                  exitreason[tradesize]="Undefined";
+          }
+          //Rcout <<"Cover"<<exitreason[tradesize]<<endl;
+          
           //Rcout<<"4, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
           bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
           percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -974,7 +1013,16 @@ DataFrame GenerateTrades(DataFrame all){
                 shortprocessed[j]=true;
                 exittime[tradesize]=timestamp[k];
                 exitprice[tradesize]=coverprice[k];
-                //bars[tradesize]=k-j;
+                if(cover[k]==1){
+                        exitreason[tradesize]="RegularExit";
+                }else if(cover[k]==2){
+                        exitreason[tradesize]="SL";
+                }else if (cover[k]==3){
+                        exitreason[tradesize]="GapSL";
+                }else{
+                        exitreason[tradesize]="Undefined";
+                }
+                //Rcout <<"Scale Cover"<<exitreason[tradesize]<<endl;
                 //Rcout<<"5, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
                 bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
                 percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -998,9 +1046,19 @@ DataFrame GenerateTrades(DataFrame all){
               shortprocessed[j]=true;
   //            exittime[tradesize]=0;
               exitprice[tradesize]=coverprice[k];
-              //bars[tradesize]=k-j;
+              
+             if(cover[k]==1){
+                     exitreason[tradesize]="RegularExit";
+             }else if(cover[k]==2){
+                     exitreason[tradesize]="SL";
+             }else if (cover[k]==3){
+                     exitreason[tradesize]="GapSL";
+             }else{
+                     exitreason[tradesize]="Undefined";
+             }
+             //Rcout <<"Open Short"<<exitreason[tradesize]<<endl;
              // Rcout<<"6, exitbar: "<<k<<"entrybar: "<<j<<std::endl;
-              bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
+             bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[j].getFractionalTimestamp())/86400;
               percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
               coverprocessed[j]=true;
               //Rcout<<"ScaleInCover"<<",Symbol:"<<symbol[c]<<"TradeSize:"<<tradesize<<",SignalBar:"<<c<<endl;
@@ -1010,9 +1068,10 @@ DataFrame GenerateTrades(DataFrame all){
       }
     }
   }
+ //Rf_PrintValue(exitreason);
   return DataFrame::create(_["symbol"]=tradesymbol,_["trade"]=trade,_["entrytime"]=entrytime,
-                           _["entryprice"]=entryprice,_["exittime"]=exittime,_["exitprice"]=exitprice,
-                           _["percentprofit"]=percentprofit,_["bars"]=bars, _["stringsAsFactors"] = false
+                           _["entryprice"]=entryprice,_["exittime"]=exittime,_["exitprice"]=exitprice,_["exitreason"]=exitreason,
+                           _["percentprofit"]=percentprofit,_["bars"]=bars,_["stringsAsFactors"] = false
   );
 }
 
