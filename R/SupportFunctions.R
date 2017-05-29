@@ -914,23 +914,26 @@ optionTradeSignalsLongOnly <- function(signals,
 
         for (i in 1:nrow(signals)) {
                 if (signals$inlongtrade[i] > 0) {
-                        indexofbuy = getBuyIndices(signals, i)
+                        indexofbuy = getBuyIndices(signals, i,0)
                         if (length(indexofbuy) > 0) {
                                 for (j in 1:length(indexofbuy)) {
-                                        symbolsvector = unlist(strsplit(
-                                                signals$symbol[indexofbuy[j]],
-                                                "_"
-                                        ))
-                                        expiry = as.Date(
-                                                strptime(
-                                                        symbolsvector[3],
-                                                        "%Y%m%d",
-                                                        tz = "Asia/Kolkata"
-                                                )
-                                        )
-                                        if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                signals$sell[i] = 1
-                                        }
+                                  if(i>indexofbuy[j]){
+                                    symbolsvector = unlist(strsplit(
+                                      signals$symbol[indexofbuy[j]],
+                                      "_"
+                                    ))
+                                    expiry = as.Date(
+                                      strptime(
+                                        symbolsvector[3],
+                                        "%Y%m%d",
+                                        tz = "Asia/Kolkata"
+                                      )
+                                    )
+                                    if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                                      signals$sell[i] = 1
+                                    }
+                                  }
+
                                 }
 
                         }
@@ -938,20 +941,23 @@ optionTradeSignalsLongOnly <- function(signals,
                         indexofshort = getShortIndices(signals, i)
                         if (length(indexofshort) > 0) {
                                 for (j in 1:length(indexofshort)) {
-                                        symbolsvector = unlist(strsplit(
-                                                signals$symbol[indexofshort[j]],
-                                                "_"
-                                        ))
-                                        expiry = as.Date(
-                                                strptime(
-                                                        symbolsvector[3],
-                                                        "%Y%m%d",
-                                                        tz = "Asia/Kolkata"
-                                                )
-                                        )
-                                        if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                signals$cover[i] = 1
-                                        }
+                                  if(i>indexofshort[j]){
+                                    symbolsvector = unlist(strsplit(
+                                      signals$symbol[indexofshort[j]],
+                                      "_"
+                                    ))
+                                    expiry = as.Date(
+                                      strptime(
+                                        symbolsvector[3],
+                                        "%Y%m%d",
+                                        tz = "Asia/Kolkata"
+                                      )
+                                    )
+                                    if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                                      signals$cover[i] = 1
+                                    }
+                                  }
+
                                 }
                         }
 
@@ -1493,44 +1499,50 @@ optionTradeSignalsShortOnly <-
 
                 for (i in 1:nrow(signals)) {
                         if (signals$inlongtrade[i] > 0) {
-                                indexofbuy = getBuyIndices(signals, i)
+                                indexofbuy = getBuyIndices(signals, i,0)
                                 if (length(indexofbuy) > 0) {
                                         for (j in 1:length(indexofbuy)) {
-                                                symbolsvector = unlist(strsplit(
-                                                        signals$symbol[indexofbuy[j]],
-                                                        "_"
-                                                ))
-                                                expiry = as.Date(
-                                                        strptime(
-                                                                symbolsvector[3],
-                                                                "%Y%m%d",
-                                                                tz = "Asia/Kolkata"
-                                                        )
-                                                )
-                                                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                        signals$sell[i] = 1
-                                                }
+                                          if(i>indexofbuy[j]){
+                                            symbolsvector = unlist(strsplit(
+                                              signals$symbol[indexofbuy[j]],
+                                              "_"
+                                            ))
+                                            expiry = as.Date(
+                                              strptime(
+                                                symbolsvector[3],
+                                                "%Y%m%d",
+                                                tz = "Asia/Kolkata"
+                                              )
+                                            )
+                                            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                                              signals$sell[i] = 1
+                                            }
+                                          }
+
                                         }
 
                                 }
                         } else if (signals$inshorttrade[i] > 0) {
-                                indexofshort = getShortIndices(signals, i)
+                                indexofshort = getShortIndices(signals, i,0)
                                 if (length(indexofshort) > 0) {
                                         for (j in 1:length(indexofshort)) {
-                                                symbolsvector = unlist(strsplit(
-                                                        signals$symbol[indexofshort[j]],
-                                                        "_"
-                                                ))
-                                                expiry = as.Date(
-                                                        strptime(
-                                                                symbolsvector[3],
-                                                                "%Y%m%d",
-                                                                tz = "Asia/Kolkata"
-                                                        )
-                                                )
-                                                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                        signals$cover[i] = 1
-                                                }
+                                          if(i>indexofshort[j]){
+                                            symbolsvector = unlist(strsplit(
+                                              signals$symbol[indexofshort[j]],
+                                              "_"
+                                            ))
+                                            expiry = as.Date(
+                                              strptime(
+                                                symbolsvector[3],
+                                                "%Y%m%d",
+                                                tz = "Asia/Kolkata"
+                                              )
+                                            )
+                                            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                                              signals$cover[i] = 1
+                                            }
+                                          }
+
                                         }
                                 }
 
@@ -2027,12 +2039,12 @@ futureTradeSignals <-
                 #     }
                 #   }
                 # }
-
                 for (i in 1:nrow(signals)) {
                         if (signals$inlongtrade[i] > 0) {
-                                indexofbuy = getBuyIndices(signals, i)
+                                indexofbuy = getBuyIndices(signals, i,0)
                                 if (length(indexofbuy) > 0) {
                                         for (j in 1:length(indexofbuy)) {
+                                                if(i>indexofbuy[j]){
                                                 symbolsvector = unlist(strsplit(
                                                         signals$symbol[indexofbuy[j]],
                                                         "_"
@@ -2047,13 +2059,16 @@ futureTradeSignals <-
                                                 if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                                         signals$sell[i] = 1
                                                 }
+                                                }
+
                                         }
 
                                 }
                         } else if (signals$inshorttrade[i] > 0) {
-                                indexofshort = getShortIndices(signals, i)
+                                indexofshort = getShortIndices(signals, i,0)
                                 if (length(indexofshort) > 0) {
                                         for (j in 1:length(indexofshort)) {
+                                                if(i>indexofshort[j]){
                                                 symbolsvector = unlist(strsplit(
                                                         signals$symbol[indexofshort[j]],
                                                         "_"
@@ -2068,6 +2083,8 @@ futureTradeSignals <-
                                                 if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
                                                         signals$cover[i] = 1
                                                 }
+                                                }
+
                                         }
                                 }
 
