@@ -994,7 +994,7 @@ DataFrame GenerateTrades(DataFrame all){
                   exitreason[tradesize]="Undefined";
           }
           //Rcout <<"Cover"<<exitreason[tradesize]<<endl;
-          
+
           //Rcout<<"4, exitbar: "<<k<<"entrybar: "<<entrybar<<std::endl;
           bars[tradesize]=(timestamp[k].getFractionalTimestamp()-timestamp[entrybar].getFractionalTimestamp())/86400;
           percentprofit[tradesize]=-(exitprice[tradesize]-entryprice[tradesize])/entryprice[tradesize];
@@ -1046,7 +1046,7 @@ DataFrame GenerateTrades(DataFrame all){
               shortprocessed[j]=true;
   //            exittime[tradesize]=0;
               exitprice[tradesize]=coverprice[k];
-              
+
              if(cover[k]==1){
                      exitreason[tradesize]="RegularExit";
              }else if(cover[k]==2){
@@ -1713,7 +1713,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }else{
             slprice=buyprice[barstart]-slamount[barstart];
              //Rcout << "sl amount at barstart: " << barstart <<" is "<< slamount[barstart] << std::endl;
-                  
+
           }
           //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<slamount[barstart] <<std::endl;
           if(open[i]<=slprice){
@@ -2242,10 +2242,13 @@ DataFrame TDSupplyPoints1(DatetimeVector dates,NumericVector price, int level=1)
 }
 
 // [[Rcpp::export]]
-NumericVector getBuyIndices(DataFrame all, int sellIndex){
+NumericVector getBuyIndices(DataFrame all, int sellIndex, int lookback=1){
+//getBuyIndices and getSellIndices have now a default parameter "lookback" that defines the adjustment to the second index
+//parameter. If lookback is 0, the search for buy/sell indices considers the current row.
+//If lookback is 1, it considers the prior row
         NumericVector buy=all["buy"];
         vector<int>index;
-        for(int i=(sellIndex-2);i>=0;i--){
+        for(int i=(sellIndex-1-lookback);i>=0;i--){
 //                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
                 if(buy[i]>=1 && buy[i]<999){
                         index.push_back(i+1);
@@ -2259,10 +2262,10 @@ NumericVector getBuyIndices(DataFrame all, int sellIndex){
 }
 
 // [[Rcpp::export]]
-NumericVector getShortIndices(DataFrame all, int coverIndex){
+NumericVector getShortIndices(DataFrame all, int coverIndex, int lookback=1){
   NumericVector shrt=all["short"];
   vector<int>index;
-  for(int i=(coverIndex-2);i>=0;i--){
+  for(int i=(coverIndex-1-lookback);i>=0;i--){
     //                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
     if(shrt[i]>=1 && shrt[i]<999){
       index.push_back(i+1);
