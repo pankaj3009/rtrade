@@ -99,6 +99,7 @@ kTags <- function(value) {
     #print("name")
     #print(name)
     value <- strsplit(as.character(input[[i]]), "=")[[1]][[2]]
+    value<-gsub(" ","",value)
     #value<-strsplit(as.character(value),split=",")
     #print("value")
     #print(value)
@@ -106,8 +107,6 @@ kTags <- function(value) {
     names <- c(names, name)
   }
   names(tags) <- names
-
-
   #print("tags")
   #print(tags)
   tags
@@ -180,7 +179,8 @@ kGetOHLCV <-
            symbolchange = NULL,
            splits = NULL,
            filepath = NULL) {
-    input = strsplit(list(...)[[1]], "=")[[1]][2]
+#    input = strsplit(list(...)[[1]], "=")[[1]][2]
+    input=strsplit(as.list(strsplit(...,",")[[1]])[[1]],"=")[[1]][2]
     md <- data.frame()
     if (!is.null(symbolchange)) {
       symbollist <-
@@ -191,13 +191,12 @@ kGetOHLCV <-
       symbollist = c(toupper(input))
     }
 
-
     for (j in length(symbollist):1) {
-      a <- list(...)
-      a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
+      #a <- list(...)
+      #a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
+      a<-as.list(strsplit(...,",")[[1]])
       newargs = paste(a, collapse = ",")
-      startUnix <-
-        as.numeric(as.POSIXct(paste(start, timezone))) * 1000
+      startUnix <- as.numeric(as.POSIXct(paste(start, timezone))) * 1000
       endUnix <- as.numeric(as.POSIXct(paste(end, timezone))) * 1000
       startLong <- kDate(startUnix)
       endLong <- kDate(endUnix)
@@ -207,8 +206,6 @@ kGetOHLCV <-
       for (i in 1:length(ts)) {
         tempname = paste(name, ts[i], sep = ".")
         aggr <- kAggregators(aggregators[i], aValue, aUnit)
-
-
         if (!is.null(aggr)) {
           metrics <- kMetrics(tags, tempname, aggr)
         } else{
@@ -216,6 +213,7 @@ kGetOHLCV <-
         }
         query <- kQueryBody(startLong, endLong, metrics)
         myjson <- toJSON(query, pretty = TRUE)
+        #print(myjson)
         print(paste("retrieving", ts[i], "for", symbollist[j], sep = " "))
         r <-
           POST(
