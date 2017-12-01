@@ -1315,13 +1315,13 @@ DataFrame ProcessPositionScore(DataFrame all,unsigned int maxposition,DatetimeVe
   DatetimeVector uniqueDates=dates;
   vector<String> positionNames;
   map<double,int>daypositionscore;//holds the position score and index of dataframe
-//for(int i=0;i<uniqueDates.size();i++){
-for(int i=0;i<uniqueDates.size();i++){
+
+for(int i=0;i<uniqueDates.size();i++){ //for each date
   daypositionscore.clear();
   IntegerVector indices=whichDate2(timestamp,uniqueDates[i]);
   //Rcout<<"Date Bar:"<<i<<std::endl;
   //Execute exits
-  for(int a=0;a<indices.size();a++){
+  for(int a=0;a<indices.size();a++){ // loop through  all symbols with data for the date
     int j=indices[a];
     //Rcout<<"Processing Exit. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",sell:"<<sell[j]<<std::endl;
     if(sell[j]==1 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
@@ -1329,6 +1329,11 @@ for(int i=0;i<uniqueDates.size();i++){
       lsell[j]=1;
       positionNames.erase(std::remove(positionNames.begin(),positionNames.end(),symbol[j]),positionNames.end());
       //Rcout<<"Removed Sell. New PositionSize:"<<positionNames.size()<<endl;
+    }
+    if(cover[j]==1 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
+            //we have a matching cover
+            lcover[j]=1;
+            positionNames.erase(std::remove(positionNames.begin(),positionNames.end(),symbol[j]),positionNames.end());
     }
   }
 
@@ -1339,7 +1344,7 @@ for(int i=0;i<uniqueDates.size();i++){
       //Rf_PrintValue(indices);
       int j=indices[a];
       //Rcout<<"Processing PositionScore. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
-      if(buy[j]==1 && positionscore[j]>0){
+      if((buy[j]==1 && positionscore[j]>0) || (shrt[j]==1 && positionscore[j]>0)){
         if ( daypositionscore.find(positionscore[j]) == daypositionscore.end() ) {
           //Rcout<<"Add PositionScore. Unique Positionscore."<< " Symbol:"<<symbol[j]<<" ,PositionScore:"<<positionscore[j]<<endl;
           daypositionscore.insert(std::pair<double,int>(positionscore[j],j));
@@ -1361,7 +1366,11 @@ for(int i=0;i<uniqueDates.size();i++){
 
       if(itemsToInsert>0){
         int j=rit->second;
-        lbuy[j]=1;
+        if(buy[j]==1){
+                lbuy[j]=1;
+        }else{
+                lshrt[j]=1;
+        }
         positionNames.push_back(symbol[j]);
         //Rcout<<"Processing Entry. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",lbuy:"<<lbuy[j]<<",PositionSize:"<<positionNames.size()<<std::endl;
         itemsToInsert--;
@@ -1376,6 +1385,10 @@ for(int i=0;i<uniqueDates.size();i++){
               //Rcout<<"Processing Scale In. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
               lbuy[j]=999; //we have a scale-in for an existing position
               }
+      if(shrt[j]==999 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
+              lshrt[j]=999; //we have a scale-in for an existing position
+              //Rcout<<"Processing Scale In. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
+      }
     }
   }
 NumericVector inlongtrade=Flip(lbuy,lsell);
@@ -1630,9 +1643,10 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
 DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false,bool preventReplacement=false){
   //preventReplacementTrade should be set as true if the signals are not being checked daily for BUY, SELL or AVOID
   //stop mode can be 1: points
+  //all has to be sorted in ascending order by date
   int nSize=all.nrows();
-  NumericVector inlongtrade=all["inlongtrade"];
-  NumericVector inshorttrade=all["inshorttrade"];
+  NumericVector inlongtrade(nSize);
+  NumericVector inshorttrade(nSize);
   const NumericVector open=all["aopen"];
   const NumericVector high=all["ahigh"];
   const NumericVector low=all["alow"];
@@ -1662,43 +1676,54 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
   // update tp
   //NumericVector damount=tpamount;
 
-  for(int i=0;i<nSize;i++){
-    if(buy[i]>0){
-      lbuy[i]=buy[i];
-      lbuyprice[i]=buyprice[i];
-    }
-    if(shrt[i]>0){
-      lshrt[i]=shrt[i];
-      lshortprice[i]=shortprice[i];
-    }
-    if(sell[i]>0){
-      lsell[i]=sell[i];
-      lsellprice[i]=sellprice[i];
-    }
-    if(cover[i]>0){
-      lcover[i]=cover[i];
-      lcoverprice[i]=coverprice[i];
-    }
-  }
+  // for(int i=0;i<nSize;i++){
+  //   if(buy[i]>0){
+  //     lbuy[i]=buy[i];
+  //     lbuyprice[i]=buyprice[i];
+  //   }
+  //   if(shrt[i]>0){
+  //     lshrt[i]=shrt[i];
+  //     lshortprice[i]=shortprice[i];
+  //   }
+  //   if(sell[i]>0){
+  //     lsell[i]=sell[i];
+  //     lsellprice[i]=sellprice[i];
+  //   }
+  //   if(cover[i]>0){
+  //     lcover[i]=cover[i];
+  //     lcoverprice[i]=coverprice[i];
+  //   }
+  // }
   StringVector uniquesymbol=unique(symbol);
-  for(int z=0;z<uniquesymbol.size();z++){
+  for(int z=0;z<uniquesymbol.size();z++){//for each uniquesymbol
     bool tptriggered =false;
     bool sltriggered=false;
     int barstart=0;
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
-    for(int a=0;a<indices.size();a++){
+    for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
-      tptriggered=false;
-      sltriggered=false;
-      bool newtrade= (a>0 & (lbuy[indices[(a-1)]]>0)|(lshrt[indices[(a-1)]]>0));
+      if(buy[i]>0){
+              lbuy[i]=buy[i];
+              lbuyprice[i]=buyprice[i];
+              inlongtrade[i]=1;
+      }else if(shrt[i]>0){
+              lshrt[i]=shrt[i];
+              lshortprice[i]=shortprice[i];
+              inshorttrade[i]=1;
+      }
+      
+      bool newtrade= (a>0 && (lbuy[indices[(a-1)]]>0)||(lshrt[indices[(a-1)]]>0));
       //Rcout << "The value NewTrade at i: " << i <<" is "<< newtrade << ", lbuy[i-1]: "<<lbuy[i-1] <<" ,shrt[i-1]"<<shrt[i-1] <<std::endl;
       if(newtrade){ //reset stoplosstriggered flag.
         tptriggered=false;
         sltriggered=false;
         barstart=indices[(a-1)];
       }
+      // if(symbol[i]=="BAJFINANCE" && i>916 && i<925){
+      //      Rcout <<"index: "<<i << "newtrade: " << newtrade <<" sltriggered: "<< sltriggered<< " tptriggered: " <<tptriggered << std::endl;
+      // }
 
-      if(!tptriggered & !sltriggered){//stoplossnottriggered
+      if(!tptriggered && !sltriggered){//stoplossnottriggered
         if(inlongtrade[indices[(a-1)]]==1){
           //check if stoploss triggered for a long trade
           double slprice=0;
@@ -1726,7 +1751,8 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
             lsell[i]=2;//maxsl
             //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
-          if(!sltriggered){
+          
+          if(!sltriggered && !tptriggered){
             if(open[i]>=tpprice){
               lsellprice[i]=open[i];
               tptriggered=true;
@@ -1737,6 +1763,14 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               lsell[i]=2;//maxsl
               //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
             }
+                if (sell[i]==1 && !sltriggered && !tptriggered){
+                            lsell[i]=1;
+                            
+                    }
+                if(lsell[i]==0){
+                        inlongtrade[i]=1;
+                }
+            
           }
         }else if(inshorttrade[indices[(a-1)]]==1){
           //check if stoploss triggered for a short trade
@@ -1759,10 +1793,11 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }else if ((low[i]<=slprice) && (high[i]>=slprice)){
             lcoverprice[i]=slprice;
             sltriggered=true;
-            lcover[i]=2;
-            //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
+            lcover[i]=2;                        
+//            Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
-          if(!sltriggered){
+          
+          if(!sltriggered && !tptriggered){
             if(open[i]<=tpprice){
               lcoverprice[i]=open[i];
               tptriggered=true;
@@ -1773,45 +1808,56 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               lcover[i]=2;
               //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
             }
+            if(cover[i]==1 && !sltriggered && !tptriggered){
+                    lcover[i]=1;
+            }
+            if(lcover[i]==0){
+                    inshorttrade[i]=1;
+            }
+            
 
           }
         }
       }
-      if(preventReplacement){
-              //Rcout << "Old:"<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
-              inlongtrade=Flip(lbuy,lsell);
-              inshorttrade=Flip(lshrt,lcover);
+      // if(preventReplacement){
+      //         //Rcout << "Old:"<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
+      //         inlongtrade=Flip(lbuy,lsell);
+      //         inshorttrade=Flip(lshrt,lcover);
+      // }
+
+      if(!preventReplacement){
+              if(tptriggered ||sltriggered){//check if a replacement trade is needed
+                      //needed if intrade is true at the bar
+                      //Rcout << "New:"<< preventReplacement<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
+                      if(inlongtrade[i]==1 && cover[i]==0 ){
+                              //enter fresh long trade. Update all buyprices for bars ahead, till you arrive at a non-zero buyprice.
+                              int j=i;
+                              lbuy[i]=2;//replacement trade
+                              tptriggered=false;
+                              while((inlongtrade[j]!=0) && (j<nSize)) {
+                                      lbuyprice[j]=close[i];
+                                      j++;
+                              };
+                              
+                      }else if((inshorttrade[i]==1) && (sell[i]==0)){
+                              //enter fresh short trade
+                              int j=i;
+                              tptriggered=false;
+                              lshrt[i]=2;//replacement trade
+                              while((inshorttrade[j]!=0) && (j<nSize)){
+                                      lshortprice[j]=close[i];
+                                      j++;
+                              };
+                      }
+              }              
       }
 
-      if(tptriggered ||sltriggered){//check if a replacement trade is needed
-        //needed if intrade is true at the bar
-        //Rcout << "New:"<< preventReplacement<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
-        if(inlongtrade[i]==1 && cover[i]==0 ){
-          //enter fresh long trade. Update all buyprices for bars ahead, till you arrive at a non-zero buyprice.
-          int j=i;
-          lbuy[i]=2;//replacement trade
-          tptriggered=false;
-          while((inlongtrade[j]!=0) && (j<nSize)) {
-            lbuyprice[j]=close[i];
-            j++;
-          };
-
-        }else if((inshorttrade[i]==1) && (sell[i]==0)){
-          //enter fresh short trade
-          int j=i;
-          tptriggered=false;
-          lshrt[i]=2;//replacement trade
-          while((inshorttrade[j]!=0) && (j<nSize)){
-            lshortprice[j]=close[i];
-            j++;
-          };
-        }
-      }
     }
   }
 
   return DataFrame::create(_["date"]=timestamp,_["symbol"]=symbol,_["buy"]=lbuy,_["sell"]=lsell,_["short"]=lshrt,_["cover"]=lcover,
                            _["buyprice"]= lbuyprice, _["sellprice"]= lsellprice,_["shortprice"]=lshortprice,_["coverprice"]=lcoverprice,
+                             _["inlongtrade"]=inlongtrade,_["inshorttrade"]=inshorttrade,
                              _["stringsAsFactors"] = false);
 
 }
