@@ -409,9 +409,10 @@ createPNLSummary <-
                                                         )
                                                 )
                                         } else{
+                                                symbolsvector = unlist(strsplit(symbol, "_"))
                                                 load(paste(
                                                         mdpath,
-                                                        symbol,
+                                                        symbolsvector[1],
                                                         ".Rdata",
                                                         sep = ""
                                                 ))
@@ -523,6 +524,7 @@ GetCurrentPosition <-
                  portfolio,
                  path = NULL,
                  deriv=FALSE,
+                 splitadjustedPortfolio=TRUE,
                  trades.till = Sys.Date(),
                  position.on = Sys.Date()) {
                 # Returns the current position for a scrip after calculating all rows in portfolio.
@@ -564,7 +566,12 @@ GetCurrentPosition <-
                                           }
                                           buyindex= which(as.Date(md$date, tz = "Asia/Kolkata") == portfolio[row,'entrytime'])
                                           currentindex= which(as.Date(md$date, tz = "Asia/Kolkata") == position.on)
-                                          splitadjustment=md$splitadjust[buyindex]/md$splitadjust[currentindex]
+                                          if(!splitadjustedPortfolio){
+                                            splitadjustment=md$splitadjust[buyindex]/md$splitadjust[currentindex]
+                                          }else{
+                                            splitadjustment=1 # dont do any split adjustment as portfolio is alredy split adjusted
+                                          }
+
                                         }
                                         position = position + ifelse(grepl("BUY", portfolio[row, 'trade']),
                                                                      floor(portfolio[row, 'size']*splitadjustment),
@@ -2158,7 +2165,8 @@ futureTradeSignals <-
                                                                 if (signals$sell[i] == 1) {
                                                                         sellprice = datarow$settle[1]
                                                                 } else if (signals$sell[i] > 1) {
-                                                                        sellprice = signals$sellprice[i] + spread
+                                                                        splitratio=udatarow$splitadjust[1]
+                                                                        sellprice = signals$sellprice[i]*splitratio + spread
                                                                 }
                                                                 if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
                                                                         # add row to signals
@@ -2286,7 +2294,7 @@ futureTradeSignals <-
                                                                 if (signals$cover[i] == 1) {
                                                                         coverprice = datarow$settle[1]
                                                                 } else if (signals$cover[i] > 1) {
-                                                                        coverprice = signals$coverprice[i] + spread
+                                                                        coverprice = signals$coverprice[i]*udatarow$splitadjust[1] + spread
                                                                 }
 
                                                                 if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
