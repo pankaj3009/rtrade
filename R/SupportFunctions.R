@@ -2534,6 +2534,7 @@ chart <-
                                 sep = ""
                         ))
                 }
+          md<-unique(md)
                 if (symbol == "NSENIFTY") {
                         md$aclose = md$asettle
                 }
