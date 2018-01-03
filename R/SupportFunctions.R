@@ -30,7 +30,7 @@ createIndexConstituents <-
                 for (i in 1:length(rediskeys)) {
                         l = length(grep(pattern, rediskeys[i]))
                         if (l > 0) {
-                                if (thresholdDate < as.Date(
+                               if (thresholdDate < as.Date(
                                         substring(rediskeys[i], nchar(pattern) + 2),
                                         format = "%Y%m%d",
                                         tz = "Asia/Kolkata"
@@ -41,6 +41,27 @@ createIndexConstituents <-
                         }
                 }
                 rediskeysShortList <- sort(rediskeysShortList)
+                if(length(rediskeysShortList)==0){
+                  thresholdDate=NULL
+                  # add the last record date matching pattern
+                  for (i in 1:length(rediskeys)) {
+                    l = length(grep(pattern, rediskeys[i]))
+                    if (l > 0) {
+                      if (is.null(thresholdDate) || thresholdDate < as.Date(
+                        substring(rediskeys[i], nchar(pattern) + 2),
+                        format = "%Y%m%d",
+                        tz = "Asia/Kolkata"
+                      )) {
+                        thresholdDate=as.Date(
+                          substring(rediskeys[i], nchar(pattern) + 2),
+                          format = "%Y%m%d",
+                          tz = "Asia/Kolkata"
+                        )
+                        rediskeysShortList <- rediskeys[i]
+                      }
+                    }
+                  }
+                }
                 for (i in 1:length(rediskeysShortList)) {
                         seriesstartdate = substring(rediskeysShortList[i], nchar(pattern) + 2)
                         seriesenddate = ifelse(
