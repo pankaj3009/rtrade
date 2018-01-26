@@ -450,7 +450,11 @@ createPNLSummary <-
                                 percentprofit = ifelse(data["entryside"] == "BUY",
                                                        percentprofit,
                                                        -percentprofit)
-                                brokerage = as.numeric(data["entrybrokerage"]) + as.numeric(data["exitbrokerage"])
+                                entrybrokerage=as.numeric(data["entrybrokerage"])
+                                entrybrokerage=ifelse(is.na(entrybrokerage),0,entrybrokerage)
+                                exitbrokerage=as.numeric(data["exitbrokerage"])
+                                exitbrokerage=ifelse(is.na(exitbrokerage),0,exitbrokerage)
+                                brokerage = entrybrokerage + exitbrokerage
                                 netpercentprofit = percentprofit - (brokerage / (
                                         as.numeric(data["entryprice"]) *
                                                 as.numeric(data["entrysize"])
