@@ -1711,7 +1711,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               lshortprice[i]=shortprice[i];
               inshorttrade[i]=1;
       }
-      
+
       bool newtrade= (a>0 && (lbuy[indices[(a-1)]]>0)||(lshrt[indices[(a-1)]]>0));
       //Rcout << "The value NewTrade at i: " << i <<" is "<< newtrade << ", lbuy[i-1]: "<<lbuy[i-1] <<" ,shrt[i-1]"<<shrt[i-1] <<std::endl;
       if(newtrade){ //reset stoplosstriggered flag.
@@ -1751,7 +1751,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
             lsell[i]=2;//maxsl
             //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
-          
+
           if(!sltriggered && !tptriggered){
             if(open[i]>=tpprice){
               lsellprice[i]=open[i];
@@ -1765,12 +1765,12 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
             }
                 if (sell[i]==1 && !sltriggered && !tptriggered){
                             lsell[i]=1;
-                            
+
                     }
                 if(lsell[i]==0){
                         inlongtrade[i]=1;
                 }
-            
+
           }
         }else if(inshorttrade[indices[(a-1)]]==1){
           //check if stoploss triggered for a short trade
@@ -1793,10 +1793,10 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }else if ((low[i]<=slprice) && (high[i]>=slprice)){
             lcoverprice[i]=slprice;
             sltriggered=true;
-            lcover[i]=2;                        
+            lcover[i]=2;
 //            Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
-          
+
           if(!sltriggered && !tptriggered){
             if(open[i]<=tpprice){
               lcoverprice[i]=open[i];
@@ -1814,7 +1814,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
             if(lcover[i]==0){
                     inshorttrade[i]=1;
             }
-            
+
 
           }
         }
@@ -1838,7 +1838,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
                                       lbuyprice[j]=close[i];
                                       j++;
                               };
-                              
+
                       }else if((inshorttrade[i]==1) && (sell[i]==0)){
                               //enter fresh short trade
                               int j=i;
@@ -1849,7 +1849,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
                                       j++;
                               };
                       }
-              }              
+              }
       }
 
     }
@@ -1873,7 +1873,6 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         //int swingHighEndIndex;
         int nSize=close.size();
         NumericVector result(nSize);
-
         NumericVector updownbarclean(nSize);
         NumericVector updownbar(nSize);
         NumericVector outsidebar(nSize);
@@ -1890,8 +1889,11 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         NumericVector swinglowlow_1(nSize);
         NumericVector swinglowlow_2(nSize);
 
-
         NumericVector swinglevel(nSize);
+
+        //global store for higherhigh and lowerlow count
+        NumericVector higherhigh(nSize);
+        NumericVector lowerlow(nSize);
 
 
         for (int i = 1; i < nSize; i++) {
@@ -2057,6 +2059,36 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                 }
         }
 
+        // update global higherhigh and lowerlow count
+        higherhigh[0]=0;
+        lowerlow[0]=0;
+        for (int i = 1; i < nSize; i++) {
+          if(result[i]==result[i-1]){
+            //continuing trend
+            if(updownbarclean[i]==1){
+              higherhigh[i]=higherhigh[i-1]+1;
+              lowerlow[i]=lowerlow[i-1];
+            }else if(updownbarclean[i]=-1){
+              higherhigh[i]=higherhigh[i-1];
+              lowerlow[i]=lowerlow[i-1]+1;
+            }else{
+              higherhigh[i]=higherhigh[i-1];
+              lowerlow[i]=lowerlow[i-1];
+            }
+          }else{
+            if(updownbarclean[i]==1){
+              higherhigh[i]=1;
+              lowerlow[i]=0;
+            }else if(updownbarclean[i]=-1){
+              higherhigh[i]=0;
+              lowerlow[i]=01;
+            }else{
+              higherhigh[i]=0;
+              lowerlow[i]=0;
+            }
+          }
+        }
+
         //        DataFrame out=create()(Named("trend")=result,Named("updownbar")=updownbar);
         return DataFrame::create(_("date")=date,_("trend")=result,_("updownbar")=updownbar,
                                    _("outsidebar")=outsidebar,_("insidebar")=insidebar,
@@ -2064,7 +2096,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                                    _("swinghighhigh")=swinghighhigh,_("swinglowlow")=swinglowlow,
                                    _("Swinghighhigh_1")=swinghighhigh_1,_("swinglowlow_1")=swinglowlow_1,
                                    _("swinghighhigh_2")=swinghighhigh_2,_("swinglowlow_2")=swinglowlow_2,
-                                   _("swinglevel")=swinglevel);
+                                   _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow);
 }
 
 bool highestSinceNBars(NumericVector price,int index, int level=1){
