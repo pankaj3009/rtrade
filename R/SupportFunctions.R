@@ -2616,12 +2616,21 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
 
 loadSymbol<-function(symbol,today=FALSE,type=NA_character_){
   symbolsvector = unlist(strsplit(symbol, "_"))
+  filefound=FALSE
   if(length(symbolsvector)==1){
-    load(paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep=""))
+    fileName=paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep="")
+    if(file.exists(fileName)){
+      load(fileName)
+      filefound=TRUE
+    }
   }else{
-    load(paste("/home/psharma/Dropbox/rfiles/dailyfno/",symbolsvector[3],"/",symbol,".Rdata",sep =""))
+    fileName=paste("/home/psharma/Dropbox/rfiles/dailyfno/",symbolsvector[3],"/",symbol,".Rdata",sep ="")
+    if(file.exists(fileName)){
+      load(fileName)
+      filefound=TRUE
+    }
   }
-  if(realtime && !is.na(type)){
+if(filefound && realtime && !is.na(type)){
     today=strftime(Sys.Date(),tz=kTimeZone,format="%Y-%m-%d")
     newrow=RTrade::getPriceArrayFromRedis(9,paste(symbol,"_",type,"___",sep=""),"tick","close",paste(today, " 09:12:00"),paste(today, " 15:30:00"))
     if(nrow(newrow)==1){
@@ -2682,10 +2691,15 @@ loadSymbol<-function(symbol,today=FALSE,type=NA_character_){
             "oi"=0
             )
       }
-      md <- rbind(md, newrow)
     }
+    md <- rbind(md, newrow)
+}
+  if(filefound){
+    md<-unique(md)
+  }else{
+    md<-NA_character_
   }
-  unique(md)
+  md
 
 }
 
