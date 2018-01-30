@@ -1895,6 +1895,9 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         NumericVector higherhigh(nSize);
         NumericVector lowerlow(nSize);
 
+        NumericVector movetotal(nSize);
+        NumericVector movesettle(nSize);
+
 
         for (int i = 1; i < nSize; i++) {
                 result[i] = 0;
@@ -2068,7 +2071,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
             if(updownbarclean[i]==1){
               higherhigh[i]=higherhigh[i-1]+1;
               lowerlow[i]=lowerlow[i-1];
-            }else if(updownbarclean[i]=-1){
+            }else if(updownbarclean[i]==-1){
               higherhigh[i]=higherhigh[i-1];
               lowerlow[i]=lowerlow[i-1]+1;
             }else{
@@ -2079,7 +2082,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
             if(updownbarclean[i]==1){
               higherhigh[i]=1;
               lowerlow[i]=0;
-            }else if(updownbarclean[i]=-1){
+            }else if(updownbarclean[i]==-1){
               higherhigh[i]=0;
               lowerlow[i]=01;
             }else{
@@ -2089,6 +2092,25 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
           }
         }
 
+        //update size of move
+        movetotal[0]=0;
+        movesettle[0]=0;
+        double hhsincetrend=0;
+        double llsincetrend=100000000;
+        int startoftrend=0;
+        for (int i = 1; i < nSize; i++) {
+            if(result[i]!=result[i-1]){
+            startoftrend=i;
+            hhsincetrend=high[i];
+            llsincetrend=low[i];
+          }else{
+            hhsincetrend=high[i]>hhsincetrend?high[i]:hhsincetrend;
+            llsincetrend=low[i]<llsincetrend?low[i]:llsincetrend;
+          }
+          movetotal[i]=hhsincetrend-llsincetrend;
+          movesettle[i]=close[i]-close[startoftrend];
+        }
+
         //        DataFrame out=create()(Named("trend")=result,Named("updownbar")=updownbar);
         return DataFrame::create(_("date")=date,_("trend")=result,_("updownbar")=updownbar,
                                    _("outsidebar")=outsidebar,_("insidebar")=insidebar,
@@ -2096,7 +2118,9 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                                    _("swinghighhigh")=swinghighhigh,_("swinglowlow")=swinglowlow,
                                    _("Swinghighhigh_1")=swinghighhigh_1,_("swinglowlow_1")=swinglowlow_1,
                                    _("swinghighhigh_2")=swinghighhigh_2,_("swinglowlow_2")=swinglowlow_2,
-                                   _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow);
+                                   _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow,
+                                   _("movementhighlow")=movetotal,_("movementsettle")=movesettle,
+                                   _("updownbarclean")=updownbarclean);
 }
 
 bool highestSinceNBars(NumericVector price,int index, int level=1){
