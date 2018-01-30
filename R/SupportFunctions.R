@@ -2614,16 +2614,81 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
         plot(addTA(trend,type='s'))
 }
 
-loadSymbol<-function(symbol){
+loadSymbol<-function(symbol,today=FALSE,type=NA_character_){
   symbolsvector = unlist(strsplit(symbol, "_"))
   if(length(symbolsvector)==1){
     load(paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep=""))
-    return(md)
   }else{
     load(paste("/home/psharma/Dropbox/rfiles/dailyfno/",symbolsvector[3],"/",symbol,".Rdata",sep =""))
-         return(md)
   }
+  if(realtime && !is.na(type)){
+    today=strftime(Sys.Date(),tz=kTimeZone,format="%Y-%m-%d")
+    newrow=RTrade::getPriceArrayFromRedis(9,paste(symbol,"_",type,"___",sep=""),"tick","close",paste(today, " 09:12:00"),paste(today, " 15:30:00"))
+    if(nrow(newrow)==1){
+      if(!is.na(type)){
+        if(type=="STK"){
+          newrow <-
+            data.frame(
+              "symbol" = symbol,
+              "date" = newrow$date[1],
+              "open" = newrow$open[1],
+              "high" = newrow$high[1],
+              "low" = newrow$low[1],
+              "close" = newrow$close[1],
+              "settle" = newrow$close[1],
+              "delivered"=0,
+              "volume" = 0,
+              "aopen" = newrow$open[1],
+              "ahigh" = newrow$high[1],
+              "alow" = newrow$low[1],
+              "aclose" = newrow$close[1],
+              "asettle" = newrow$close[1],
+              "adelivered"=0,
+              "avolume" = 0,
+              "splitadjust" = 1
+            )
+        }else if(type=="IND"){
+          newrow <-
+            data.frame(
+              "symbol" = symbol,
+              "date" = newrow$date[1],
+              "open" = newrow$open[1],
+              "high" = newrow$high[1],
+              "low" = newrow$low[1],
+              "close" = newrow$close[1],
+              "settle" = newrow$close[1],
+              "volume" = 0,
+              "aopen" = newrow$open[1],
+              "ahigh" = newrow$high[1],
+              "alow" = newrow$low[1],
+              "aclose" = newrow$close[1],
+              "asettle" = newrow$close[1],
+              "avolume" = 0,
+              "splitadjust" = 1
+            )
+        }
+
+      }else{
+        newrow <-
+          data.frame(
+            "symbol" = symbol,
+            "date" = newrow$date[1],
+            "open" = newrow$open[1],
+            "high" = newrow$high[1],
+            "low" = newrow$low[1],
+            "close" = newrow$close[1],
+            "settle" = newrow$close[1],
+            "volume" = 0,
+            "oi"=0
+            )
+      }
+      md <- rbind(md, newrow)
+    }
+  }
+  unique(md)
+
 }
+
 
 
 createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
