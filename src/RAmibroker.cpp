@@ -1872,6 +1872,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         //int swingLowEndIndex;
         //int swingHighEndIndex;
         int nSize=close.size();
+        NumericVector trendtype(nSize);
         NumericVector result(nSize);
         NumericVector updownbarclean(nSize);
         NumericVector updownbar(nSize);
@@ -2056,9 +2057,23 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
 
                 if (up1 || up2 || up3) {
                         result[i] = 1;
+                  if(up1){
+                    trendtype[i]=1;
+                  }else if(up2){
+                    trendtype[i]=2;
+                  }else if(up3){
+                    trendtype[i]=3;
+                  }
                 }
                 else if (down1 || down2 || down3) {
                         result[i] = -1;
+                  if(down1){
+                    trendtype[i]=1;
+                  }else if(down2){
+                    trendtype[i]=2;
+                  }else if(down3){
+                    trendtype[i]=3;
+                  }
                 }
         }
 
@@ -2116,11 +2131,11 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                                    _("outsidebar")=outsidebar,_("insidebar")=insidebar,
                                    _("swinghigh")=swinghigh,_("swinglow")=swinglow,
                                    _("swinghighhigh")=swinghighhigh,_("swinglowlow")=swinglowlow,
-                                   _("Swinghighhigh_1")=swinghighhigh_1,_("swinglowlow_1")=swinglowlow_1,
+                                   _("swinghighhigh_1")=swinghighhigh_1,_("swinglowlow_1")=swinglowlow_1,
                                    _("swinghighhigh_2")=swinghighhigh_2,_("swinglowlow_2")=swinglowlow_2,
                                    _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow,
                                    _("movementhighlow")=movetotal,_("movementsettle")=movesettle,
-                                   _("updownbarclean")=updownbarclean);
+                                   _("updownbarclean")=updownbarclean,_("trendtype")=trendtype);
 }
 
 bool highestSinceNBars(NumericVector price,int index, int level=1){
