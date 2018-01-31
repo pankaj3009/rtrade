@@ -2609,7 +2609,7 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
         out.md<-convertToDF(out)
         trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
         swinglevel=xts(trend.md$swinglevel,out.md$date)
-        plot(addTA(swinglevel,on=1, type='s'))
+        plot(addTA(swinglevel,on=1, type='s',lty=3))
         trend=xts(trend.md$trend,out.md$date)
         plot(addTA(trend,type='s'))
 }
