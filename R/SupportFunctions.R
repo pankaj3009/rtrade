@@ -2614,7 +2614,7 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
         plot(addTA(trend,type='s'))
 }
 
-loadSymbol<-function(symbol,today=FALSE,type=NA_character_){
+loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_){
   symbolsvector = unlist(strsplit(symbol, "_"))
   filefound=FALSE
   if(length(symbolsvector)==1){
