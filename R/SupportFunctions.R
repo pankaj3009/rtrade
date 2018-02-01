@@ -3,6 +3,8 @@ library(rredis)
 library(RQuantLib)
 library(quantmod)
 
+specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
+
 createIndexConstituents <-
         function(redisdb, pattern, threshold = "2000-01-01") {
                 redisConnect()
@@ -2543,24 +2545,12 @@ chart <-
         function(symbol,
                  start=NULL,
                  end=NULL,
-                 deriv = FALSE,
+                 realtime = realtime,
+                 type = type,
                  fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
                  equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/") {
-                if (!deriv) {
-                        load(paste(equitydatafolder, symbol, ".Rdata", sep = ""))
-                } else{
-                        symbolsvector = unlist(strsplit(symbol, "_"))
-                        load(paste(
-                                fnodatafolder,
-                                symbolsvector[3],
-                                "/",
-                                symbol,
-                                ".Rdata",
-                                sep = ""
-                        ))
-                }
-          md<-unique(md)
-                if (symbol == "NSENIFTY") {
+          md<-loadSymbol(symbol,realtime,type)
+          if (symbol == "NSENIFTY") {
                         md$aclose = md$asettle
                 }
           symbolname=NULL
@@ -2604,14 +2594,15 @@ chart <-
                 symbolname[paste(start, "::", end, sep = "")]
         }
 
-QuickChart<-function(symbol,startdate=NULL,enddate=NULL){
-        out<-chart(symbol,startdate,enddate)
+QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL){
+        out<-chart(symbol,startdate,enddate,realtime,type)
         out.md<-convertToDF(out)
         trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
         swinglevel=xts(trend.md$swinglevel,out.md$date)
         plot(addTA(swinglevel,on=1, type='s',lty=3))
         trend=xts(trend.md$trend,out.md$date)
         plot(addTA(trend,type='s'))
+        out.md
 }
 
 loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_){
