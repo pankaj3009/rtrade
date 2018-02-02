@@ -2602,7 +2602,7 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL
         plot(addTA(swinglevel,on=1, type='s',lty=3))
         trend=xts(trend.md$trend,out.md$date)
         plot(addTA(trend,type='s'))
-        out.md
+        md<-out.md
 }
 
 loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_){
