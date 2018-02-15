@@ -2,6 +2,7 @@
 library(rredis)
 library(RQuantLib)
 library(quantmod)
+library(zoo)
 
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
 
@@ -398,92 +399,94 @@ createPNLSummary <-
                 }
                 rediskeysShortList <- sort(rediskeysShortList)
                 # loop through keys and generate pnl
-                for (i in 1:length(rediskeysShortList)) {
-                        data <- unlist(redisHGetAll(rediskeysShortList[i]))
-                        exitprice = 0
-                        entrydate = data["entrytime"]
-                        exitdate = data["exittime"]
-                        entrydate = as.Date(entrydate, tz = "Asia/Kolkata")
-                        exitdate = ifelse(
-                                is.na(exitdate),
-                                Sys.Date(),
-                                as.Date(
-                                        exitdate,
-                                        format = "%Y-%m-%d %H:%M:%S",
-                                        tz = "Asia/Kolkata",
-                                        origin = "1970-01-01"
-                                )
-                        )
-                        if (exitdate >= periodstartdate &&
-                            entrydate <= periodenddate) {
-                                if (grepl("opentrades", rediskeysShortList[i])) {
-                                        symbol = data["entrysymbol"]
-                                        if (deriv) {
-                                                symbolsvector = unlist(strsplit(symbol, "_"))
-                                                load(
-                                                        paste(
-                                                                mdpath,
-                                                                symbolsvector[3],
-                                                                "/",
-                                                                symbol,
-                                                                ".Rdata",
-                                                                sep =
-                                                                        ""
-                                                        )
-                                                )
-                                        } else{
-                                                symbolsvector = unlist(strsplit(symbol, "_"))
-                                                load(paste(
-                                                        mdpath,
-                                                        symbolsvector[1],
-                                                        ".Rdata",
-                                                        sep = ""
-                                                ))
-                                        }
-                                        index = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
-                                        if (length(index) == 0) {
-                                                index = nrow(md)
-                                        }
-                                        exitprice = md$settle[index]
-                                } else{
-                                        exitprice = as.numeric(data["exitprice"])
-                                }
-                                percentprofit = (exitprice - as.numeric(data["entryprice"])) / as.numeric(data["entryprice"])
-                                percentprofit = ifelse(data["entryside"] == "BUY",
-                                                       percentprofit,
-                                                       -percentprofit)
-                                entrybrokerage=as.numeric(data["entrybrokerage"])
-                                entrybrokerage=ifelse(is.na(entrybrokerage),0,entrybrokerage)
-                                exitbrokerage=as.numeric(data["exitbrokerage"])
-                                exitbrokerage=ifelse(is.na(exitbrokerage),0,exitbrokerage)
-                                brokerage = entrybrokerage + exitbrokerage
-                                netpercentprofit = percentprofit - (brokerage / (
-                                        as.numeric(data["entryprice"]) *
-                                                as.numeric(data["entrysize"])
-                                ))
-                                netprofit = (exitprice - as.numeric(data["entryprice"])) * as.numeric(data["entrysize"]) -
-                                        brokerage
-                                netprofit = ifelse(data["entryside"] == "BUY", netprofit, -netprofit)
-                                df = data.frame(
-                                        symbol = data["parentsymbol"],
-                                        trade = data["entryside"],
-                                        entrysize = as.numeric(data["entrysize"]),
-                                        entrytime = as.POSIXct(data["entrytime"], tz = "Asia/Kolkata"),
-                                        entryprice = as.numeric(data["entryprice"]),
-                                        exittime = as.POSIXct(data["exittime"], tz = "Asia/Kolkata"),
-                                        exitprice = exitprice,
-                                        percentprofit = percentprofit,
-                                        bars = 0,
-                                        brokerage = brokerage,
-                                        netpercentprofit = netpercentprofit,
-                                        netprofit = netprofit,
-                                        key = rediskeysShortList[i],
-                                        stringsAsFactors = FALSE
-                                )
-                                rownames(df) <- NULL
-                                actualtrades = rbind(actualtrades, df)
-
+                if(length(rediskeysShortList)>0){
+                  for (i in 1:length(rediskeysShortList)) {
+                    data <- unlist(redisHGetAll(rediskeysShortList[i]))
+                    exitprice = 0
+                    entrydate = data["entrytime"]
+                    exitdate = data["exittime"]
+                    entrydate = as.Date(entrydate, tz = "Asia/Kolkata")
+                    exitdate = ifelse(
+                      is.na(exitdate),
+                      Sys.Date(),
+                      as.Date(
+                        exitdate,
+                        format = "%Y-%m-%d %H:%M:%S",
+                        tz = "Asia/Kolkata",
+                        origin = "1970-01-01"
+                      )
+                    )
+                    if (exitdate >= periodstartdate &&
+                        entrydate <= periodenddate) {
+                      if (grepl("opentrades", rediskeysShortList[i])) {
+                        symbol = data["entrysymbol"]
+                        if (deriv) {
+                          symbolsvector = unlist(strsplit(symbol, "_"))
+                          load(
+                            paste(
+                              mdpath,
+                              symbolsvector[3],
+                              "/",
+                              symbol,
+                              ".Rdata",
+                              sep =
+                                ""
+                            )
+                          )
+                        } else{
+                          symbolsvector = unlist(strsplit(symbol, "_"))
+                          load(paste(
+                            mdpath,
+                            symbolsvector[1],
+                            ".Rdata",
+                            sep = ""
+                          ))
                         }
+                        index = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
+                        if (length(index) == 0) {
+                          index = nrow(md)
+                        }
+                        exitprice = md$settle[index]
+                      } else{
+                        exitprice = as.numeric(data["exitprice"])
+                      }
+                      percentprofit = (exitprice - as.numeric(data["entryprice"])) / as.numeric(data["entryprice"])
+                      percentprofit = ifelse(data["entryside"] == "BUY",
+                                             percentprofit,
+                                             -percentprofit)
+                      entrybrokerage=as.numeric(data["entrybrokerage"])
+                      entrybrokerage=ifelse(is.na(entrybrokerage),0,entrybrokerage)
+                      exitbrokerage=as.numeric(data["exitbrokerage"])
+                      exitbrokerage=ifelse(is.na(exitbrokerage),0,exitbrokerage)
+                      brokerage = entrybrokerage + exitbrokerage
+                      netpercentprofit = percentprofit - (brokerage / (
+                        as.numeric(data["entryprice"]) *
+                          as.numeric(data["entrysize"])
+                      ))
+                      netprofit = (exitprice - as.numeric(data["entryprice"])) * as.numeric(data["entrysize"]) -
+                        brokerage
+                      netprofit = ifelse(data["entryside"] == "BUY", netprofit, -netprofit)
+                      df = data.frame(
+                        symbol = data["parentsymbol"],
+                        trade = data["entryside"],
+                        entrysize = as.numeric(data["entrysize"]),
+                        entrytime = as.POSIXct(data["entrytime"], tz = "Asia/Kolkata"),
+                        entryprice = as.numeric(data["entryprice"]),
+                        exittime = as.POSIXct(data["exittime"], tz = "Asia/Kolkata"),
+                        exitprice = exitprice,
+                        percentprofit = percentprofit,
+                        bars = 0,
+                        brokerage = brokerage,
+                        netpercentprofit = netpercentprofit,
+                        netprofit = netprofit,
+                        key = rediskeysShortList[i],
+                        stringsAsFactors = FALSE
+                      )
+                      rownames(df) <- NULL
+                      actualtrades = rbind(actualtrades, df)
+
+                    }
+                  }
                 }
                 #return(actualtrades[with(trades,order(entrytime)),])
                 actualtrades
@@ -545,6 +548,58 @@ getPriceArrayFromRedis <-
 
                 return(out)
         }
+
+getVWAP<-function(redisdb,symbol,starttime,endtime){
+  price<-getPriceHistoryFromRedis(redisdb,symbol,"tick","close",starttime,endtime)
+  size <-getPriceHistoryFromRedis(redisdb,symbol,"tick","size",starttime,endtime)
+  out<-merge(size,price,by=c('date'),all.x=TRUE)
+  names(out)<-c("date","size","close")
+  out$close=na.locf(out$close)
+  out<-out[complete.cases(out),]
+  weighted.mean(out$close,out$size)
+}
+
+getVWAPUsingDayVolume<-function(redisdb,symbol,starttime,endtime){
+  price<-getPriceHistoryFromRedis(redisdb,symbol,"tick","close",starttime,endtime)
+  size <-getPriceHistoryFromRedis(redisdb,symbol,"tick","dayvolume",starttime,endtime)
+  out<-merge(size,price,by="date",all.x=TRUE)
+  names(out)<-c("date","size","close")
+  size<-zoo(out$size)
+  size=lag(size,0:-1,na.pad = TRUE)
+  size=size$lag0-size$"lag-1"
+  out$close=na.locf(out$close)
+  out<-out[complete.cases(out),]
+  weighted.mean(out$close,out$size)
+}
+
+getPriceHistoryFromRedis <-
+  function(redisdb, symbol, duration, type, starttime,endtime) {
+    # Retrieves OHLCS prices from redisdb (currently no 9) starting from todaydate till end date.
+    #symbol = redis symbol name in db=9
+    #duration = [tick,daily]
+    # type = [OPT,STK,FUT]
+    # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
+    redisConnect()
+    redisSelect(as.numeric(redisdb))
+    start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
+    end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
+    a <-
+      redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
+    redisClose()
+    price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
+    if (nrow(price) > 0) {
+      price$value = as.numeric(price$value)
+      out = data.frame(
+        date = as.POSIXlt(price$time/1000,tz="Asia/Kolkata",origin="1970-01-01"),
+        value = price$value
+      )
+    } else{
+      out = data.frame()
+    }
+
+    return(out)
+  }
+
 
 GetCurrentPosition <-
         function(scrip,
