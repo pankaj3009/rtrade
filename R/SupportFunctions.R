@@ -613,8 +613,8 @@ GetCurrentPosition <-
                 #scrip = String
                 #Portfolio = df containing columns[symbol,exittime,trade,size]
                 # path of market data file that holds split information, if any
-                # optional startdate is compared to the entrytime to filter records used for position calculation. All records equal or before startdate are included for position calc
-                # optional enddate is compared to the exittime to filter records used for position calculation. All records AFTER enddate are included for position calc.
+                # optional trades.till is compared to the entrytime to filter records used for position calculation. All records equal or before startdate are included for position calc
+                # optional position.on is compared to the exittime to filter records used for position calculation. All records AFTER enddate are included for position calc.
                 # final position calculation subset is intersection of optional startdate/ optional enddate filters.
                 position <- 0
                 handlesplits=FALSE
