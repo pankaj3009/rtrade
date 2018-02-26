@@ -497,10 +497,15 @@ getExpiryDate <- function(mydate) {
         eom = RQuantLib::getEndOfMonth(calendar = "India", as.Date(mydate, tz = "Asia/Kolkata"))
         weekday = as.POSIXlt(eom, tz = "Asia/Kolkata")$wday + 1
         adjust = weekday - 5
+        possible.holidays.at.eom=5-weekday
+        month.of.thursday=13
+        if(possible.holidays.at.eom>0){
+          month.of.thursday=as.POSIXlt(eom+possible.holidays.at.eom, tz = "Asia/Kolkata")$mon
+        }
         if (weekday > 5) {
                 #expirydate=as.Date(modAdvance(-adjust,"India",as.Date(eom),0,2))
                 expirydate = eom - (weekday - 5)
-        } else if (weekday == 5) {
+        } else if (weekday == 5|(weekday<5 & month.of.thursday==as.POSIXlt(eom, tz = "Asia/Kolkata")$mon)) {
                 expirydate = as.Date(eom)
         } else{
                 #expirydate=as.Date(modAdvance(-(5+adjust),"India",as.Date(eom),0,2))
@@ -1972,9 +1977,12 @@ futureTradeSignals <-
                         RTrade::Flip(signals$short, signals$cover)
 
                 if (rollover) {
+                        # signals$rolloverdate <-
+                        #         signals$currentmonthexpiry != signals$entrycontractexpiry &
+                        #         signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
                         signals$rolloverdate <-
-                                signals$currentmonthexpiry != signals$entrycontractexpiry &
-                                signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
+                          signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
+
                         signals$rolloverorders <-
                                 signals$rolloverdate &
                                 ((
@@ -2376,7 +2384,9 @@ futureTradeSignals <-
                                                                 if (signals$cover[i] == 1) {
                                                                         coverprice = datarow$settle[1]
                                                                 } else if (signals$cover[i] > 1) {
-                                                                        coverprice = signals$coverprice[i]*udatarow$splitadjust[1] + spread
+                                                                  splitratio=udatarow$splitadjust[1]
+                                                                  coverprice = signals$coverprice[i]*splitratio + spread
+                                                                  #print(paste("symbol:",udatarow$symbol[1],", date:",udatarow$date[1],", coverprice:",signals$coverprice[i], ", splitratio:",splitratio,",spread:",spread))
                                                                 }
 
                                                                 if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
