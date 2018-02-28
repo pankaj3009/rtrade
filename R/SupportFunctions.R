@@ -1983,15 +1983,13 @@ futureTradeSignals <-
                         signals$rolloverdate <-
                           signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
 
-                        signals$rolloverorders <-
-                                signals$rolloverdate &
-                                ((
-                                        signals$inlongtrade &
-                                                Ref(signals$inlongtrade, -1)
-                                ) |
-                                        (
+                        signals$rolloverorders <-  signals$rolloverdate &
+                                          ((
+                                            signals$inlongtrade & Ref(signals$inlongtrade, -1)
+                                            ) |
+                                            (
                                                 signals$inshorttrade & Ref(signals$inshorttrade, -1)
-                                        ))
+                                            ))
                         for (i in 1:nrow(signals)) {
                                 if (signals$rolloverorders[i] == TRUE) {
                                         if (signals$inlongtrade[i] == 1) {
@@ -2006,8 +2004,7 @@ futureTradeSignals <-
                                                                 df.copy$buy[1] = 999
                                                         }
                                                         df.copy$strike[1] = signals$strike[indexofbuy[j]]
-                                                        signals <- rbind(signals,
-                                                                         df.copy)
+                                                        signals <- rbind(signals, df.copy)
                                                 }
                                         } else if (signals$inshorttrade[i] == 1) {
                                                 df.copy = signals[i, ]
@@ -2020,8 +2017,7 @@ futureTradeSignals <-
                                                                 df.copy$short[1] = 999
                                                         }
                                                         df.copy$strike[1] = signals$strike[indexofshort[j]]
-                                                        signals <- rbind(signals,
-                                                                         df.copy)
+                                                        signals <- rbind(signals, df.copy)
                                                 }
                                         }
                                 }
@@ -2216,6 +2212,7 @@ futureTradeSignals <-
                                                                         sep = ""
                                                                 )
                                                         )
+                                                        md<-unique(md)
                                                         datarow = md[md$date == signals$date[i],]
                                                         if (nrow(datarow) == 1) {
                                                                 load(
@@ -2226,6 +2223,7 @@ futureTradeSignals <-
                                                                                 sep = ""
                                                                         )
                                                                 )
+                                                                md<-unique(md)
                                                                 udatarow = md[md$date == signals$date[i],]
                                                                 spread = NA_real_
                                                                 if (datarow$open[1] != datarow$high[1] ||
@@ -2345,6 +2343,7 @@ futureTradeSignals <-
                                                                         sep = ""
                                                                 )
                                                         )
+                                                        md<-unique(md)
                                                         datarow = md[md$date == signals$date[i],]
                                                         if (nrow(datarow) == 1) {
                                                                 load(
@@ -2355,6 +2354,7 @@ futureTradeSignals <-
                                                                                 sep = ""
                                                                         )
                                                                 )
+                                                          md<-unique(md)
                                                                 udatarow = md[md$date == signals$date[i],]
                                                                 spread = NA_real_
                                                                 if (datarow$open[1] != datarow$high[1] ||
