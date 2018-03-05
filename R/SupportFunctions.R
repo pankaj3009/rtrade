@@ -365,7 +365,7 @@ createPNLSummary <-
                 #realtrades<-createPNLSummary(0,"swing01","2017-01-01","2017-01-31","/home/psharma/Seafile/rfiles/daily-fno/")
                 redisConnect()
                 redisSelect(redisdb)
-                rediskeys = redisKeys()
+                rediskeys = redisKeys(paste("*",pattern,"*",sep=""))
                 actualtrades <-
                         data.frame(
                                 symbol = character(),
@@ -2613,8 +2613,8 @@ chart <-
                  realtime = realtime,
                  type = type,
                  fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
-                 equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/") {
-          md<-loadSymbol(symbol,realtime,type)
+                 equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/",...) {
+          md<-loadSymbol(symbol,realtime,type,...)
           if (symbol == "NSENIFTY") {
                         md$aclose = md$asettle
                 }
@@ -2659,8 +2659,8 @@ chart <-
                 symbolname[paste(start, "::", end, sep = "")]
         }
 
-QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL){
-        out<-chart(symbol,startdate,enddate,realtime,type)
+QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL,...){
+        out<-chart(symbol,startdate,enddate,realtime,type,...)
         out.md<-convertToDF(out)
         trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
         swinglevel=xts(trend.md$swinglevel,out.md$date)
@@ -2670,7 +2670,88 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL
         md<-out.md
 }
 
-loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_){
+changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
+  names<-as.character()
+  data<-xts()
+  index<-as.integer()
+  out<-data.frame()
+  if(!is.null(nrow(md)) & !is.null(sourceDuration) & !is.null(destDuration)){
+    if(sourceDuration=="DAILY"){
+      if(destDuration=="WEEKLY"){
+        names<-names(md)
+        names<-names[!names %in% c("symbol","date")]
+        data<-convertToXTS(md,names)
+        fridays = as.POSIXlt(time(data))$wday == 5
+        indx <- c(0,which(fridays),nrow(data))
+      }
+    }
+    if(length(names)>0)
+    for(i in seq_along(names)){
+      if(grepl("aopen",names[i])){
+        assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=first))
+      }
+      if(grepl("ahigh",names[i])){
+        assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=max))
+      }
+      if(grepl("alow",names[i])){
+        assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=min))
+      }
+      if(grepl("aclose",names[i])|grepl("asettle",names[i])||grepl("split",names[i])|grepl("interest",names[i])){
+        assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=last))
+      }
+      if(grepl("avolume",names[i])|grepl("adelivered",names[i])){
+        assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=sum))
+      }
+    }
+    if(length(which(names=="aopen"))==1){
+      assign("open",get("aopen")*get("splitadjust"))
+      colnames(open)<-"open"
+    }
+    if(length(which(names=="ahigh"))==1){
+      assign("high",get("ahigh")*get("splitadjust"))
+      colnames(high)<-"high"
+    }
+    if(length(which(names=="alow"))==1){
+      assign("low",get("alow")*get("splitadjust"))
+      colnames(low)<-"low"
+    }
+    if(length(which(names=="asettle"))==1){
+      assign("settle",get("asettle")*get("splitadjust"))
+      colnames(settle)<-"settle"
+    }
+    if(length(which(names=="aclose"))==1){
+      assign("close",get("aclose")*get("splitadjust"))
+      colnames(close)<-"close"
+    }
+    if(length(which(names=="avolume"))==1){
+      assign("volume",get("avolume")/get("splitadjust"))
+      colnames(volume)<-"volume"
+    }
+    if(length(which(names=="adelivered"))==1){
+      assign("delivered",get("adelivered")/get("splitadjust"))
+      colnames(delivered)<-"delivered"
+    }
+    if(length(names)>=2){
+      out<-get(names[1])
+      for(i in 2:length(names)){
+        out<- merge (out,get(names[i]))
+      }
+    }
+
+  }
+  if(nrow(out)>0){
+    out<-RTrade::convertToDF(out)
+    out$symbol<-md$symbol[1]
+    rownames(out)<-NULL
+    dateindex=ncol(out)-1
+    out<-out[,c(dateindex,seq(1:(dateindex-1)),dateindex+1)]
+    return(out)
+  }else{
+    return(md)
+  }
+}
+
+loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_,sourceDuration=NULL,destDuration=NULL){
   symbolsvector = unlist(strsplit(symbol, "_"))
   filefound=FALSE
   if(length(symbolsvector)==1){
@@ -2755,8 +2836,8 @@ if(filefound && realtime && !is.na(type)){
   }else{
     md<-NA_character_
   }
+  md<-changeTimeFrame(md,sourceDuration,destDuration)
   md
-
 }
 
 
