@@ -1783,9 +1783,14 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               lshortprice[i]=shortprice[i];
               inshorttrade[i]=1;
       }
-
-      bool newtrade= (a>0 && (lbuy[indices[(a-1)]]>0)||(lshrt[indices[(a-1)]]>0));
-      //Rcout << "The value NewTrade at i: " << i <<" is "<< newtrade << ", lbuy[i-1]: "<<lbuy[i-1] <<" ,shrt[i-1]"<<shrt[i-1] <<std::endl;
+      bool newtrade= (a==1 && (lbuy[indices[(a-1)]]>0||lshrt[indices[(a-1)]]>0))||(a>1 &&((lbuy[indices[(a-1)]]>0 && lbuy[indices[(a-2)]]==0)||(lshrt[indices[(a-1)]]>0 && lshrt[indices[(a-2)]]==0)));
+      // if(symbol[i]=="ITC"){
+      //   DatetimeVector date1=all["date"];
+      //   int index=indices[a];
+      //   int index_1=indices[a-1];
+      //   int index_2=indices[a-2];
+      //   Rcout << "The value NewTrade at i: "<<index <<","<< index_1<<", "<<index_2<<","<< date1[i] << "is "<< newtrade << ", lbuy[a-1]: "<<lbuy[indices[(a-1)]] <<" ,shrt[a-1]"<<lshrt[indices[(a-1)]]<<", lbuy[a-2]: "<<lbuy[indices[(a-2)]] <<" ,shrt[a-2]: "<<lshrt[indices[(a-2)]] <<std::endl;
+      // }
       if(newtrade){ //reset stoplosstriggered flag.
         tptriggered=false;
         sltriggered=false;
@@ -1802,12 +1807,12 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           double tpprice=0;
           if(volatiletp){
             tpprice=buyprice[barstart]+tpamount[indices[(a-1)]];
-          }else{
+          }else {
             tpprice=buyprice[barstart]+tpamount[barstart];
           }
           if(volatilesl){
             slprice=buyprice[barstart]-slamount[indices[(a-1)]];
-          }else{
+          }else {
             slprice=buyprice[barstart]-slamount[barstart];
              //Rcout << "sl amount at barstart: " << barstart <<" is "<< slamount[barstart] << std::endl;
 
@@ -1854,6 +1859,8 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
             tpprice=shortprice[barstart]-tpamount[indices[(a-1)]];
           }else{
             tpprice=shortprice[barstart]-tpamount[barstart];
+            // DatetimeVector date1=all["date"];
+            // Rcout<<"Date Bar:"<<date1[barstart]<<",Symbol: "<<symbol[barstart]<<",TP Price :"<<tpprice<<",Short Price: "<<shortprice[barstart]<<", tp amount: "<<tpamount[barstart]<<std::endl;
           }
           if(volatilesl){
             slprice=shortprice[barstart]+slamount[indices[(a-1)]];
