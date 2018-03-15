@@ -1735,8 +1735,9 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
   //stop mode can be 1: points
   //all has to be sorted in ascending order by date
   int nSize=all.nrows();
-  NumericVector inlongtrade(nSize);
-  NumericVector inshorttrade(nSize);
+  NumericVector inlongtrade=all["inlongtrade"];
+  NumericVector inshorttrade=all["inshorttrade"];
+  DatetimeVector dates=all["date"];
   const NumericVector open=all["aopen"];
   const NumericVector high=all["ahigh"];
   const NumericVector low=all["alow"];
@@ -1763,6 +1764,9 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
   NumericVector lshortprice(nSize);
   NumericVector lcoverprice(nSize);
 
+  NumericVector sllevel(nSize);
+  NumericVector tplevel(nSize);
+
   StringVector uniquesymbol=unique(symbol);
   for(int z=0;z<uniquesymbol.size();z++){//for each uniquesymbol
     bool tptriggered =false;
@@ -1771,75 +1775,79 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
     for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
+      Rcout << "Date: "<<dates[i]<< ",a: " << a <<",i: "<< i <<std::endl;
       if(buy[i]>0){
               lbuy[i]=buy[i];
               lbuyprice[i]=buyprice[i];
-              inlongtrade[i]=1;
               // if(uniquesymbol[z]=="HINDALCO"){
               //   Rcout << "The value buyprice set at i: " << i <<" is "<< lbuyprice[i] <<std::endl;
               // }
       }else if(shrt[i]>0){
               lshrt[i]=shrt[i];
               lshortprice[i]=shortprice[i];
-              inshorttrade[i]=1;
       }
+      Rcout << "Date: "<<dates[i] << ",InShortTrade: "<<inshorttrade[i]<<"inshorttrade[indices[(a-1)]]"<<inshorttrade[indices[(a-1)]]<<std::endl;
       bool newtrade= (a==1 && (lbuy[indices[(a-1)]]>0||lshrt[indices[(a-1)]]>0))||(a>1 &&((lbuy[indices[(a-1)]]>0 && lbuy[indices[(a-2)]]==0)||(lshrt[indices[(a-1)]]>0 && lshrt[indices[(a-2)]]==0)));
-      // if(symbol[i]=="ITC"){
-      //   DatetimeVector date1=all["date"];
-      //   int index=indices[a];
-      //   int index_1=indices[a-1];
-      //   int index_2=indices[a-2];
-      //   Rcout << "The value NewTrade at i: "<<index <<","<< index_1<<", "<<index_2<<","<< date1[i] << "is "<< newtrade << ", lbuy[a-1]: "<<lbuy[indices[(a-1)]] <<" ,shrt[a-1]"<<lshrt[indices[(a-1)]]<<", lbuy[a-2]: "<<lbuy[indices[(a-2)]] <<" ,shrt[a-2]: "<<lshrt[indices[(a-2)]] <<std::endl;
-      // }
+      if(newtrade){
+        barstart=indices[(a-1)];
+      }
+      // update sl.level and tp.level
+      if(inlongtrade[indices[(a-1)]]==1){
+        if(volatiletp){
+          tplevel[i]=buyprice[barstart]+tpamount[indices[(a-1)]];
+          //Rcout << "TP at i: " << i <<" buy price is"<< buyprice[barstart] <<", tp amount is "<<tpamount[indices[(a-1)]] <<std::endl;
+        }else {
+          tplevel[i]=buyprice[barstart]+tpamount[barstart];
+        }
+        if(volatilesl){
+          sllevel[i]=buyprice[barstart]-slamount[indices[(a-1)]];
+        }else {
+          sllevel[i]=buyprice[barstart]-slamount[barstart];
+        }
+      }
+
+      if(inshorttrade[indices[(a-1)]]==1){
+        if(volatiletp){
+          tplevel[i]=shortprice[barstart]-tpamount[indices[(a-1)]];
+        }else {
+          tplevel[i]=shortprice[barstart]-tpamount[barstart];
+        }
+        if(volatilesl){
+          sllevel[i]=shortprice[barstart]+slamount[indices[(a-1)]];
+        }else{
+          sllevel[i]=shortprice[barstart]+slamount[barstart];
+          Rcout << "sl amount at barstart: "<<dates[barstart]<<" on " << dates[i] <<" is "<< slamount[barstart] << std::endl;
+        }
+      }
+
       if(newtrade){ //reset stoplosstriggered flag.
         tptriggered=false;
         sltriggered=false;
         barstart=indices[(a-1)];
       }
-      // if(symbol[i]=="BAJFINANCE" && i>916 && i<925){
-      //      Rcout <<"index: "<<i << "newtrade: " << newtrade <<" sltriggered: "<< sltriggered<< " tptriggered: " <<tptriggered << std::endl;
-      // }
 
       if(!tptriggered && !sltriggered){//stoplossnottriggered
         if(inlongtrade[indices[(a-1)]]==1){
           //check if stoploss triggered for a long trade
-          double slprice=0;
-          double tpprice=0;
-          if(volatiletp){
-            tpprice=buyprice[barstart]+tpamount[indices[(a-1)]];
-          }else {
-            tpprice=buyprice[barstart]+tpamount[barstart];
-          }
-          if(volatilesl){
-            slprice=buyprice[barstart]-slamount[indices[(a-1)]];
-          }else {
-            slprice=buyprice[barstart]-slamount[barstart];
-             //Rcout << "sl amount at barstart: " << barstart <<" is "<< slamount[barstart] << std::endl;
-
-          }
-
-          //Rcout << "The value sl at i: " << i <<" is "<< slprice << ", barstart: "<<barstart <<" ,ref buyprice:"<<buyprice[barstart]<<" ,loss amt: "<<slamount[barstart] <<std::endl;
-          if(open[i]<=slprice){
+           if(open[i]<=sllevel[i]){
             lsellprice[i]=open[i];
             sltriggered=true;
             lsell[i]=3;
-          }else if ((low[i]<=slprice) && (high[i]>=slprice)){
-            lsellprice[i]=slprice;
+          }else if ((low[i]<=sllevel[i]) && (high[i]>=sllevel[i])){
+            lsellprice[i]=sllevel[i];
             sltriggered=true;
             lsell[i]=2;//maxsl
-            //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
 
           if(!sltriggered && !tptriggered){
-            if(open[i]>=tpprice){
+            if(open[i]>=tplevel[i]){
               lsellprice[i]=open[i];
               tptriggered=true;
               lsell[i]=5; //gap tp
-            }else if ((low[i]<=tpprice) && (high[i]>=tpprice)){
-              lsellprice[i]=tpprice;
+            }else if ((low[i]<=tplevel[i]) && (high[i]>=tplevel[i])){
+              lsellprice[i]=tplevel[i];
               tptriggered=true;
               lsell[i]=4;//maxtp
-              //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
             }
                 if (sell[i]==1 && !sltriggered && !tptriggered){
                             lsell[i]=1;
@@ -1853,38 +1861,24 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }
         }else if(inshorttrade[indices[(a-1)]]==1){
           //check if stoploss triggered for a short trade
-          double slprice=0;
-          double tpprice=0;
-          if(volatiletp){
-            tpprice=shortprice[barstart]-tpamount[indices[(a-1)]];
-          }else{
-            tpprice=shortprice[barstart]-tpamount[barstart];
-            // DatetimeVector date1=all["date"];
-            // Rcout<<"Date Bar:"<<date1[barstart]<<",Symbol: "<<symbol[barstart]<<",TP Price :"<<tpprice<<",Short Price: "<<shortprice[barstart]<<", tp amount: "<<tpamount[barstart]<<std::endl;
-          }
-          if(volatilesl){
-            slprice=shortprice[barstart]+slamount[indices[(a-1)]];
-          }else{
-            slprice=shortprice[barstart]+slamount[barstart];
-          }
-          if(open[i]>=slprice){
+          if(open[i]>=sllevel[i]){
             lcoverprice[i]=open[i];
             sltriggered=true;
             lcover[i]=3;
-          }else if ((low[i]<=slprice) && (high[i]>=slprice)){
-            lcoverprice[i]=slprice;
+          }else if ((low[i]<=sllevel[i]) && (high[i]>=sllevel[i])){
+            lcoverprice[i]=sllevel[i];
             sltriggered=true;
             lcover[i]=2;
 //            Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
           }
 
           if(!sltriggered && !tptriggered){
-            if(open[i]<=tpprice){
+            if(open[i]<=tplevel[i]){
               lcoverprice[i]=open[i];
               tptriggered=true;
               lcover[i]=5; //gaptp
-            }else if ((low[i]<=tpprice) && (high[i]>=tpprice)){
-              lcoverprice[i]=tpprice;
+            }else if ((low[i]<=tplevel[i]) && (high[i]>=tplevel[i])){
+              lcoverprice[i]=tplevel[i];
               tptriggered=true;
               lcover[i]=4;//tp
               //Rcout << "SL triggered at i: " << i <<" Trigger price is"<< slprice <<std::endl;
@@ -1901,12 +1895,6 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           }
         }
       }
-      // if(preventReplacement){
-      //         //Rcout << "Old:"<<inlongtrade[i] <<inshorttrade[i]<<"i:"<<i<<std::endl;
-      //         inlongtrade=Flip(lbuy,lsell);
-      //         inshorttrade=Flip(lshrt,lcover);
-      // }
-
       if(!preventReplacement){
               if(tptriggered ||sltriggered){//check if a replacement trade is needed
                       //needed if intrade is true at the bar
@@ -1938,17 +1926,9 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
 
     }
   }
-
-  // for(int i=0;i<timestamp.size();i++){
-  //   if(symbol[i]=="HINDALCO" & lbuyprice[i]>0){
-  //     Rcout << "The value buyprice  at i: " << i <<" is "<< lbuyprice[i] <<std::endl;
-  //
-  //   }
-  // }
-
   return DataFrame::create(_["date"]=timestamp,_["symbol"]=symbol,_["buy"]=lbuy,_["sell"]=lsell,_["short"]=lshrt,_["cover"]=lcover,
                            _["buyprice"]= lbuyprice, _["sellprice"]= lsellprice,_["shortprice"]=lshortprice,_["coverprice"]=lcoverprice,
-                             _["inlongtrade"]=inlongtrade,_["inshorttrade"]=inshorttrade,
+                             _["inlongtrade"]=inlongtrade,_["inshorttrade"]=inshorttrade,_["sl.level"]=sllevel,_["tp.level"]=tplevel,
                              _["stringsAsFactors"] = false);
 
 }
