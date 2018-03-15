@@ -1775,7 +1775,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
     for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
-      Rcout << "Date: "<<dates[i]<< ",a: " << a <<",i: "<< i <<std::endl;
+      //Rcout << "Date: "<<dates[i]<< ",a: " << a <<",i: "<< i <<std::endl;
       if(buy[i]>0){
               lbuy[i]=buy[i];
               lbuyprice[i]=buyprice[i];
@@ -1786,7 +1786,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               lshrt[i]=shrt[i];
               lshortprice[i]=shortprice[i];
       }
-      Rcout << "Date: "<<dates[i] << ",InShortTrade: "<<inshorttrade[i]<<"inshorttrade[indices[(a-1)]]"<<inshorttrade[indices[(a-1)]]<<std::endl;
+      //Rcout << "Date: "<<dates[i] << ",InShortTrade: "<<inshorttrade[i]<<"inshorttrade[indices[(a-1)]]"<<inshorttrade[indices[(a-1)]]<<std::endl;
       bool newtrade= (a==1 && (lbuy[indices[(a-1)]]>0||lshrt[indices[(a-1)]]>0))||(a>1 &&((lbuy[indices[(a-1)]]>0 && lbuy[indices[(a-2)]]==0)||(lshrt[indices[(a-1)]]>0 && lshrt[indices[(a-2)]]==0)));
       if(newtrade){
         barstart=indices[(a-1)];
@@ -1816,7 +1816,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
           sllevel[i]=shortprice[barstart]+slamount[indices[(a-1)]];
         }else{
           sllevel[i]=shortprice[barstart]+slamount[barstart];
-          Rcout << "sl amount at barstart: "<<dates[barstart]<<" on " << dates[i] <<" is "<< slamount[barstart] << std::endl;
+          //Rcout << "sl amount at barstart: "<<dates[barstart]<<" on " << dates[i] <<" is "<< slamount[barstart] << std::endl;
         }
       }
 
