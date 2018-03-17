@@ -1396,15 +1396,18 @@ DataFrame ProcessPositionScore(DataFrame all,unsigned int maxposition,DatetimeVe
 //  int uniquedatesize=dates.size();
   DatetimeVector uniqueDates=dates;
   vector<String> positionNames;
+  //Rcout<<"Count of Dates:"<<uniqueDates.size()<<std::endl;
+
   map<double,int>daypositionscore;//holds the position score and index of dataframe
 
 for(int i=0;i<uniqueDates.size();i++){ //for each date
   daypositionscore.clear();
   IntegerVector indices=whichDate2(timestamp,uniqueDates[i]);
-  //Rcout<<"Date Bar:"<<i<<std::endl;
+  //Rcout<<"Date Bar:"<<timestamp[i]<<std::endl;
   //Execute exits
-  for(int a=0;a<indices.size();a++){ // loop through  all symbols with data for the date
+  for(int a=1;a<indices.size();a++){ // loop through  all symbols with data for the date
     int j=indices[a];
+    int priorj=indices[(a-1)];
     //Rcout<<"Processing Exit. Date:"<<uniqueDates[i]<<",Symbol:"<<symbol[j]<<",j:"<<j<<",sell:"<<sell[j]<<",cover:"<<cover[j]<<std::endl;
     if(sell[j]>0 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
       //we have a matching sell
@@ -1423,25 +1426,33 @@ for(int i=0;i<uniqueDates.size();i++){ //for each date
 
   //Execute entry
   //1. If there is capacity, Update positionscore
-  if(positionNames.size()<maxposition){
-    for(int a=0;a<indices.size();a++){
+  //if(positionNames.size()<maxposition){
+    for(int a=1;a<indices.size();a++){
       //Rf_PrintValue(indices);
       int j=indices[a];
       //Rcout<<"Processing PositionScore. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
       if((buy[j]>0 && positionscore[j]>0) || (shrt[j]>0 && positionscore[j]>0)){
         if ( daypositionscore.find(positionscore[j]) == daypositionscore.end() ) {
-          //Rcout<<"Add PositionScore. Unique Positionscore."<< " Symbol:"<<symbol[j]<<" ,PositionScore:"<<positionscore[j]<<endl;
+          //Rcout<< "Date:"<<timestamp[j]<< ", Add PositionScore. Unique Positionscore."<< " Symbol:"<<symbol[j]<<" ,PositionScore:"<<positionscore[j]<<endl;
           daypositionscore.insert(std::pair<double,int>(positionscore[j],j));
         }else{
           //add a positionscore that is marginally higher
-          //Rcout<<"Add PositionScore. Duplicate Positionscore."<< " Symbol:"<<symbol[j]<<" ,PositionScore:"<<positionscore[j]<<endl;
           daypositionscore.insert(std::pair<double,int>(positionscore[j]+0.00001,j));
+         //   Rcout<< "Date:"<<timestamp[j]<< ", Add PositionScore. Duplicate Positionscore."<< " Symbol:"<<symbol[j]<<" ,PositionScore:"<<positionscore[j]<<endl;
         }
       }
     }
-  }
+  //}
     //insert upto limit in positionNames
     int itemsToInsert=0;
+      // Rcout <<"Date: "<<uniqueDates[i]<<", Positions: "<<positionNames.size()<<std::endl;
+      // for (std::vector<Rcpp::String>::iterator rit=positionNames.begin(); rit!=positionNames.end
+      //   (); ++rit){
+      //   Rcout<< rit->get_cstring() <<std::endl;
+      // }
+
+//      Rf_PrintValue(temp);
+
     if(positionNames.size()<maxposition){
     itemsToInsert=maxposition-positionNames.size();
     }
