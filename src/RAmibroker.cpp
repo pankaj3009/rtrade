@@ -599,9 +599,11 @@ NumericVector Shift(NumericVector vec1,NumericVector vec2, int ref){
 // [[Rcpp::export]]
 IntegerVector whichDate2(DatetimeVector x, Datetime condition) {
   IntegerVector v = Rcpp::seq(0, x.size()-1);
+  //Rcout<<x.size()<<std::endl;
   DatetimeVector check(x.size());
   vector<int> indices;
   for(int i=0;i<x.size();i++){
+    //Rcout<<x[i]<<","<<condition<<std::endl;
     if(x[i]==condition){
       indices.push_back(v[i]);
     }
@@ -1745,12 +1747,344 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
 
 }
 
+int getPriorIndex(StringVector symbols,int currentIndex){
+  String refsymbol=symbols[currentIndex];
+  IntegerVector indices=whichString2(symbols,refsymbol);
+ // Rf_PrintValue(indices);
+  int* it;
+  it=std::find(indices.begin(),indices.end(),currentIndex);
+  int index=std::distance(indices.begin(), it);
+  return indices[index-1];
+}
+
+//[[Rcpp::export]]
+DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVector tpamount,unsigned int maxposition,bool volatilesl=false,bool volatiletp=false,bool debug=false ){
+  if(debug){
+    Rcout<<"### Running ProcessSignals ###"<<std::endl;
+  }
+  int nSize=all.nrows();
+  NumericVector inlongtrade=all["inlongtrade"];
+  NumericVector inshorttrade=all["inshorttrade"];
+  const NumericVector open=all["aopen"];
+  const NumericVector high=all["ahigh"];
+  const NumericVector low=all["alow"];
+  const NumericVector close=all["aclose"];
+  NumericVector buy=all["buy"];
+  NumericVector sell=all["sell"];
+  NumericVector shrt=all["short"];
+  NumericVector cover=all["cover"];
+  const StringVector symbol=all["symbol"];
+  const NumericVector positionscore=all["positionscore"];
+
+  const NumericVector buyprice=all["buyprice"];
+  const NumericVector sellprice=all["sellprice"];
+  const NumericVector shortprice=all["shortprice"];
+  const NumericVector coverprice=all["coverprice"];
+  const DatetimeVector timestamp=all["date"];
+
+
+  NumericVector lbuy(nSize);
+  NumericVector lsell(nSize);
+  NumericVector lshrt(nSize);
+  NumericVector lcover(nSize);
+
+  NumericVector lbuyprice(nSize);
+  NumericVector lsellprice(nSize);
+  NumericVector lshortprice(nSize);
+  NumericVector lcoverprice(nSize);
+
+  NumericVector sllevel(nSize);
+  NumericVector tplevel(nSize);
+
+  StringVector uniquesymbol=unique(symbol);
+  DatetimeVector uniquedate=UniqueDateTime(timestamp);
+  //Rf_PrintValue(uniquedate);
+  vector<String> positionNames;
+  vector<int> positionBarNumber;
+  vector<String> side;
+  map<double,int>daypositionscore;//holds the position score and index of dataframe
+  for(int i=1;i<uniquedate.size();i++){//for each date
+    IntegerVector indices=whichDate2(timestamp,uniquedate[i]); //indices contains index of uniquedate[i] in "all"
+    //Execute exits
+    // Rf_PrintValue(indices);
+    for(int a=0;a<indices.size();a++){ // loop through  all symbols for the date
+      int j=indices[a]; //index in 'all'
+      int priorj=getPriorIndex(symbol,j);
+   //   Rcout<<"j: "<<j<<", priorj: "<<priorj<<std::endl;
+      // ### check it stops are triggered. Update signals
+//      vector<String>::iterator it =std::find(positionNames.begin(),positionNames.end(),symbol[j]);
+      vector<String>::iterator it =positionNames.begin();
+      while ((it = std::find(it, positionNames.end(), symbol[j])) != positionNames.end()){
+      //if(it!=positionNames.end()){ //if position exists, update sl,tp and sell/cover
+        int index=std::distance(positionNames.begin(), it);
+        int barstart=positionBarNumber.at(index);
+        // update sl.level and tp.level
+        if(inlongtrade[priorj]>0){
+          if(volatiletp){
+            tplevel[j]=tpamount[priorj];
+          }else {
+            tplevel[j]=tpamount[barstart];
+          }
+          if(volatilesl){
+            sllevel[j]=slamount[priorj];
+          }else {
+            sllevel[j]=slamount[barstart];
+          }
+          if(debug){
+            Rcout<<"Date: "<< timestamp[j]<<", Symbol:"<<symbol[j]<< ", Long TP Level: "<<tplevel[j]<<std::endl;
+            Rcout<<"Date: "<< timestamp[j]<<", Symbol:"<<symbol[j]<< ", Long SL Level: "<<sllevel[j]<<std::endl;
+          }
+        }
+
+        if(inshorttrade[priorj]>0){
+          if(volatiletp){
+            tplevel[j]=tpamount[priorj];
+          }else {
+            tplevel[j]=tpamount[barstart];
+          }
+          if(volatilesl){
+            sllevel[j]=slamount[priorj];
+          }else{
+            sllevel[j]=slamount[barstart];
+          }
+          if(debug){
+            Rcout<<"Date: "<< timestamp[j]<<", Symbol:"<<symbol[j]<< ", Short TP Level: "<<tplevel[j]<<std::endl;
+            Rcout<<"Date: "<< timestamp[j]<<", Symbol:"<<symbol[j]<< ", Short SL Level: "<<sllevel[j]<<std::endl;
+          }
+        }
+        //after updating sl and tp, check if sl or tp is triggered
+        bool sltriggered=false;
+        bool tptriggered=false;
+        if(inlongtrade[priorj]==1 && buy[j]==0){ //dont trigger sl or tp in the entry bar
+          //check if stoploss triggered for a long trade
+          if(open[j]<=sllevel[j]){
+            lsellprice[j]=open[j];
+            sltriggered=true;
+            lsell[j]=3;
+            sell[j]=3;
+            inlongtrade[j]=0;
+            if(debug){
+              Rcout<<"Date: "<<timestamp[j]<<", Gap SL Triggered for Long Symbol "<<symbol[j]<<", SellPrice: "<<lsellprice[j]<<std::endl;
+            }
+          }else if ((low[j]<=sllevel[j]) && (high[j]>=sllevel[j])){
+            lsellprice[j]=sllevel[j];
+            sltriggered=true;
+            lsell[j]=2;//maxsl
+            sell[j]=2;
+            inlongtrade[j]=0;
+            if(debug){
+              Rcout<<"Date: "<<timestamp[j]<<", Max SL Triggered for Long Symbol "<<symbol[j]<<", SellPrice: "<<lsellprice[j]<<std::endl;
+            }
+          }
+
+          if(!sltriggered){
+            if(open[j]>=tplevel[j]){
+              lsellprice[j]=open[j];
+              tptriggered=true;
+              lsell[j]=5; //gap tp
+              sell[j]=5;
+              inlongtrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Gap TP Triggered for Long Symbol "<<symbol[j]<<", SellPrice: "<<lsellprice[j]<<std::endl;
+              }
+
+            }else if ((low[j]<=tplevel[j]) && (high[j]>=tplevel[j])){
+              lsellprice[j]=tplevel[j];
+              tptriggered=true;
+              lsell[j]=4;//maxtp
+              sell[j]=4;
+              inlongtrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Max TP Triggered for Long Symbol "<<symbol[j]<<", SellPrice: "<<lsellprice[j]<<std::endl;
+              }
+            }
+            if (sell[j]==1 && !sltriggered && !tptriggered){
+              lsell[j]=1;
+              lsellprice[j]=sellprice[j];
+              inlongtrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Regular Exit Triggered for Long Symbol "<<symbol[j]<<", SellPrice: "<<lsellprice[j]<<std::endl;
+              }
+            }
+            if(sell[j]==0){
+              lsell[j]=0;
+              inlongtrade[j]=1;
+            }
+          }
+        }else if(inshorttrade[priorj]==1 && shrt[j]==0){
+          //check if stoploss triggered for a short trade
+          if(open[j]>=sllevel[j]){
+            lcoverprice[j]=open[j];
+            sltriggered=true;
+            lcover[j]=3;
+            cover[j]=3;
+            inshorttrade[j]=0;
+            if(debug){
+              Rcout<<"Date: "<<timestamp[j]<<", Gap SL Triggered for Short Symbol "<<symbol[j]<<", CoverPrice: "<<lcoverprice[j]<<std::endl;
+            }
+
+          }else if ((low[j]<=sllevel[j]) && (high[j]>=sllevel[j])){
+            lcoverprice[j]=sllevel[j];
+            sltriggered=true;
+            lcover[j]=2;
+            cover[j]=2;
+            inshorttrade[j]=0;
+            if(debug){
+              Rcout<<"Date: "<<timestamp[j]<<", Max SL Triggered for Short Symbol "<<symbol[j]<<", CoverPrice: "<<lcoverprice[j]<<std::endl;
+            }
+          }
+
+          if(!sltriggered){
+            if(open[j]<=tplevel[j]){
+              lcoverprice[j]=open[j];
+              tptriggered=true;
+              lcover[j]=5; //gaptp
+              cover[j]=5;
+              inshorttrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Gap TP Triggered for Short Symbol "<<symbol[j]<<", CoverPrice: "<<lcoverprice[j]<<std::endl;
+              }
+
+            }else if ((low[j]<=tplevel[j]) && (high[j]>=tplevel[j])){
+              lcoverprice[j]=tplevel[j];
+              tptriggered=true;
+              lcover[j]=4;//tp
+              cover[j]=4;
+              inshorttrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Max TP Triggered for Short Symbol "<<symbol[j]<<", CoverPrice: "<<lcoverprice[j]<<std::endl;
+              }
+            }
+            if(cover[j]==1 && !sltriggered && !tptriggered){
+              lcover[j]=1;
+              lcoverprice[j]=coverprice[j];
+              inshorttrade[j]=0;
+              if(debug){
+                Rcout<<"Date: "<<timestamp[j]<<", Regular Exit Triggered for Short Symbol "<<symbol[j]<<", CoverPrice: "<<lcoverprice[j]<<std::endl;
+              }
+            }
+            if(cover[j]==0){
+              lcover[j]=0;
+              inshorttrade[j]=1;
+            }
+          }
+        }
+      //}
+      // ### update positions and enter new trades
+      //if(it!=positionNames.end()){
+        //we have a matching sell
+        int positionIndex=std::distance(positionNames.begin(), it);
+        String positionSide=side.at(positionIndex);
+        if(positionSide=="BUY" && lsell[j]>0){
+          positionNames.erase(it);
+          positionBarNumber.erase(positionBarNumber.begin()+positionIndex);
+          side.erase(side.begin()+positionIndex);
+          it--;
+          if(debug){
+              Rcout<<"Date: "<<timestamp[j]<<", Sell Symbol: "<<symbol[j]<<", New PositionCount:"<<positionNames.size()<<endl;
+            }
+        }else if(positionSide=="SHORT" && lcover[j]>0){
+          positionNames.erase(it);
+          positionBarNumber.erase(positionBarNumber.begin()+positionIndex);
+          side.erase(side.begin()+positionIndex);
+          it--;
+          if(debug){
+            Rcout<<"Date: "<<timestamp[j]<<", Cover Symbol: "<<symbol[j]<<", New PositionCount:"<<positionNames.size()<<endl;
+          }
+        }
+        it++;
+      }
+    }
+    daypositionscore.clear();
+
+    //Execute entry for the specific uniquedate[i]
+    //1. If there is capacity, Update positionscore
+    for(int a=0;a<indices.size();a++){
+      //Rf_PrintValue(indices);
+      int j=indices[a];
+      if((buy[j]>0 && positionscore[j]>0) || (shrt[j]>0 && positionscore[j]>0)){
+        if ( daypositionscore.find(positionscore[j]) == daypositionscore.end() ) {
+          daypositionscore.insert(std::pair<double,int>(positionscore[j],j));
+        }else{
+          //add a positionscore that is marginally higher
+          daypositionscore.insert(std::pair<double,int>(positionscore[j]+0.00001,j));
+        }
+      }
+    }
+    //insert upto limit in positionNames
+    int itemsToInsert=0;
+    if(positionNames.size()<maxposition){
+      itemsToInsert=maxposition-positionNames.size();
+    }
+    for (std::map<double,int>::reverse_iterator rit=daypositionscore.rbegin(); rit!=daypositionscore.rend
+      (); ++rit){
+
+      if(itemsToInsert>0){
+        int j=rit->second;
+        if(buy[j]>0){
+          lbuy[j]=buy[j];
+          side.push_back("BUY");
+        }else{
+          lshrt[j]=shrt[j];
+          side.push_back("SHORT");
+        }
+        positionNames.push_back(symbol[j]);
+        positionBarNumber.push_back(j);
+        if(debug){
+          if(lbuy[j]>0){
+            Rcout<< "Date: "<<timestamp[j]<<", Symbol added to long position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
+          }else if (lshrt[j]>0){
+            Rcout<< "Date: "<<timestamp[j]<<", Symbol added to short position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
+          }
+        }
+        itemsToInsert--;
+      }
+    }
+    if(debug){
+      Rcout <<"Date: "<<uniquedate[i]<<", Positions Held: "<<positionNames.size()<<", Positions Allowed:"<< maxposition<<std::endl;
+      for (std::vector<Rcpp::String>::iterator rit=positionNames.begin(); rit!=positionNames.end(); ++rit){
+        Rcout<< rit->get_cstring() <<std::endl;
+      }
+    }
+
+    //update scale-ins
+    for(int a=0;a<indices.size();a++){
+      //Rf_PrintValue(indices);
+      int j=indices[a];
+      //Rcout<<"Scale-In Index j:"<<j<<"buy[j]:"<<buy[j]<<"symbol[j]:"<<symbol[j]<<std::endl;
+      if(buy[j]==999 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
+        //Rcout<<"Processing Scale In. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
+        lbuy[j]=999; //we have a scale-in for an existing position
+      }
+      if(shrt[j]==999 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
+        lshrt[j]=999; //we have a scale-in for an existing position
+        //Rcout<<"Processing Scale In. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
+      }
+    }
+  }
+  inlongtrade=ContinuingLong(symbol,lbuy,lsell,lshrt);
+  inshorttrade=ContinuingShort(symbol,lshrt,lcover,lbuy);
+
+  return DataFrame::create(_["date"]=timestamp,_["symbol"]=symbol,_["buy"]=lbuy,_["sell"]=lsell,_["short"]=lshrt,_["cover"]=lcover,
+                           _["buyprice"]= lbuyprice, _["sellprice"]= lsellprice,_["shortprice"]=lshortprice,_["coverprice"]=lcoverprice,
+                             _["inlongtrade"]=inlongtrade,_["inshorttrade"]=inshorttrade,_["sl.level"]=sllevel,_["tp.level"]=tplevel,
+                               _["stringsAsFactors"] = false);
+
+}
+
+
 // [[Rcpp::export]]
 DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpamount,bool volatilesl=false,bool volatiletp=false,bool preventReplacement=false,bool debug=false){
   //preventReplacementTrade should be set as true if the signals are not being checked daily for BUY, SELL or AVOID
   //stop mode can be 1: points
   //all has to be sorted in ascending order by date
   if(debug){
+    // if(!Rf_isNull(file)){
+    //   std::string tfile = as<std::string>(file.at(1));
+    //   std::ofstream testfile(tfile.c_str());
+    //   std::streambuf* Rcout_buffer = Rcout.rdbuf();
+    //   Rcout.rdbuf( testfile.rdbuf() );
+    // }
     Rcout<<"### Running ApplySLTP ###"<<std::endl;
   }
   int nSize=all.nrows();
@@ -1787,6 +2121,10 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
   NumericVector tplevel(nSize);
 
   StringVector uniquesymbol=unique(symbol);
+  Rf_PrintValue(uniquesymbol);
+  Rcpp::Environment base("package:base");
+  Rcpp::Function sort = base["sort"];
+  //NumericVector uniquesymbol1=sort(Rcpp::_["x"] = uniquesymbol);
   for(int z=0;z<uniquesymbol.size();z++){//for each uniquesymbol
     bool tptriggered =false;
     bool sltriggered=false;
@@ -1816,38 +2154,38 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
         barstart=indices[(a-1)];
       }
       // update sl.level and tp.level
-      if(inlongtrade[indices[(a-1)]]==1){
+      if(inlongtrade[indices[(a-1)]]>0){
         if(volatiletp){
-          tplevel[i]=buyprice[barstart]+tpamount[indices[(a-1)]];
+          tplevel[i]=tpamount[indices[(a-1)]];
         }else {
-          tplevel[i]=buyprice[barstart]+tpamount[barstart];
+          tplevel[i]=tpamount[barstart];
         }
         if(volatilesl){
-          sllevel[i]=buyprice[barstart]-slamount[indices[(a-1)]];
+          sllevel[i]=slamount[indices[(a-1)]];
         }else {
-          sllevel[i]=buyprice[barstart]-slamount[barstart];
+          sllevel[i]=slamount[barstart];
         }
         if(debug){
-          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Long TP Level: "<<tplevel[i]<<", Long TP Amount: "<<tpamount[indices[(a-1)]]<<std::endl;
-          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Long SL Level: "<<sllevel[i]<<", Long SL Amount: "<<slamount[indices[(a-1)]]<<std::endl;
+          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Long TP Level: "<<tplevel[i]<<std::endl;
+          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Long SL Level: "<<sllevel[i]<<std::endl;
         }
       }
 
 
-      if(inshorttrade[indices[(a-1)]]==1){
+      if(inshorttrade[indices[(a-1)]]>0){
         if(volatiletp){
-          tplevel[i]=shortprice[barstart]-tpamount[indices[(a-1)]];
+          tplevel[i]=tpamount[indices[(a-1)]];
         }else {
-          tplevel[i]=shortprice[barstart]-tpamount[barstart];
+          tplevel[i]=tpamount[barstart];
         }
         if(volatilesl){
-          sllevel[i]=shortprice[barstart]+slamount[indices[(a-1)]];
+          sllevel[i]=slamount[indices[(a-1)]];
         }else{
-          sllevel[i]=shortprice[barstart]+slamount[barstart];
+          sllevel[i]=slamount[barstart];
         }
         if(debug){
-          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Short TP Level: "<<tplevel[i]<<", Short TP Amount: "<<tpamount[indices[(a-1)]]<<std::endl;
-          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Short SL Level: "<<sllevel[i]<<", Short SL Amount: "<<slamount[indices[(a-1)]]<<std::endl;
+          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Short TP Level: "<<tplevel[i]<<std::endl;
+          Rcout<<"Date: "<< dates[i]<<", Symbol:"<<symbol[i]<< ", Short SL Level: "<<sllevel[i]<<std::endl;
         }
 
       }
@@ -1859,7 +2197,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
       }
 
       if(!tptriggered && !sltriggered){//stoplossnottriggered
-        if(inlongtrade[indices[(a-1)]]==1){
+        if(inlongtrade[indices[(a-1)]]==1 && lbuy[i]==0){ //dont trigger sl or tp in the entry bar
           //check if stoploss triggered for a long trade
           if(open[i]<=sllevel[i]){
             lsellprice[i]=open[i];
@@ -1910,7 +2248,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
               inlongtrade[i]=1;
             }
           }
-        }else if(inshorttrade[indices[(a-1)]]==1){
+        }else if(inshorttrade[indices[(a-1)]]==1 && lshrt[i]==0){
           //check if stoploss triggered for a short trade
           if(open[i]>=sllevel[i]){
             lcoverprice[i]=open[i];
