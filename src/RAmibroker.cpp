@@ -883,6 +883,8 @@ DataFrame GenerateTrades(DataFrame all){
             exitreason[tradesize]="TP";
           }else if (sell[k]==5){
             exitreason[tradesize]="GapTP";
+          }else if (sell[k]==9){
+            exitreason[tradesize]="Rollover";
           }else{
             exitreason[tradesize]="Undefined";
           }
@@ -915,6 +917,8 @@ DataFrame GenerateTrades(DataFrame all){
                   exitreason[tradesize]="TP";
                 }else if (sell[k]==5){
                   exitreason[tradesize]="GapTP";
+                }else if (sell[k]==9){
+                  exitreason[tradesize]="Rollover";
                 }else{
                   exitreason[tradesize]="Undefined";
                 }
@@ -956,6 +960,8 @@ DataFrame GenerateTrades(DataFrame all){
                 exitreason[tradesize]="TP";
               }else if (sell[k]==5){
                 exitreason[tradesize]="GapTP";
+              }else if (sell[k]==9){
+                exitreason[tradesize]="Rollover";
               }else{
                 exitreason[tradesize]="Undefined";
               }
@@ -1008,6 +1014,8 @@ DataFrame GenerateTrades(DataFrame all){
             exitreason[tradesize]="TP";
           }else if (cover[k]==5){
             exitreason[tradesize]="GapTP";
+          }else if (cover[k]==9){
+            exitreason[tradesize]="Rollover";
           }else{
             exitreason[tradesize]="Undefined";
           }
@@ -1041,6 +1049,8 @@ DataFrame GenerateTrades(DataFrame all){
                   exitreason[tradesize]="TP";
                 }else if (cover[k]==5){
                   exitreason[tradesize]="GapTP";
+                }else if (cover[k]==9){
+                  exitreason[tradesize]="Rollover";
                 }else{
                   exitreason[tradesize]="Undefined";
                 }
@@ -1079,6 +1089,8 @@ DataFrame GenerateTrades(DataFrame all){
                 exitreason[tradesize]="TP";
               }else if (cover[k]==5){
                 exitreason[tradesize]="GapTP";
+              }else if (cover[k]==9){
+                exitreason[tradesize]="Rollover";
               }else{
                 exitreason[tradesize]="Undefined";
               }
