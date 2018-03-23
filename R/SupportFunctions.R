@@ -1994,28 +1994,30 @@ futureTradeSignals <-
                                 if (signals$rolloverorders[i] == TRUE) {
                                         if (signals$inlongtrade[i] == 1) {
                                                 df.copy = signals[i, ]
-                                                signals$sell[i] = 1
+                                                signals$sell[i] = 9
                                                 indexofbuy = getBuyIndices(signals, i)
                                                 #indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
                                                 for (j in 1:length(indexofbuy)) {
-                                                        if (j == 1) {
-                                                                df.copy$buy[1] = 1
-                                                        } else{
-                                                                df.copy$buy[1] = 999
-                                                        }
+                                                  df.copy$buy[1] = signals$buy[indexofbuy[j]]
+                                                  # if (j == 1) {
+                                                  #               df.copy$buy[1] = signals[indexofbuy[j],"buy"]
+                                                  #       } else{
+                                                  #               df.copy$buy[1] = 999
+                                                  #       }
                                                         df.copy$strike[1] = signals$strike[indexofbuy[j]]
                                                         signals <- rbind(signals, df.copy)
                                                 }
                                         } else if (signals$inshorttrade[i] == 1) {
                                                 df.copy = signals[i, ]
-                                                signals$cover[i] = 1
+                                                signals$cover[i] = 9
                                                 indexofshort = getShortIndices(signals, i)
                                                 for (j in 1:length(indexofshort)) {
-                                                        if (j == 1) {
-                                                                df.copy$short[1] = 1
-                                                        } else{
-                                                                df.copy$short[1] = 999
-                                                        }
+                                                  df.copy$short[1] = signals$short[indexofshort[j]]
+                                                        # if (j == 1) {
+                                                        #         df.copy$short[1] = 1
+                                                        # } else{
+                                                        #         df.copy$short[1] = 999
+                                                        # }
                                                         df.copy$strike[1] = signals$strike[indexofshort[j]]
                                                         signals <- rbind(signals, df.copy)
                                                 }
@@ -2023,9 +2025,7 @@ futureTradeSignals <-
                                 }
                         }
                 }
-
                 signals <- signals[order(signals$date), ]
-
                 expiry = format(signals[, c("entrycontractexpiry")], format = "%Y%m%d")
                 signals$symbol = ifelse(
                         signals$buy > 0,
@@ -2132,57 +2132,58 @@ futureTradeSignals <-
                 #     }
                 #   }
                 # }
-                for (i in 1:nrow(signals)) {
-                        if (signals$inlongtrade[i] > 0) {
-                                indexofbuy = getBuyIndices(signals, i,0)
-                                if (length(indexofbuy) > 0) {
-                                        for (j in 1:length(indexofbuy)) {
-                                                if(i>indexofbuy[j]){
-                                                symbolsvector = unlist(strsplit(
-                                                        signals$symbol[indexofbuy[j]],
-                                                        "_"
-                                                ))
-                                                expiry = as.Date(
-                                                        strptime(
-                                                                symbolsvector[3],
-                                                                "%Y%m%d",
-                                                                tz = "Asia/Kolkata"
-                                                        )
-                                                )
-                                                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                        signals$sell[i] = 1
-                                                }
-                                                }
-
-                                        }
-
-                                }
-                        } else if (signals$inshorttrade[i] > 0) {
-                                indexofshort = getShortIndices(signals, i,0)
-                                if (length(indexofshort) > 0) {
-                                        for (j in 1:length(indexofshort)) {
-                                                if(i>indexofshort[j]){
-                                                symbolsvector = unlist(strsplit(
-                                                        signals$symbol[indexofshort[j]],
-                                                        "_"
-                                                ))
-                                                expiry = as.Date(
-                                                        strptime(
-                                                                symbolsvector[3],
-                                                                "%Y%m%d",
-                                                                tz = "Asia/Kolkata"
-                                                        )
-                                                )
-                                                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                                                        signals$cover[i] = 1
-                                                }
-                                                }
-
-                                        }
-                                }
+                if(!rollover){
+                  for (i in 1:nrow(signals)) {
+                    if (signals$inlongtrade[i] > 0) {
+                      indexofbuy = getBuyIndices(signals, i,0)
+                      if (length(indexofbuy) > 0) {
+                        for (j in 1:length(indexofbuy)) {
+                          if(i>indexofbuy[j]){
+                            symbolsvector = unlist(strsplit(
+                              signals$symbol[indexofbuy[j]],
+                              "_"
+                            ))
+                            expiry = as.Date(
+                              strptime(
+                                symbolsvector[3],
+                                "%Y%m%d",
+                                tz = "Asia/Kolkata"
+                              )
+                            )
+                            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                              signals$sell[i] = 1
+                            }
+                          }
 
                         }
+
+                      }
+                    } else if (signals$inshorttrade[i] > 0) {
+                      indexofshort = getShortIndices(signals, i,0)
+                      if (length(indexofshort) > 0) {
+                        for (j in 1:length(indexofshort)) {
+                          if(i>indexofshort[j]){
+                            symbolsvector = unlist(strsplit(
+                              signals$symbol[indexofshort[j]],
+                              "_"
+                            ))
+                            expiry = as.Date(
+                              strptime(
+                                symbolsvector[3],
+                                "%Y%m%d",
+                                tz = "Asia/Kolkata"
+                              )
+                            )
+                            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
+                              signals$cover[i] = 1
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
                 }
+
 
                 #Exit
                 for (i in 1:nrow(signals)) {
@@ -2250,7 +2251,7 @@ futureTradeSignals <-
                                                                                 2
                                                                 }
                                                                 sellprice = NA_real_
-                                                                if (signals$sell[i] == 1) {
+                                                                if (signals$sell[i] == 1||signals$sell[i] == 9) {
                                                                         sellprice = datarow$settle[1]
                                                                 } else if (signals$sell[i] > 1) {
                                                                         splitratio=udatarow$splitadjust[1]
@@ -2381,7 +2382,7 @@ futureTradeSignals <-
                                                                                 2
                                                                 }
                                                                 coverprice = NA_real_
-                                                                if (signals$cover[i] == 1) {
+                                                                if (signals$cover[i] == 1|signals$cover[i] == 9) {
                                                                         coverprice = datarow$settle[1]
                                                                 } else if (signals$cover[i] > 1) {
                                                                   splitratio=udatarow$splitadjust[1]
