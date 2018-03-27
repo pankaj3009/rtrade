@@ -1770,7 +1770,7 @@ int getPriorIndex(StringVector symbols,int currentIndex){
 }
 
 //[[Rcpp::export]]
-DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVector tpamount,unsigned int maxposition,bool volatilesl=false,bool volatiletp=false,bool debug=false ){
+DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVector tpamount,unsigned int maxposition,bool volatilesl=false,bool volatiletp=false,bool scalein=false,bool debug=false ){
   if(debug){
     Rcout<<"### Running ProcessSignals ###"<<std::endl;
   }
@@ -2033,23 +2033,25 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
 
       if(itemsToInsert>0){
         int j=rit->second;
-        if(buy[j]>0){
-          lbuy[j]=buy[j];
-          side.push_back("BUY");
-        }else{
-          lshrt[j]=shrt[j];
-          side.push_back("SHORT");
-        }
-        positionNames.push_back(symbol[j]);
-        positionBarNumber.push_back(j);
-        if(debug){
-          if(lbuy[j]>0){
-            Rcout<< "Date: "<<timestamp[j]<<", Symbol added to long position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
-          }else if (lshrt[j]>0){
-            Rcout<< "Date: "<<timestamp[j]<<", Symbol added to short position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
+        if(scalein||(std::find(positionNames.begin(), positionNames.end(), symbol[j])) == positionNames.end()){
+          if(buy[j]>0){
+            lbuy[j]=buy[j];
+            side.push_back("BUY");
+          }else{
+            lshrt[j]=shrt[j];
+            side.push_back("SHORT");
           }
+          positionNames.push_back(symbol[j]);
+          positionBarNumber.push_back(j);
+          if(debug){
+            if(lbuy[j]>0){
+              Rcout<< "Date: "<<timestamp[j]<<", Symbol added to long position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
+            }else if (lshrt[j]>0){
+              Rcout<< "Date: "<<timestamp[j]<<", Symbol added to short position: "<< symbol[j]<<", PositionScore: "<<rit->first <<std::endl;
+            }
+          }
+          itemsToInsert--;
         }
-        itemsToInsert--;
       }
     }
     if(debug){
