@@ -2036,9 +2036,11 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
         if(scalein||(std::find(positionNames.begin(), positionNames.end(), symbol[j])) == positionNames.end()){
           if(buy[j]>0){
             lbuy[j]=buy[j];
+            lbuyprice[j]=buyprice[j];
             side.push_back("BUY");
           }else{
             lshrt[j]=shrt[j];
+            lshortprice[j]=shortprice[j];
             side.push_back("SHORT");
           }
           positionNames.push_back(symbol[j]);
