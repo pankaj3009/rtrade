@@ -2456,6 +2456,59 @@ futureTradeSignals <-
                 out[order(out$date), ]
         }
 
+MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALSE){
+  tradesToBeRolledOver=data.frame()
+  if(rollover){
+    for (i in 1:nrow(itrades)) {
+      if (as.Date(itrades$exittime[i],tz="Asia/Kolkata")!=itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i]) {
+        df.copy = itrades[i, ]
+        df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
+        df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
+        itrades$exittime[i]=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
+        itrades$exitreason[i]="Rollover"
+        tradesToBeRolledOver=rbind(tradesToBeRolledOver,df.copy)
+      }
+    }
+    itrades=rbind(itrades,tradesToBeRolledOver)
+  }
+
+  # Substitute contract
+  expiry = format(itrades[, c("entrycontractexpiry")], format = "%Y%m%d")
+  itrades$symbol = paste(itrades$symbol, "FUT", expiry, "", "", sep = "_")
+
+  # Substitute Price Array
+  for(i in 1:nrow(itrades)){
+    itrades$entryprice[i]=futureTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],kFNODataFolder,kNiftyDataFolder)
+    itrades$exitprice[i]=futureTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],kFNODataFolder,kNiftyDataFolder)
+  }
+  itrades
+}
+
+futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafolder,equitydatafolder){
+  # Return unadjusted futureprice for the tradedate
+  underlying=sapply(strsplit(futureSymbol[1],"_"),"[",1)
+  expiry=sapply(strsplit(futureSymbol[1],"_"),"[",3)
+  load(paste(equitydatafolder,underlying[1],".Rdata",sep=""))
+  underlyingprice=md[md$date==tradedate,]
+  adjustment=0
+  load(paste(fnodatafolder,expiry,"/",futureSymbol[1],".Rdata",sep=""))
+  futureprice=md[md$date==tradedate,]
+  if(nrow(futureprice)==1){
+    if(underlyingtradeprice==underlyingprice$aopen){
+      adjustment=futureprice$settle-underlyingprice$settle
+    }
+    if(adjustment[1]>0){
+      return (underlyingprice$open+adjustment)
+    }else{
+      return (futureprice$settle)
+    }
+  }else{
+    print(paste("Future price not found for symbol",futureSymbol, "for date",tradedate,sep=" "))
+    return (0)
+  }
+
+}
+
 sharpe <- function(returns, risk.free.rate = 0.07) {
         sqrt(252) * (mean(returns) - (risk.free.rate / 365)) / sd(returns)
 }
@@ -2555,6 +2608,21 @@ getClosestStrikeUniverse <-
                 #dfsignals[!is.na(dfsignals$strike),]
 
         }
+
+getStrikeByClosestSettlePrice <-
+  function(trades,
+           fnodatafolder,
+           equitydatafolder,
+           timeZone) {
+    trades$strike = NA_real_
+    for (i in 1:nrow(trades)) {
+        symbolsvector = unlist(strsplit(trades$symbol[i], "_"))
+        trades$strike[i] = getClosestStrike(trades$entrytime[i],symbolsvector[1],strftime(trades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone),fnodatafolder,equitydatafolder)
+    }
+    trades
+    #dfsignals[!is.na(dfsignals$strike),]
+
+  }
 
 getMaxOIStrike <-
         function(dates,
