@@ -619,7 +619,7 @@ GetCurrentPosition <-
                 #Portfolio = df containing columns[symbol,exittime,trade,size]
                 # path of market data file that holds split information, if any
                 # optional trades.till is compared to the entrytime to filter records used for position calculation. All records equal or before startdate are included for position calc
-                # optional position.on is compared to the exittime to filter records used for position calculation. All records AFTER enddate are included for position calc.
+                # optional position.on is compared to the exittime to filter records used for position calculation. All records AFTER and INCLUDING enddate are included for position calc.
                 # final position calculation subset is intersection of optional startdate/ optional enddate filters.
                 position <- 0
                 handlesplits=FALSE
@@ -640,7 +640,7 @@ GetCurrentPosition <-
                         for (row in 1:nrow(portfolio)) {
                                 if ((
                                         is.na(portfolio[row, 'exittime']) ||
-                                        as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") > position.on
+                                        as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") >= position.on
                                 )
                                 &&  portfolio[row, 'symbol'] == scrip) {
                                         splitadjustment=1
@@ -2460,7 +2460,7 @@ MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALS
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
-      if (as.Date(itrades$exittime[i],tz="Asia/Kolkata")!=itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i]) {
+      if (as.Date(itrades$exittime[i],tz="Asia/Kolkata")>=itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i]) {
         df.copy = itrades[i, ]
         df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
@@ -2489,12 +2489,14 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafo
   underlying=sapply(strsplit(futureSymbol[1],"_"),"[",1)
   expiry=sapply(strsplit(futureSymbol[1],"_"),"[",3)
   load(paste(equitydatafolder,underlying[1],".Rdata",sep=""))
+  md<-unique(md)
   underlyingprice=md[md$date==tradedate,]
   adjustment=0
   load(paste(fnodatafolder,expiry,"/",futureSymbol[1],".Rdata",sep=""))
+  md<-unique(md)
   futureprice=md[md$date==tradedate,]
   if(nrow(futureprice)==1){
-    if(underlyingtradeprice==underlyingprice$aopen){
+    if(underlyingtradeprice==underlyingprice$aopen[1]){
       adjustment=futureprice$settle-underlyingprice$settle
     }
     if(adjustment[1]>0){
