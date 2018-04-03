@@ -34,7 +34,7 @@ using namespace std;
 
 DatetimeVector UniqueDateTime(DatetimeVector label){
   vector<Datetime> out;
-  for(int i=0;i<label.size();i++){
+  for(unsigned int i=0;i<label.size();i++){
     if(std::find(out.begin(), out.end(), label[i]) == out.end()){
       out.push_back(label[i]);
     }
@@ -82,7 +82,7 @@ Rcpp::DatetimeVector toPOSIXct_impl(const Rcpp::Vector<RTYPE>& sv) {
   int n = sv.size();
   Rcpp::DatetimeVector pv(n);
 
-  for (int i=0; i<n; i++) {
+  for (unsigned int i=0; i<n; i++) {
     std::string s = boost::lexical_cast<std::string>(sv[i]);
     //Rcpp::Rcout << sv[i] << " -- " << s << std::endl;
 
@@ -129,7 +129,7 @@ DatetimeVector subsetDateVector(DatetimeVector dv,IntegerVector iv) {
 
   Function formatDate("format.Date");
   CharacterVector dvc(dv.size());
-  for (int i = 0; i < dv.size(); i++) {
+  for (unsigned int i = 0; i < dv.size(); i++) {
     dvc[i] = as<std::string>(formatDate(wrap(dv[i])));
   }
   CharacterVector dv1 = dvc[iv];
@@ -169,7 +169,7 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
   vector<double> exitpricediff;
   vector<double> pnlimpact;
   Rcout << " eentrytimestamp length:"<<eentrytimestamp.size()<<std::endl;
-  for(int i=0;i<eentrytimestamp.size();i++){
+  for(unsigned int i=0;i<eentrytimestamp.size();i++){
     for(int j=0;j<aentrytimestamp.size();j++){
       Rcout << "i: "<<i<<",eentrytimestamp[i]: "<<eentrytimestamp[i]<<",aentrytimestamp[j]: "<<aentrytimestamp[j]<<std::endl;
       if(eentrytimestamp[i]==aentrytimestamp[j] && eentryside[i]==aentryside[j] && esymbol[i]==asymbol[j]){
@@ -193,7 +193,7 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
   StringVector actexitdate(aindex.size());
   Rcout << " asize#:"<<aindex.size()<< " ,esize:"<<eindex.size()<<std::endl;
 
-  for(int i=0;i<eindex.size();i++){
+  for(unsigned int i=0;i<eindex.size();i++){
     Rcout << " index#:"<<i<< " ,i value:"<<eindex.at(i)<<std::endl;
     expentrydate[i]=eentrytimestamp[eindex.at(i)];
     expexitdate[i]=eexittimestamp[eindex.at(i)];
@@ -207,7 +207,7 @@ DataFrame ExecutionPriceDiff(DataFrame expected,DataFrame actual){
 
   NumericVector pnldiff(eindex.size());
 
-  for(int i=0;i<aindex.size();i++){
+  for(unsigned int i=0;i<aindex.size();i++){
     Rcout << " entrysize:"<<aentrysize[aindex.at(i)]<< ",entrypricediff:"<<entrypricediff.at(i)<<",exitpricediff:"<<exitpricediff.at(i)<<std::endl;
     pnldiff[i]=aentrysize[aindex.at(i)]*(entrypricediff.at(i)+exitpricediff.at(i));
   }
@@ -243,7 +243,7 @@ DataFrame ExecutionSideDiff(DataFrame expected,DataFrame actual,bool option=true
   vector<double> exitpricediff;
   vector<double> pnlimpact;
   Rcout << " eentrytimestamp length:"<<eentrytimestamp.size()<<std::endl;
-  for(int i=0;i<eentrytimestamp.size();i++){
+  for(unsigned int i=0;i<eentrytimestamp.size();i++){
     for(int j=0;j<aentrytimestamp.size();j++){
       Rcout << "i: "<<i<<",eentrytimestamp[i]: "<<eentrytimestamp[i]<<",aentrytimestamp[j]: "<<aentrytimestamp[j]<<std::endl;
       bool check=false;
@@ -270,7 +270,7 @@ DataFrame ExecutionSideDiff(DataFrame expected,DataFrame actual,bool option=true
   StringVector expentrydate(eindex.size());
   StringVector expexitdate(eindex.size());
   StringVector actexitdate(aindex.size());
-  for(int i=0;i<eindex.size();i++){
+  for(unsigned int i=0;i<eindex.size();i++){
     Rcout << " index#:"<<i<< " ,i value:"<<eindex.at(i)<<std::endl;
     expentrydate[i]=eentrytimestamp[eindex.at(i)];
     expexitdate[i]=eexittimestamp[eindex.at(i)];
@@ -283,7 +283,7 @@ DataFrame ExecutionSideDiff(DataFrame expected,DataFrame actual,bool option=true
 
   StringVector pnldiff(eindex.size());
 
-  for(int i=0;i<eindex.size();i++){
+  for(unsigned int i=0;i<eindex.size();i++){
     Rcout << " entrysize:"<<aentrysize[aindex.at(i)]<< ",entrypricediff:"<<entrypricediff.at(i)<<",exitpricediff:"<<exitpricediff.at(i)<<std::endl;
     //    if(std::strncmp(entryside.at(i),"BUY",3)){
     if (strncmp(entryside.at(i),"BUY",3)==0){
@@ -317,7 +317,7 @@ DataFrame MissingTrades(DataFrame expected,DataFrame recon){
   vector<const char*> exittime;
   vector<double> exitprice;
   vector<double> pnlimpact;
-  for(int i=0;i<esymbol.size();i++){
+  for(unsigned int i=0;i<esymbol.size();i++){
     if(!contains(eindex,i)){
       //add row
       symbol.push_back(esymbol[i]);
@@ -331,7 +331,7 @@ DataFrame MissingTrades(DataFrame expected,DataFrame recon){
   }
 
   StringVector pnldiff(symbol.size());
-  for(int i=0;i<symbol.size();i++){
+  for(unsigned int i=0;i<symbol.size();i++){
     if(strncmp(entryside.at(i),"BUY",3)==0){
       pnldiff[i]=-entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
     }
@@ -363,7 +363,7 @@ DataFrame ExtraTrades(DataFrame actual,DataFrame recon){
   vector<const char*> exittime;
   vector<double> exitprice;
   vector<double> pnlimpact;
-  for(int i=0;i<esymbol.size();i++){
+  for(unsigned int i=0;i<esymbol.size();i++){
     if(!contains(aindex,i)){
       //add row
       symbol.push_back(esymbol[i]);
@@ -377,7 +377,7 @@ DataFrame ExtraTrades(DataFrame actual,DataFrame recon){
   }
 
   StringVector pnldiff(symbol.size());
-  for(int i=0;i<symbol.size();i++){
+  for(unsigned int i=0;i<symbol.size();i++){
     if(strncmp(entryside.at(i),"BUY",3)==0){
       pnldiff[i]=entrysize.at(i)*(exitprice.at(i)-entryprice.at(i));
     }
@@ -397,14 +397,14 @@ NumericVector Ref(NumericVector input,NumericVector shift){
   int nSize=input.size();
   NumericVector newshift(nSize);
   if(shift.size()==1){
-    for(int i=0;i<nSize;i++){
+    for(unsigned int i=0;i<nSize;i++){
       newshift[i]=shift[0];
     }
   }else{
     newshift=shift;
   }
   NumericVector result(nSize);
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if((newshift[i]>=0) && ((i+newshift[i])<nSize)){
       //Rcout<<"input[i+newshift[i]]:"<<input[i+newshift[i]]<<"bar:"<<i<<std::endl;
       result[i]=input[i+newshift[i]];
@@ -424,14 +424,14 @@ CharacterVector CRef(CharacterVector input,NumericVector shift){
   int nSize=input.size();
   NumericVector newshift(nSize);
   if(shift.size()==1){
-    for(int i=0;i<nSize;i++){
+    for(unsigned int i=0;i<nSize;i++){
       newshift[i]=shift[0];
     }
   }else{
     newshift=shift;
   }
   CharacterVector result(nSize);
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if((newshift[i]>=0) && ((i+newshift[i])<nSize)){
       //Rcout<<"input[i+newshift[i]]:"<<input[i+newshift[i]]<<"bar:"<<i<<std::endl;
       result[i]=input[i+newshift[i]];
@@ -454,7 +454,7 @@ NumericVector ExRem(NumericVector vec1, NumericVector vec2){
   //bool vec2received=false;
 
   bool vec2received=true;
-  for(int i=1;i<nSize;i++){
+  for(unsigned int i=1;i<nSize;i++){
 
     if((vec1[i]>0 && vec2received)){
       result[i]=vec1[i];
@@ -480,7 +480,7 @@ NumericVector ExRem(NumericVector vec1, NumericVector vec2){
 // [[Rcpp::export]]
 NumericVector Flip(NumericVector vec1, NumericVector vec2){
   NumericVector result=ExRem(vec1,vec2);
-  for(int i=1;i<result.size();i++){
+  for(unsigned int i=1;i<result.size();i++){
     if((result[i-1]>0 && vec2[i]==0)||(result[i-1]>0 && vec2[i]>0 && vec1[i]>0)){
       result[i]=result[i-1];
     }
@@ -493,7 +493,7 @@ NumericVector Flip(NumericVector vec1, NumericVector vec2){
 NumericVector BarsSince(NumericVector vec1){
   int nSize=vec1.size();
   NumericVector result(nSize);
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if (vec1[i]==1){
       result[i]=0;
     }else{
@@ -514,14 +514,14 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
   NumericVector snakevector(max(snakeSize,referenceSize));
   NumericVector referencevector(max(snakeSize,referenceSize));
   if(snakeSize==1 && referenceSize>1){
-    for(int i=0;i<referenceSize;i++){
+    for(unsigned int i=0;i<referenceSize;i++){
       snakevector[i]=snake[0];
     }
     referencevector=reference;
   }
 
   if(snakeSize>1 && referenceSize==1){
-    for(int i=0;i<snakeSize;i++){
+    for(unsigned int i=0;i<snakeSize;i++){
       referencevector[i]=reference[0];
     }
     snakevector=snake;
@@ -538,7 +538,7 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
 
 
   bool set=false;
-  for(int i=1;i<snakeSize;i++){
+  for(unsigned int i=1;i<snakeSize;i++){
     if((set==false) && (snakevector[i]>referencevector[i])){
       result[i]=1;
       set=true;
@@ -563,7 +563,7 @@ StringVector linkedsymbols(StringVector initial,StringVector final,String symbol
   while(found){
     out.push_back(value);
     label:
-      for(int i=0;i<nSize;i++){
+      for(unsigned int i=0;i<nSize;i++){
         if(final[i]==value){//original symbol has an initial value
           if(initial[i]!=value){
             value=initial[i];
@@ -585,7 +585,7 @@ StringVector linkedsymbols(StringVector initial,StringVector final,String symbol
 NumericVector Shift(NumericVector vec1,NumericVector vec2, int ref){
   int nSize=vec1.size();
   NumericVector result(nSize);
-  for(int i=1;i<nSize;i++){
+  for(unsigned int i=1;i<nSize;i++){
     bool trigger = (vec2[i] != vec2[i - 1]) && (vec2[i] == ref);
     if((vec1[i]!=vec1[i-1])|trigger){
       result[i]=vec1[i-1];
@@ -602,7 +602,7 @@ IntegerVector whichDate2(DatetimeVector x, Datetime condition) {
   //Rcout<<x.size()<<std::endl;
   DatetimeVector check(x.size());
   vector<int> indices;
-  for(int i=0;i<x.size();i++){
+  for(unsigned int i=0;i<x.size();i++){
     //Rcout<<x[i]<<","<<condition<<std::endl;
     if(x[i]==condition){
       indices.push_back(v[i]);
@@ -616,7 +616,7 @@ IntegerVector whichString2(StringVector x, String condition) {
   IntegerVector v = Rcpp::seq(0, x.size()-1);
   DatetimeVector check(x.size());
   vector<int> indices;
-  for(int i=0;i<x.size();i++){
+  for(unsigned int i=0;i<x.size();i++){
     if(x[i]==condition){
       indices.push_back(v[i]);
     }
@@ -649,7 +649,7 @@ DataFrame CalculateEquityCurve(String symbol,DataFrame all, DataFrame trades,Num
   //contracts[i]=i>0?size[i-1]:0;
   //Build Positions and exposure
   int entrysize=0;
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if(i>0){
       contracts[i]=contracts[i-1];
       value[i]=value[i-1];
@@ -685,7 +685,7 @@ DataFrame CalculateEquityCurve(String symbol,DataFrame all, DataFrame trades,Num
     }
   }
   //mtm positions
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     profit[i]=value[i]+contracts[i]*close[i]-brokeragecost[i];//
     exposure[i]=abs(contracts[i])*close[i];
   }
@@ -719,7 +719,7 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
   NumericVector exposure(nIndices);
   NumericVector brokeragecost(nIndices);
   DatetimeVector subtimestamp(mdindices.size());
-  for(int i=0;i<mdindices.size();i++){
+  for(unsigned int i=0;i<mdindices.size();i++){
     subtimestamp[i]=timestamp[mdindices[i]];
   }
   NumericVector subclose=close[mdindices];
@@ -728,7 +728,7 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
   //contracts[i]=i>0?size[i-1]:0;
   //Build Positions and exposure
   NumericVector entrysize(nIndices);
-  for(int a=0;a<nIndices;a++){
+  for(unsigned int a=0;a<nIndices;a++){
     int i=mdindices[a];
     if(a>0){
       contracts[a]=contracts[a-1];
@@ -770,7 +770,7 @@ DataFrame CalculatePortfolioEquityCurve(String symbol,DataFrame all, DataFrame t
   }
 
   //mtm positions
-  for(int a=0;a<nIndices;a++){
+  for(unsigned int a=0;a<nIndices;a++){
     int i=mdindices[a];
     profit[a]=value[a]+contracts[a]*close[i]-brokeragecost[a];//
     exposure[a]=abs(contracts[a])*close[i];
@@ -812,7 +812,7 @@ DataFrame GenerateTrades(DataFrame all){
 
   //calculate # of trades
   int tradecount=0;
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if(buy[i]>0){
       tradecount++;
     }
@@ -840,7 +840,7 @@ DataFrame GenerateTrades(DataFrame all){
     //  Rf_PrintValue(uniquesymbol[z]);
     //  Rf_PrintValue(indices);
     //for the specified uniquesymbol, indices contains the vector of index values to "all"
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       int i=indices[a]; //i is the scalar index into "all"
       int entrybar=0;
       if((buyprocessed[i]==false) && ((buy[i]>0) && (buy[i]<=999))){
@@ -1133,7 +1133,7 @@ DataFrame GenerateTradesShort(DataFrame all){
 
   //calculate # of trades
   int tradecount=0;
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if(buy[i]>0){
       tradecount++;
     }
@@ -1159,7 +1159,7 @@ DataFrame GenerateTradesShort(DataFrame all){
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
     //Rf_PrintValue(uniquesymbol[z]);
     //Rf_PrintValue(indices);
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       int i=indices[a];
       int entrybar=0;
       if((buyprocessed[i]==false) && ((buy[i]>0) && (buy[i]<999))){
@@ -1341,7 +1341,7 @@ NumericVector ContinuingLong(StringVector symbol,NumericVector buy,NumericVector
   StringVector uniquesymbol=unique(symbol);
   for(int z=0;z<uniquesymbol.size();z++){//for each uniquesymbol
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
-    for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
+    for(unsigned int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
       if(buy[i]>0){
         inlongtrade[i]=1;
@@ -1367,7 +1367,7 @@ NumericVector ContinuingShort(StringVector symbol,NumericVector shrt,NumericVect
   StringVector uniquesymbol=unique(symbol);
   for(int z=0;z<uniquesymbol.size();z++){//for each uniquesymbol
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
-    for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
+    for(unsigned int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
       if(shrt[i]>0){
         inshorttrade[i]=1;
@@ -1414,12 +1414,12 @@ DataFrame ProcessPositionScore(DataFrame all,unsigned int maxposition,DatetimeVe
 
   map<double,int>daypositionscore;//holds the position score and index of dataframe
 
-  for(int i=0;i<uniqueDates.size();i++){ //for each date
+  for(unsigned int i=0;i<uniqueDates.size();i++){ //for each date
     daypositionscore.clear();
     IntegerVector indices=whichDate2(timestamp,uniqueDates[i]);
     //Rcout<<"Date Bar:"<<timestamp[i]<<std::endl;
     //Execute exits
-    for(int a=1;a<indices.size();a++){ // loop through  all symbols with data for the date
+    for(unsigned int a=1;a<indices.size();a++){ // loop through  all symbols with data for the date
       int j=indices[a];
       int priorj=indices[(a-1)];
       // if(symbol[j]=="HINDALCO"){
@@ -1445,7 +1445,7 @@ DataFrame ProcessPositionScore(DataFrame all,unsigned int maxposition,DatetimeVe
 
     //Execute entry
     //1. If there is capacity, Update positionscore
-    for(int a=1;a<indices.size();a++){
+    for(unsigned int a=1;a<indices.size();a++){
       //Rf_PrintValue(indices);
       int j=indices[a];
       if((buy[j]>0 && positionscore[j]>0) || (shrt[j]>0 && positionscore[j]>0)){
@@ -1493,7 +1493,7 @@ DataFrame ProcessPositionScore(DataFrame all,unsigned int maxposition,DatetimeVe
     }
 
     //update scale-ins
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       //Rf_PrintValue(indices);
       int j=indices[a];
       //Rcout<<"Scale-In Index j:"<<j<<"buy[j]:"<<buy[j]<<"symbol[j]:"<<symbol[j]<<std::endl;
@@ -1544,12 +1544,12 @@ DataFrame ProcessPositionScoreShort(DataFrame all,unsigned int maxposition,Datet
   vector<String> positionNames;
   map<double,int>daypositionscore;//holds the position score and index of dataframe
   //for(int i=0;i<uniqueDates.size();i++){
-  for(int i=0;i<uniqueDates.size();i++){
+  for(unsigned int i=0;i<uniqueDates.size();i++){
     daypositionscore.clear();
     IntegerVector indices=whichDate2(timestamp,uniqueDates[i]);
     //Rcout<<"Date Bar:"<<i<<std::endl;
     //Execute exits
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       int j=indices[a];
       //    Rcout<<"Processing Exit. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",sell:"<<sell[j]<<std::endl;
       if(cover[j]==1 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
@@ -1563,7 +1563,7 @@ DataFrame ProcessPositionScoreShort(DataFrame all,unsigned int maxposition,Datet
     //Execute entry
     //1. If there is capacity, Update positionscore
     if(positionNames.size()<maxposition){
-      for(int a=0;a<indices.size();a++){
+      for(unsigned int a=0;a<indices.size();a++){
         //      Rf_PrintValue(indices);
         int j=indices[a];
         //      Rcout<<"Processing PositionScore. Signal Bar:"<<j<<",Symbol:"<<symbol[j]<<",buy:"<<buy[j]<<std::endl;
@@ -1596,7 +1596,7 @@ DataFrame ProcessPositionScoreShort(DataFrame all,unsigned int maxposition,Datet
       }
     }
     //update scale-ins
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       int j=indices[a];
       if(shrt[j]==999 && std::find(positionNames.begin(),positionNames.end(),symbol[j])!=positionNames.end()){
         lshrt[j]=999; //we have a scale-in for an existing position
@@ -1653,7 +1653,7 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
 
   const NumericVector damount=amount;
 
-  for(int i=0;i<nSize;i++){
+  for(unsigned int i=0;i<nSize;i++){
     if(buy[i]>0){
       lbuy[i]=buy[i];
       lbuyprice[i]=buyprice[i];
@@ -1676,7 +1676,7 @@ DataFrame ApplyStop(const DataFrame all,NumericVector amount,bool volatilesl=fal
     bool stoplosstriggered =false;
     int barstart=0;
     IntegerVector indices=whichString2(symbol,uniquesymbol[z]);
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       int i=indices[a];
       stoplosstriggered=false;
       bool newtrade=(lbuy[i-1]>0)|(lshrt[i-1]>0);
@@ -1825,11 +1825,11 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
   vector<double> t_sllevel;
   vector<double> t_tplevel;
 
-  for(int i=1;i<uniquedate.size();i++){//for each date
+  for(unsigned int i=1;i<uniquedate.size();i++){//for each date
     IntegerVector indices=whichDate2(timestamp,uniquedate[i]); //indices contains index of uniquedate[i] in "all"
     //Execute exits
     // Rf_PrintValue(indices);
-    for(int a=0;a<indices.size();a++){ // loop through  all symbols for the date
+    for(unsigned int a=0;a<indices.size();a++){ // loop through  all symbols for the date
       int j=indices[a]; //index in 'all'
       int priorj=getPriorIndex(symbol,j);
       //   Rcout<<"j: "<<j<<", priorj: "<<priorj<<std::endl;
@@ -2054,7 +2054,7 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
     //## Execute entry for each uniquedate[i]
 
     //1. If there is capacity, Update positionscore
-    for(int a=0;a<indices.size();a++){
+    for(unsigned int a=0;a<indices.size();a++){
       //Rf_PrintValue(indices);
       int j=indices[a];
       if((buy[j]>0 && positionscore[j]>0) || (shrt[j]>0 && positionscore[j]>0)){
@@ -2200,7 +2200,7 @@ DataFrame ApplySLTP(const DataFrame all,NumericVector slamount,NumericVector tpa
     if(debug){
       Rcout<<"Updating buy and short bars for "<<uniquesymbol[z] <<std::endl;
     }
-    for(int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
+    for(unsigned int a=0;a<indices.size();a++){//iterate through rows. We need to ensure that data is sorted in ascending order
       int i=indices[a];
       if(buy[i]>0){
         lbuy[i]=buy[i];
@@ -2447,7 +2447,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
   NumericVector movesettle(nSize);
 
 
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     result[i] = 0;
     updownbarclean[i] = 0;
     updownbar[i] = 0;
@@ -2477,7 +2477,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
     }
   }
 
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     if (outsidebar[i] == 1) {
       updownbar[i] = -updownbar[i - 1];
     }
@@ -2486,7 +2486,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
     }
   }
 
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     swinglevel[i] = 0;
     swinghigh[i], swinghighhigh[i], swinghighhigh_1[i] = 0;
     swinglow[i], swinglowlow[i], swinglowlow_1[i] = 0;
@@ -2592,7 +2592,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
 
 
   // update trend
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     result[i] = 0;
 
     bool up1 = (updownbar[i] == 1) && swinghigh[i] > swinghighhigh_1[i] && swinglow[i] > swinglowlow_1[i];
@@ -2627,7 +2627,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
   // update global higherhigh and lowerlow count
   higherhigh[0]=0;
   lowerlow[0]=0;
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     if(result[i]==result[i-1]){
       //continuing trend
       if(updownbarclean[i]==1){
@@ -2660,7 +2660,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
   double hhsincetrend=0;
   double llsincetrend=100000000;
   int startoftrend=0;
-  for (int i = 1; i < nSize; i++) {
+  for (unsigned int i = 1; i < nSize; i++) {
     if(result[i]!=result[i-1]){
       startoftrend=i;
       hhsincetrend=high[i];
@@ -2758,7 +2758,7 @@ DataFrame TDSupplyPoints(DatetimeVector dates,NumericVector price, int level=1){
   vector<int>index;
   vector<double>tdprices;
   if(nSize>level){
-    for(int i=level;i<nSize-level;i++){
+    for(unsigned int i=level;i<nSize-level;i++){
       int tdsupplypoint=0;
       //Rcout << "Making Call: " <<std::endl;
       tdsupplypoint=highestSorrundingNBars(price,i,level);
@@ -2771,7 +2771,7 @@ DataFrame TDSupplyPoints(DatetimeVector dates,NumericVector price, int level=1){
     }
   }
   DatetimeVector timestamp(index.size());
-  for(int i=0;i<index.size();i++){
+  for(unsigned int i=0;i<index.size();i++){
     timestamp[i]=dates[index.at(i)];
   }
   return DataFrame::create(_("date")=timestamp,_("tdsupplyprices")=wrap(tdprices),_("index")=wrap(index));
@@ -2786,7 +2786,7 @@ DataFrame TDDemandPoints(DatetimeVector dates,NumericVector price, int level=1){
   vector<int>index;
   vector<double>tdprices;
   if(nSize>level){
-    for(int i=level;i<nSize-level;i++){
+    for(unsigned int i=level;i<nSize-level;i++){
       bool tddemandpoint=false;
       // Rcout << "Making Call: " <<std::endl;
       tddemandpoint=lowestSorrundingNBars(price,i,level);
@@ -2799,7 +2799,7 @@ DataFrame TDDemandPoints(DatetimeVector dates,NumericVector price, int level=1){
     }
   }
   DatetimeVector timestamp(index.size());
-  for(int i=0;i<index.size();i++){
+  for(unsigned int i=0;i<index.size();i++){
     timestamp[i]=dates[index.at(i)];
   }
 
@@ -2817,7 +2817,7 @@ DataFrame TDDemandLine(DatetimeVector dates,NumericVector price,NumericVector or
     index.push_back(nSize-1);
     tdprices.push_back(price[nSize-1]);
     if(nSize>=2){
-      for(int i=nSize-2;i>=0;i--){
+      for(unsigned int i=nSize-2;i>=0;i--){
         if(price[i]<tdprices.back()){
           index.push_back(i);
           tdprices.push_back(price[i]);
@@ -2828,7 +2828,7 @@ DataFrame TDDemandLine(DatetimeVector dates,NumericVector price,NumericVector or
   }
   DatetimeVector timestamp(index.size());
   NumericVector shortlistedindices(index.size());
-  for(int i=0;i<index.size();i++){
+  for(unsigned int i=0;i<index.size();i++){
     timestamp[i]=dates[index.at(i)];
     shortlistedindices[i]=origindices[index.at(i)];
   }
@@ -2845,7 +2845,7 @@ DataFrame TDSupplyLine(DatetimeVector dates,NumericVector price,NumericVector or
     index.push_back(nSize-1);
     tdprices.push_back(price[nSize-1]);
     if(nSize>=2){
-      for(int i=nSize-2;i>=0;i--){
+      for(unsigned int i=nSize-2;i>=0;i--){
         if(price[i]>tdprices.back()){
           index.push_back(i);
           tdprices.push_back(price[i]);
@@ -2856,7 +2856,7 @@ DataFrame TDSupplyLine(DatetimeVector dates,NumericVector price,NumericVector or
   }
   DatetimeVector timestamp(index.size());
   NumericVector shortlistedindices(index.size());
-  for(int i=0;i<index.size();i++){
+  for(unsigned int i=0;i<index.size();i++){
     timestamp[i]=dates[index.at(i)];
     shortlistedindices[i]=origindices[index.at(i)];
 
@@ -2867,7 +2867,7 @@ DataFrame TDSupplyLine(DatetimeVector dates,NumericVector price,NumericVector or
 NumericVector CustomSubset(NumericVector input, int start, int end){
   NumericVector out(end-start);
   int j=0;
-  for(int i=start;i<end;i++){
+  for(unsigned int i=start;i<end;i++){
     out[j]=input[i];
     j++;
   }
@@ -2884,7 +2884,7 @@ DataFrame TDSupplyPoints1(DatetimeVector dates,NumericVector price, int level=1)
     vector<double>tdprices;
     int nSize=subprice.size();
     if(nSize>2*level+1){
-      for(int i=level;i<nSize-level;i++){
+      for(unsigned int i=level;i<nSize-level;i++){
         int tdsupplypoint=0;
         //Rcout << "Making Call: " <<std::endl;
         tdsupplypoint=highestSorrundingNBars(subprice,i,level);
@@ -2912,7 +2912,7 @@ NumericVector getBuyIndices(DataFrame all, int sellIndex, int lookback=1){
   //If lookback is 1, it considers the prior row
   NumericVector buy=all["buy"];
   vector<int>index;
-  for(int i=(sellIndex-1-lookback);i>=0;i--){
+  for(unsigned int i=(sellIndex-1-lookback);i>=0;i--){
     //                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
     if(buy[i]>=1 && buy[i]<999){
       index.push_back(i+1);
@@ -2929,7 +2929,7 @@ NumericVector getBuyIndices(DataFrame all, int sellIndex, int lookback=1){
 NumericVector getShortIndices(DataFrame all, int coverIndex, int lookback=1){
   NumericVector shrt=all["short"];
   vector<int>index;
-  for(int i=(coverIndex-1-lookback);i>=0;i--){
+  for(unsigned int i=(coverIndex-1-lookback);i>=0;i--){
     //                Rcout << "i: "<<i<<","<<buy[i] <<std::endl;
     if(shrt[i]>=1 && shrt[i]<999){
       index.push_back(i+1);
