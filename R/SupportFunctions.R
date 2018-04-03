@@ -5,7 +5,6 @@ library(quantmod)
 library(zoo)
 
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
-homefolder="/home/psharma"
 
 createIndexConstituents <-
         function(redisdb, pattern, threshold = "2000-01-01") {
