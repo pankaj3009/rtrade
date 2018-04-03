@@ -5,6 +5,7 @@ library(quantmod)
 library(zoo)
 
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
+homefolder="/home/psharma"
 
 createIndexConstituents <-
         function(redisdb, pattern, threshold = "2000-01-01") {
@@ -2822,17 +2823,18 @@ changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
   }
 }
 
-loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_,sourceDuration=NULL,destDuration=NULL){
+loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_,sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
+                     equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/"){
   symbolsvector = unlist(strsplit(symbol, "_"))
   filefound=FALSE
   if(length(symbolsvector)==1){
-    fileName=paste("/home/psharma/Dropbox/rfiles/daily/",symbol,".Rdata",sep="")
+    fileName=paste(equitydatafolder,symbol,".Rdata",sep="")
     if(file.exists(fileName)){
       load(fileName)
       filefound=TRUE
     }
   }else{
-    fileName=paste("/home/psharma/Dropbox/rfiles/dailyfno/",symbolsvector[3],"/",symbol,".Rdata",sep ="")
+    fileName=paste(fnodatafolder,symbolsvector[3],"/",symbol,".Rdata",sep ="")
     if(file.exists(fileName)){
       load(fileName)
       filefound=TRUE
