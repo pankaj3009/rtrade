@@ -1,8 +1,8 @@
-candleStickPattern<-function(s,trendBeginning=TRUE,conservative=TRUE){
+candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK",realtime=FALSE){
   if(is.data.frame(s)){
     md=s
   }else{
-    md<-loadSymbol(s,TRUE,"IND")
+    md<-loadSymbol(s,realtime,type)
   }
   if(length(names(md))==7){
     md$aopen=md$open
