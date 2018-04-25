@@ -688,7 +688,7 @@ CalculateDailyPNL <-
                         brokerage = rep(brokerage, nrow(portfolio))
                 }
                 if (nrow(portfolio) > 0) {
-                        #for (l in 1:5){
+                        #for (l in 1:2){
                         for (l in 1:nrow(portfolio)) {
                                 #print(paste("portfolio line:",l,sep=""))
                                 name = portfolio[l, 'symbol']
@@ -758,7 +758,11 @@ CalculateDailyPNL <-
                                                 )
                                                 if (length(dtindex) > 0) {
                                                         # only proceed if bizdays has the specified md$date[index] value
-                                                        newprice = md$settle[index]
+                                                        if(handlesplits){
+                                                         newprice=md$asettle[index]
+                                                        }else{
+                                                          newprice = md$settle[index]
+                                                        }
                                                         newsplitadjustment=1
                                                         if(handlesplits){
                                                           if(index==entryindex){
