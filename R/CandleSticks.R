@@ -19,7 +19,6 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   #atr<-ATR(md[,c("ahigh","alow","asettle")],n=23)
   #md$atr<-atr[,"atr"]
   # md$sma<-SMA(md$asettle,7)
-  md$pattern=""
   #md$lowrange=(md$ahigh-md$alow)<md$atr
   md$body=abs(md$asettle-md$aopen)
   md$lowershadow=abs(pmin(md$asettle,md$aopen)-md$alow)
