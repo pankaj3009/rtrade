@@ -352,6 +352,91 @@ readAllSymbols <-
     return(symbols)
   }
 
+# createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
+#   #generates trades dataframe using information in redis
+#   redisConnect()
+#   redisSelect(redisdb)
+#   rediskeys=redisKeys()
+#   actualtrades <- data.frame(symbol=character(),trade=character(),entrysize=as.numeric(),entrytime=as.POSIXct(character()),
+#                              entryprice=numeric(),exittime=as.POSIXct(character()),exitprice=as.numeric(),
+#                              percentprofit=as.numeric(),bars=as.numeric(),brokerage=as.numeric(),
+#                              netpercentprofit=as.numeric(),netprofit=as.numeric(),key=character(),stringsAsFactors = FALSE
+#   )
+#   periodstartdate=as.Date(start,tz="Asia/Kolkata")
+#   periodenddate=as.Date(end,tz="Asia/Kolkata")
+#
+#   rediskeysShortList<-as.character()
+#   for(i in 1:length(rediskeys)){
+#     l=length(grep(pattern,rediskeys[i]))
+#     if(l>0){
+#       if(grepl("opentrades",rediskeys[i])||grepl("closedtrades",rediskeys[i])){
+#         rediskeysShortList<-rbind(rediskeysShortList,rediskeys[i])
+#       }
+#     }
+#   }
+#   rediskeysShortList<-sort(rediskeysShortList)
+#   # loop through keys and generate pnl
+#   for(i in 1:length(rediskeysShortList)){
+#     data<-unlist(redisHGetAll(rediskeysShortList[i]))
+#     exitprice=0
+#     entrydate=data["entrytime"]
+#     exitdate=data["exittime"]
+#     entrydate=as.Date(entrydate,tz="Asia/Kolkata")
+#     exitdate=ifelse(is.na(exitdate),Sys.Date(),as.Date(exitdate,tz="Asia/Kolkata"))
+#     if(exitdate>=periodstartdate && entrydate<=periodenddate){
+#       if(grepl("opentrades",rediskeysShortList[i])){
+#         symbol=data["entrysymbol"]
+#         symbolsvector = unlist(strsplit(symbol, "_"))
+#         symbol<-symbolsvector[1]
+#         if (!deriv) {
+#           load(paste(mdpath, symbolsvector[1], ".Rdata", sep = ""))
+#         } else{
+#           load(paste(
+#             fnodatafolder,
+#             symbolsvector[3],
+#             "/",
+#             symbol,
+#             ".Rdata",
+#             sep = ""
+#           ))
+#         }
+#         index=which(as.Date(md$date,tz="Asia/Kolkata")==exitdate)
+#         if(length(index)==0){
+#           index=nrow(md)
+#         }
+#         exitprice=md$settle[index]
+#       }else{
+#         exitprice=as.numeric(data["exitprice"])
+#       }
+#       percentprofit=(exitprice-as.numeric(data["entryprice"]))/as.numeric(data["entryprice"])
+#       percentprofit=ifelse(data["entryside"]=="BUY",percentprofit,-percentprofit)
+#       brokerage=as.numeric(data["entrybrokerage"])+as.numeric(data["exitbrokerage"])
+#       netpercentprofit=percentprofit-(brokerage/(as.numeric(data["entryprice"])*as.numeric(data["entrysize"])))
+#       netprofit=(exitprice-as.numeric(data["entryprice"]))*as.numeric(data["entrysize"])-brokerage
+#       netprofit=ifelse(data["entryside"]=="BUY",netprofit,-netprofit)
+#       if(!deriv){
+#         df=data.frame(symbol=symbol,trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
+#                       entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
+#                       percentprofit=percentprofit,bars=0,brokerage=brokerage,
+#                       netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
+#         )
+#       }else{
+#         df=data.frame(symbol=data["parentsymbol"],trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
+#                       entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
+#                       percentprofit=percentprofit,bars=0,brokerage=brokerage,
+#                       netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
+#         )
+#       }
+#
+#       rownames(df)<-NULL
+#       actualtrades=rbind(actualtrades,df)
+#
+#     }
+#   }
+#   #return(actualtrades[with(trades,order(entrytime)),])
+#   return(actualtrades)
+# }
+
 createPNLSummary <-
   function(redisdb,
            pattern,
@@ -494,6 +579,9 @@ createPNLSummary <-
 
 getExpiryDate <- function(mydate) {
   #mydate = Date object
+  if(is.na(mydate)){
+    return(mydate)
+  }
   eom = RQuantLib::getEndOfMonth(calendar = "India", as.Date(mydate, tz = "Asia/Kolkata"))
   weekday = as.POSIXlt(eom, tz = "Asia/Kolkata")$wday + 1
   adjust = weekday - 5
@@ -2676,8 +2764,8 @@ chart <-
   function(symbol,
            start=NULL,
            end=NULL,
-           realtime = realtime,
-           type = type,
+           realtime = FALSE,
+           type = "STK",
            fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
            equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/",...) {
     md<-loadSymbol(symbol,realtime,type,...)
@@ -2749,8 +2837,15 @@ changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
         data<-convertToXTS(md,names)
         fridays = as.POSIXlt(time(data))$wday == 5
         indx <- c(0,which(fridays),nrow(data))
+      }else if(destDuration=="MONTHLY"){
+        names<-names(md)
+        names<-names[!names %in% c("symbol","date")]
+        data<-convertToXTS(md,names)
+        months = as.POSIXlt(time(data))$mon
+        indx <- c(0,which(diff(months)!=0),nrow(data))
       }
     }
+
     if(length(names)>0)
       for(i in seq_along(names)){
         if(grepl("aopen",names[i])){
@@ -2906,92 +3001,3 @@ loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_,sourceDuration=NUL
   md<-changeTimeFrame(md,sourceDuration,destDuration)
   md
 }
-
-
-
-createTradeSummaryFromRedis<-function(redisdb,pattern,start,end,mdpath,deriv=FALSE){
-  #generates trades dataframe using information in redis
-  redisConnect()
-  redisSelect(redisdb)
-  rediskeys=redisKeys()
-  actualtrades <- data.frame(symbol=character(),trade=character(),entrysize=as.numeric(),entrytime=as.POSIXct(character()),
-                             entryprice=numeric(),exittime=as.POSIXct(character()),exitprice=as.numeric(),
-                             percentprofit=as.numeric(),bars=as.numeric(),brokerage=as.numeric(),
-                             netpercentprofit=as.numeric(),netprofit=as.numeric(),key=character(),stringsAsFactors = FALSE
-  )
-  periodstartdate=as.Date(start,tz="Asia/Kolkata")
-  periodenddate=as.Date(end,tz="Asia/Kolkata")
-
-  rediskeysShortList<-as.character()
-  for(i in 1:length(rediskeys)){
-    l=length(grep(pattern,rediskeys[i]))
-    if(l>0){
-      if(grepl("opentrades",rediskeys[i])||grepl("closedtrades",rediskeys[i])){
-        rediskeysShortList<-rbind(rediskeysShortList,rediskeys[i])
-      }
-    }
-  }
-  rediskeysShortList<-sort(rediskeysShortList)
-  # loop through keys and generate pnl
-  for(i in 1:length(rediskeysShortList)){
-    data<-unlist(redisHGetAll(rediskeysShortList[i]))
-    exitprice=0
-    entrydate=data["entrytime"]
-    exitdate=data["exittime"]
-    entrydate=as.Date(entrydate,tz="Asia/Kolkata")
-    exitdate=ifelse(is.na(exitdate),Sys.Date(),as.Date(exitdate,tz="Asia/Kolkata"))
-    if(exitdate>=periodstartdate && entrydate<=periodenddate){
-      if(grepl("opentrades",rediskeysShortList[i])){
-        symbol=data["entrysymbol"]
-        symbolsvector = unlist(strsplit(symbol, "_"))
-        symbol<-symbolsvector[1]
-        if (!deriv) {
-          load(paste(mdpath, symbolsvector[1], ".Rdata", sep = ""))
-        } else{
-          load(paste(
-            fnodatafolder,
-            symbolsvector[3],
-            "/",
-            symbol,
-            ".Rdata",
-            sep = ""
-          ))
-        }
-        index=which(as.Date(md$date,tz="Asia/Kolkata")==exitdate)
-        if(length(index)==0){
-          index=nrow(md)
-        }
-        exitprice=md$settle[index]
-      }else{
-        exitprice=as.numeric(data["exitprice"])
-      }
-      percentprofit=(exitprice-as.numeric(data["entryprice"]))/as.numeric(data["entryprice"])
-      percentprofit=ifelse(data["entryside"]=="BUY",percentprofit,-percentprofit)
-      brokerage=as.numeric(data["entrybrokerage"])+as.numeric(data["exitbrokerage"])
-      netpercentprofit=percentprofit-(brokerage/(as.numeric(data["entryprice"])*as.numeric(data["entrysize"])))
-      netprofit=(exitprice-as.numeric(data["entryprice"]))*as.numeric(data["entrysize"])-brokerage
-      netprofit=ifelse(data["entryside"]=="BUY",netprofit,-netprofit)
-      if(!deriv){
-        df=data.frame(symbol=symbol,trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
-                      entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
-                      percentprofit=percentprofit,bars=0,brokerage=brokerage,
-                      netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
-        )
-      }else{
-        df=data.frame(symbol=data["parentsymbol"],trade=data["entryside"],entrysize=as.numeric(data["entrysize"]),entrytime=data["entrytime"],
-                      entryprice=as.numeric(data["entryprice"]),exittime=data["exittime"],exitprice=exitprice,
-                      percentprofit=percentprofit,bars=0,brokerage=brokerage,
-                      netpercentprofit=netpercentprofit,netprofit=netprofit,key=rediskeysShortList[i],stringsAsFactors = FALSE
-        )
-      }
-
-      rownames(df)<-NULL
-      actualtrades=rbind(actualtrades,df)
-
-    }
-  }
-  #return(actualtrades[with(trades,order(entrytime)),])
-  return(actualtrades)
-}
-
-
