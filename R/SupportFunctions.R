@@ -2772,6 +2772,14 @@ chart <-
     if (symbol == "NSENIFTY") {
       md$aclose = md$asettle
     }
+    if(nrow(md)==0){
+      symbols=sapply(strsplit(list.files(equitydatafolder),"\\."),'[',1)
+      shortlist=symbols[grep(substr(symbol,1,5),symbols)]
+      if(length(shortlist)>0){
+        print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
+      }
+      return()
+    }
     symbolname=NULL
     if(length(grep("aopen",names(md)))>0){
       symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"))
@@ -2815,13 +2823,15 @@ chart <-
 
 QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL,...){
   out<-chart(symbol,startdate,enddate,realtime,type,...)
-  out.md<-convertToDF(out)
-  trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
-  swinglevel=xts(trend.md$swinglevel,out.md$date)
-  plot(addTA(swinglevel,on=1, type='s',lty=3))
-  trend=xts(trend.md$trend,out.md$date)
-  plot(addTA(trend,type='s'))
-  md<-out.md
+  if(!is.null(out)){
+    out.md<-convertToDF(out)
+    trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
+    swinglevel=xts(trend.md$swinglevel,out.md$date)
+    plot(addTA(swinglevel,on=1, type='s',lty=3))
+    trend=xts(trend.md$trend,out.md$date)
+    plot(addTA(trend,type='s'))
+    md<-out.md
+  }
 }
 
 changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
