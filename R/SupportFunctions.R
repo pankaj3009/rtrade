@@ -2772,7 +2772,7 @@ chart <-
     if (symbol == "NSENIFTY") {
       md$aclose = md$asettle
     }
-    if(nrow(md)==0){
+    if(is.null(nrow(md))){
       symbols=sapply(strsplit(list.files(equitydatafolder),"\\."),'[',1)
       shortlist=symbols[grep(substr(symbol,1,5),symbols)]
       if(length(shortlist)>0){
