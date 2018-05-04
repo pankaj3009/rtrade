@@ -597,13 +597,14 @@ NumericVector Shift(NumericVector vec1,NumericVector vec2, int ref){
 }
 
 // [[Rcpp::export]]
-IntegerVector whichDate2(DatetimeVector x, DatetimeVector condition) {
+IntegerVector whichDate2(DatetimeVector x, Datetime condition) {
+  //Rcout<<"Size of x: "<<x.size()<<",Condition: "<<condition<<std::endl;
   IntegerVector v = Rcpp::seq(0, x.size()-1);
   DatetimeVector check(x.size());
   vector<int> indices;
   for(int i=0;i<x.size();i++){
     //Rcout<<x[i]<<","<<condition<<std::endl;
-    if(x[i]==condition[0]){
+    if((Datetime)x[i]==condition){
       indices.push_back(v[i]);
     }
   }
@@ -1762,3 +1763,89 @@ NumericVector getShortIndices(DataFrame all, int coverIndex, int lookback=1){
   return wrap(index);
 
 }
+
+// [[Rcpp::export]]
+DatetimeVector na_DatetimeVector(int n){
+  DatetimeVector m(n) ;
+  std::fill( m.begin(), m.end(), NumericVector::get_na() ) ;
+  return m ;
+}
+
+//[[Rcpp::export]]
+DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, DatetimeVector patterndate, NumericVector confirmationprice,NumericVector stoploss){
+  int pSize=pattern.size();
+  DatetimeVector outdate=na_DatetimeVector(pSize);
+  NumericVector outtradeprice=NumericVector(pSize,NA_REAL);
+  DatetimeVector date=all["date"];
+  int nSize=date.size();
+  NumericVector open=all["aopen"];
+  NumericVector high=all["ahigh"];
+  NumericVector low=all["alow"];
+  NumericVector close=all["asettle"];
+  //Rcout<<"pSize:"<<pSize<<std::endl;
+  for(int i=0;i<pSize;i++){
+    Datetime pdate=patterndate[i];
+    IntegerVector entryindex= whichDate2(date,patterndate[i]);
+    int mdindex=entryindex[0];
+    double price=confirmationprice[i];
+    double sl=stoploss[i];
+    std::string bullish="BULLISH";
+    std::string patternName=Rcpp::as<std::string>(pattern[i]);
+    int pos=patternName.find(bullish);
+    //Rcout<<"i: "<<i<<",pos: "<<pos<<",mdindex: "<<mdindex<<std::endl;
+
+    //         //if(std::find(pattern[i].begin(), pattern[i].end(), bullish1.get_cstring()) == pattern[i].end()){
+    if(pos>=0){
+      //Rcout<<"BULLISH, i: "<<i<<",pos: "<<pos<<",mdindex: "<<mdindex<<",mdsize: "<<nSize<<std::endl;
+
+      //BULLISH PATTERN
+      for(int j=mdindex+1;j<nSize;j++){
+        //Rcout<<"open[j]: "<<open[j]<<",close[j]: "<<close[j]<<",high[j]: "<<high[j]<<",confprice: "<<price<<",sl: "<<sl<<std::endl;
+        if(close[j]>open[j] & high[j]>price & low[j]>sl){
+          outdate[i]=date[j];
+          outtradeprice[i]=close[j];
+          // Rcout<<"BULLISH,i: "<<i<<",j: "<<j<<",outtradeprice[i]: "<<outtradeprice[i]<<std::endl;
+          break;
+        }
+      }
+    }else{
+      //Rcout<<"BEARISH, i: "<<i<<",pos: "<<pos<<std::endl;
+      //BEARISH PATTERN
+      for(int j=mdindex+1;j<nSize;j++){
+        if(close[j]<open[j] & low[j]<price & high[j]<sl){
+          outdate[i]=date[j];
+          outtradeprice[i]=close[j];
+          break;
+        }
+      }
+
+    }
+  }
+  //confirmation dates should be ascending.
+  if(pSize>0){
+    Rcpp::Datetime latestConfirmationTime=NA_REAL;
+    for(int i=pSize-1;i>=0;i--){
+      if(!NumericVector::is_na(outdate[i])){
+        latestConfirmationTime=outdate[i];
+        break;
+      }
+    }
+    //Rcout<<latestConfirmationTime<<std::endl;
+    if(!NumericVector::is_na(latestConfirmationTime)){
+      for(int i=pSize-1;i>=0;i--){
+        Rcpp::Datetime currentDate=outdate[i];
+        if(!NumericVector::is_na(currentDate)){
+          if((Rcpp::Datetime)currentDate>(Rcpp::Datetime)latestConfirmationTime){
+            outdate[i]=NA_REAL;
+            outtradeprice[i]=NA_REAL;
+          }else{
+            latestConfirmationTime=outdate[i];
+          }
+        }
+      }
+    }
+  }
+  return DataFrame::create(_["date"]=patterndate,_["pattern"]=pattern,_["confirmationdate"]=(outdate),_["confirmationprice"]=confirmationprice,_["tradeprice"]=(outtradeprice),
+                                               _["stoploss"]=stoploss,_["stringsAsFactors"] = false);
+}
+
