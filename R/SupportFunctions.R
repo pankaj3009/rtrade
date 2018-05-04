@@ -2821,7 +2821,9 @@ chart <-
     symbolname[paste(start, "::", end, sep = "")]
   }
 
-QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type=NULL,...){
+QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type="STK",...){
+  #symbol=deparse(substitute(symbol))
+  #type=deparse(substitute(type))
   out<-chart(symbol,startdate,enddate,realtime,type,...)
   if(!is.null(out)){
     out.md<-convertToDF(out)
