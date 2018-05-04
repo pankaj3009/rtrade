@@ -345,15 +345,13 @@ processSplits <- function(md, splits, symbollist,origmd,end) {
   md
 }
 
-convertToXTS<-function(md,columns=c("aopen","ahigh","alow","aclose","avolume"),dateIndex=FALSE,tz="Asia/Kolkata"){
+convertToXTS<-function(md,columns=NULL,dateIndex=1,tz="Asia/Kolkata"){
   if(!is.null(md) && nrow(md)>0){
     #symbol=md[1,c("symbol")]
-    if(dateIndex){
-      out<-as.xts(md[,columns],as.Date(md[,1],tz=tz))
-    }else{
-      out<-xts(md[,columns],md[,1])
-
+    if(is.null(columns)){
+      columns=names(md)[!names(md) %in% c("date")]
     }
+      out<-xts(md[,columns],md[,dateIndex])
     #assign(paste(symbol,sep=""),out)
   }
   #return(paste(symbol,sep=""))
