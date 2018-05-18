@@ -6,6 +6,15 @@ library(zoo)
 
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
 
+reverseEngRSI<-function(C,targetRSI,n){
+  expPer=2*n-1
+  auc=TTR::EMA(ifelse(C>Ref(C,-1),C-Ref(C,-1),0),expPer)
+  adc=TTR::EMA(ifelse(Ref(C,-1)>C,Ref(C,-1)-C,0),expPer)
+  x=(n-1)*(adc*targetRSI/(100-targetRSI)-auc)
+  RevEngRSI=ifelse(x>=0,C+x,C+x*(100-targetRSI)/targetRSI)
+  RevEngRSI
+}
+
 createIndexConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
     redisConnect()
@@ -2924,7 +2933,7 @@ changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
   }
 }
 
-loadSymbol<-function(symbol,realtime=FALSE,type=NA_character_,sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
+loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
                      equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/"){
   symbolsvector = unlist(strsplit(symbol, "_"))
   filefound=FALSE
