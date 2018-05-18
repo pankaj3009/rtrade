@@ -1772,7 +1772,8 @@ DatetimeVector na_DatetimeVector(int n){
 }
 
 //[[Rcpp::export]]
-DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, DatetimeVector patterndate, NumericVector confirmationprice,NumericVector stoploss){
+DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, DatetimeVector patterndate, NumericVector confirmationprice,NumericVector stoploss, int maxWait=1){
+  //maxWait=number of bars for which confirmation is checked. if no confirmation within maxWait bars, confirmation is deemed to have failed
   int pSize=pattern.size();
   DatetimeVector outdate=na_DatetimeVector(pSize);
   NumericVector outtradeprice=NumericVector(pSize,NA_REAL);
@@ -1801,7 +1802,9 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
       //BULLISH PATTERN
       for(int j=mdindex+1;j<nSize;j++){
         //Rcout<<"open[j]: "<<open[j]<<",close[j]: "<<close[j]<<",high[j]: "<<high[j]<<",confprice: "<<price<<",sl: "<<sl<<std::endl;
-        if(close[j]>open[j] & high[j]>price & low[j]>sl){
+        if(low[j]<sl | (j-mdindex)>maxWait){
+          break;
+        }else if(close[j]>open[j] & high[j]>price & low[j]>sl){ //low[j]
           outdate[i]=date[j];
           outtradeprice[i]=close[j];
           // Rcout<<"BULLISH,i: "<<i<<",j: "<<j<<",outtradeprice[i]: "<<outtradeprice[i]<<std::endl;
@@ -1812,24 +1815,27 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
       //Rcout<<"BEARISH, i: "<<i<<",pos: "<<pos<<std::endl;
       //BEARISH PATTERN
       for(int j=mdindex+1;j<nSize;j++){
-        if(close[j]<open[j] & low[j]<price & high[j]<sl){
+        if(high[j]>sl|(j-mdindex)>maxWait){
+          break;
+        }else if(close[j]<open[j] & low[j]<price & high[j]<sl){//high[j]
           outdate[i]=date[j];
           outtradeprice[i]=close[j];
           break;
         }
       }
-
     }
   }
   //confirmation dates should be ascending.
   if(pSize>0){
     Rcpp::Datetime latestConfirmationTime=NA_REAL;
     for(int i=pSize-1;i>=0;i--){
-      if(!NumericVector::is_na(outdate[i])){
+      if(NumericVector::is_na(latestConfirmationTime)){
         latestConfirmationTime=outdate[i];
-        break;
+      }else if(!NumericVector::is_na(outdate[i]) & (Datetime)outdate[i]>latestConfirmationTime){
+        latestConfirmationTime=outdate[i];
       }
     }
+
     //Rcout<<latestConfirmationTime<<std::endl;
     if(!NumericVector::is_na(latestConfirmationTime)){
       for(int i=pSize-1;i>=0;i--){
