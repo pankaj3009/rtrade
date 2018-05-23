@@ -702,6 +702,36 @@ getPriceHistoryFromRedis <-
     return(out)
   }
 
+getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes){
+  exchangesymbol=strsplit(symbol,"_")[[1]][1]
+  type=strsplit(symbol,"_")[[1]][2]
+  if(type=="STK" |type=="IND"){
+    md=kGetOHLCV(paste("symbol",tolower(exchangesymbol),sep="="),df=data.frame(),start=starttime,end=endtime,name="india.nse.equity.s1.1sec", aValue = minutes, aUnit = "Minutes")
+  }
+  md$close=dplyr::lead(md$close)
+  md<-md[complete.cases(md),]
+  newstarttime=starttime
+  if(nrow(md)>0){
+    newstarttime=md$date[nrow(md)]
+    newstarttime=newstarttime+minutes*60
+    newstarttime=strftime(newstarttime,format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")
+  }
+  if(newstarttime<endtime){
+    mdtodayseries=getPriceHistoryFromRedis(redisdb,symbol,duration,type,newstarttime,endtime)
+    mdtodayseries=convertToXTS(mdtodayseries)
+    if(!is.null(mdtodayseries)){
+      mdtoday=to.period(mdtodayseries,period="minutes",k=minutes,indexAt = "startof")
+      mdtoday=convertToDF(mdtoday)
+      rownames(mdtoday)=c()
+      names(mdtoday)=c("open","high","low","close","date")
+      mdtoday$symbol=exchangesymbol
+      mdtoday$volume=0
+      md=rbind(md,mdtoday)
+    }
+  }
+  md
+
+}
 
 GetCurrentPosition <-
   function(scrip,
