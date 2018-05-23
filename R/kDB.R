@@ -261,6 +261,7 @@ kGetOHLCV <-
     md
   }
 
+
 processSplits <- function(md, splits, symbollist,origmd,end) {
   if (nrow(md) > 0) {
     if (is.character(splits$date)) {
@@ -346,6 +347,7 @@ processSplits <- function(md, splits, symbollist,origmd,end) {
 }
 
 convertToXTS<-function(md,columns=NULL,dateIndex=1,tz="Asia/Kolkata"){
+  out=NULL
   if(!is.null(md) && nrow(md)>0){
     #symbol=md[1,c("symbol")]
     if(is.null(columns)){
