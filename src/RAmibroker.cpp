@@ -847,7 +847,7 @@ int getPriorIndex(StringVector symbols,int currentIndex){
 
 
 //[[Rcpp::export]]
-DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVector tpamount,NumericVector maxbar,unsigned int maxposition,bool volatilesl=false,bool volatiletp=false,bool scalein=false,bool debug=false ){
+DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVector tpamount,NumericVector maxbar,unsigned int maxposition,bool volatilesl=false,bool volatiletp=false,int scalein=1,bool debug=false ){
   if(debug){
     Rcout<<"### Running ProcessSignals ###"<<std::endl;
   }
@@ -1166,7 +1166,8 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
 
       if(itemsToInsert>0){
         int j=rit->second;
-        if(scalein||(std::find(positionNames.begin(), positionNames.end(), symbol[j])) == positionNames.end()){
+        int numberOfExistingPositions=std::count (positionNames.begin(),  positionNames.end(), symbol[j]);
+        if(numberOfExistingPositions<scalein){
           if(buy[j]>0){
             lbuy[j]=buy[j];
             side.push_back("BUY");
@@ -1855,3 +1856,50 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
                                                _["stoploss"]=stoploss,_["stringsAsFactors"] = false);
 }
 
+
+//[[Rcpp::export]]
+DataFrame generateSignalsBoundByATR(DataFrame all){
+  int nSize=all.nrows();
+  NumericVector open=all["aopen"];
+  NumericVector high=all["ahigh"];
+  NumericVector low=all["alow"];
+  NumericVector close=all["asettle"];
+  NumericVector atr=all["atr"];
+  NumericVector trade(nSize);
+  NumericVector stoploss(nSize);
+  trade[0]=1;
+  NumericVector highestClose(nSize);
+  NumericVector lowestClose(nSize);
+  highestClose[0]=close[0];
+  lowestClose[0]=close[0];
+  stoploss[0]=highestClose[0]-atr[0];
+  for(int i=1;i<nSize;i++){
+    if(close[i]<stoploss[i-1]){
+      trade[i]=-1;
+    }else{
+      trade[i]=1;
+    }
+
+    if(trade[i]==1 & trade[i-1]==-1){ //first bar of long trade
+      highestClose[i]=close[i];
+    }else if(trade[i]==1 & trade[i-1]==1){ //continuing long
+      highestClose[i]=max(highestClose[i-1],close[i]);
+    } else if (trade[i]==-1 & trade[i-1]==1){ //first bar of short trade
+      lowestClose[i]=close[i];
+    }else if(trade[i]==-1 & trade[i-1]==-1){ //continuing short
+      lowestClose[i]=min(lowestClose[i-1],close[i]);
+    }
+
+    if(trade[i]==1 & trade[i-1]==-1){
+      stoploss[i]=highestClose[i]-atr[i];
+    }else if (trade[i]==1 & trade[i-1]==1){
+      stoploss[i]=highestClose[i]>highestClose[i-1]?max(highestClose[i]-atr[i],stoploss[i-1]):stoploss[i-1];
+    }else if(trade[i]==-1 & trade[i-1]==1){
+      stoploss[i]=lowestClose[i]+atr[i];
+    }else if(trade[i]==-1 & trade[i-1]==-1){
+      stoploss[i]=lowestClose[i]<lowestClose[i-1]?min(lowestClose[i]+atr[i],stoploss[i-1]):stoploss[i-1];
+    }
+  }
+  return DataFrame::create(_["date"]=all["date"],_["aopen"]=open,_["ahigh"]=high,_["alow"]=low,_["asettle"]=close,
+                                               _["trade"]=trade,_["lowestclose"]=lowestClose,_["highestclose"]=highestClose,_["atr"]=atr,_["stoploss"]=stoploss,_["stringsAsFactors"] = false);
+}
