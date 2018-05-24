@@ -704,8 +704,8 @@ getPriceHistoryFromRedis <-
 
 getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes){
   exchangesymbol=strsplit(symbol,"_")[[1]][1]
-  type=strsplit(symbol,"_")[[1]][2]
-  if(type=="STK" |type=="IND"){
+  symboltype=strsplit(symbol,"_")[[1]][2]
+  if(symboltype=="STK" |symboltype=="IND"){
     md=kGetOHLCV(paste("symbol",tolower(exchangesymbol),sep="="),df=data.frame(),start=starttime,end=endtime,name="india.nse.equity.s1.1sec", aValue = minutes, aUnit = "Minutes")
   }
   md$close=dplyr::lead(md$close)
@@ -719,6 +719,7 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
   if(newstarttime<endtime){
     mdtodayseries=getPriceHistoryFromRedis(redisdb,symbol,duration,type,newstarttime,endtime)
     mdtodayseries=convertToXTS(mdtodayseries)
+    mdtodayseries=mdtodayseries["T09:15/T15:30"]
     if(!is.null(mdtodayseries)){
       mdtoday=to.period(mdtodayseries,period="minutes",k=minutes,indexAt = "startof")
       mdtoday=convertToDF(mdtoday)
@@ -727,6 +728,7 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
       mdtoday$symbol=exchangesymbol
       mdtoday$volume=0
       md=rbind(md,mdtoday)
+      md$date=round(md$date,"mins")
     }
   }
   md
@@ -2807,7 +2809,7 @@ chart <-
            type = "STK",
            fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
            equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/",...) {
-    md<-loadSymbol(symbol,realtime,type,...)
+      md<-loadSymbol(symbol,realtime,type,...)
     if (symbol == "NSENIFTY") {
       md$aclose = md$asettle
     }
@@ -2874,6 +2876,8 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type="STK
     md<-out.md
   }
 }
+
+
 
 changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
   names<-as.character()
