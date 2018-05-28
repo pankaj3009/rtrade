@@ -71,13 +71,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$bodyavg*0.2 # Day 1
   confirmationprice=pmax(md$asettle,md$aopen)
   stoploss=md$alow
-  #entryprice=ifelse(confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1),confirmationprice,ifelse(Ref(md$alow,1)>confirmationprice,Ref(md$asettle,1),0))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  ##entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HAMMER",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HAMMER",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -88,12 +87,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$bodyavg*0.2 # Day 1
   confirmationprice=pmin(md$asettle,md$aopen)
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HANGING MAN",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HANGING MAN",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -102,12 +101,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=(md$candlesticktrend==-1|md$candlesticktrend==0) & md$gapdown & md$whiteopeningmarubozu & md$longwhite
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH BELT HOLD",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH BELT HOLD",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -116,12 +115,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=(md$candlesticktrend==1|md$candlesticktrend==0) & md$gapup & md$blackopeningmarubozu & md$longblack
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH BELT HOLD",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH BELT HOLD",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -130,12 +129,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & md$whitecandle & !md$shortwhite & md$asettle>Ref(md$aopen,-1) & md$aopen<Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ENGULFING",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ENGULFING",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -144,12 +143,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & md$blackcandle & !md$shortblack & md$asettle<Ref(md$aopen,-1) & md$aopen>Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ENGULFING",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ENGULFING",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -158,12 +157,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$whitecandle & md$asettle<Ref(md$aopen,-1) & md$aopen>Ref(md$asettle,-1)
   confirmationprice=pmax(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HARAMI",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HARAMI",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -172,12 +171,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$blackcandle & md$asettle>Ref(md$aopen,-1) & md$aopen<Ref(md$asettle,-1)
   confirmationprice=pmin(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HARAMI",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HARAMI",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -186,12 +185,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$aopen,-1) & pmin(md$asettle,md$aopen)>Ref(md$asettle,-1)
   confirmationprice=ifelse(Ref(md$shortblack,-1),Ref(md$aopen,-1),pmax(md$asettle,Ref((md$aopen+md$asettle)/2,-1)))
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HARAMI CROSS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HARAMI CROSS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -200,12 +199,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$asettle,-1) & pmin(md$asettle,md$aopen)>Ref(md$aopen,-1)
   confirmationprice=ifelse(Ref(md$shortwhite,-1),Ref(md$aopen,-1),pmin(md$asettle,Ref((md$aopen+md$asettle)/2,-1)))
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HARAMI CROSS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH HARAMI CROSS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -214,12 +213,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & (md$shortblack|md$shortwhite) & Ref(md$asettle,-1)>pmax(md$asettle,md$aopen) & md$uppershadow>2*md$body & md$lowershadow<0.1*md$body
   confirmationprice=pmax(md$aopen,md$asettle)+md$uppershadow/2
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH INVERTED HAMMER",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH INVERTED HAMMER",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -228,12 +227,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & (md$shortblack|md$shortwhite) & Ref(md$asettle,-1)<pmin(md$asettle,md$aopen) & md$uppershadow>2*md$body & md$lowershadow<0.1*md$body
   confirmationprice=pmin(md$aopen,md$asettle)
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH SHOOTING STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH SHOOTING STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -242,12 +241,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$gapdown & md$whitecandle & md$asettle>Ref(md$asettle+md$aopen,-1)/2 & md$asettle<Ref(md$aopen,-1)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH PIERCING LINE",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH PIERCING LINE",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -256,12 +255,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$gapup & md$blackcandle & md$asettle<Ref(md$asettle+md$aopen,-1)/2 & md$asettle>Ref(md$aopen,-1)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DARK CLOUD COVER",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DARK CLOUD COVER",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -270,12 +269,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalblack|md$longblack,-1) & md$gapdown & md$doji
   confirmationprice=ifelse(pattern,md$asettle+(Ref(md$asettle,-1)-md$asettle)/2,0)
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DOJI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DOJI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -284,12 +283,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalwhite|md$longwhite,-1) & md$gapup & md$doji
   confirmationprice=ifelse(pattern,md$asettle-(md$asettle-Ref(md$asettle,-1))/2,0)
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DOJI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DOJI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -298,12 +297,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$gapdown & md$whitecandle & !md$shortwhite & abs(md$asettle-Ref(md$asettle,-1))/md$asettle<0.002
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MEETING LINE",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MEETING LINE",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -312,12 +311,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$gapup & md$blackcandle & !md$shortblack & abs(md$asettle-Ref(md$asettle,-1))/md$asettle<0.002
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH MEETING LINE",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH MEETING LINE",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -326,12 +325,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$blackcandle & md$aopen<=Ref(md$aopen,-1) & md$asettle>=Ref(md$asettle,-1)
   confirmationprice=pmax(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HOMING PIGEON",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH HOMING PIGEON",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -340,12 +339,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$whitecandle & md$aopen>=Ref(md$aopen,-1) & md$asettle<=Ref(md$asettle,-1)
   confirmationprice=pmin(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DESCENDING HAWK",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DESCENDING HAWK",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -354,12 +353,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$aopen>Ref(md$asettle,-1) & md$blackcandle & md$asettle==Ref(md$asettle,-1)
   confirmationprice=Ref((md$aopen+md$asettle)/2,-1)
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MATCHING LOW",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MATCHING LOW",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -368,12 +367,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$aopen<Ref(md$asettle,-1) & md$whitecandle & md$asettle==Ref(md$asettle,-1)
   confirmationprice=Ref((md$aopen+md$asettle)/2,-1)
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH MATCHING HIGH",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH MATCHING HIGH",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -382,12 +381,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalblack|md$longblack,-1) & Ref(md$aopen,-1)<=md$aopen & (md$normalwhite | md$longwhite)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH KICKING",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH KICKING",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -396,12 +395,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalwhite|md$longwhite,-1) & Ref(md$aopen,-1)>=md$aopen & (md$normalblack | md$longblack)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH KICKING",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH KICKING",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -410,12 +409,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$whitecandle & !md$shortwhite & md$aopen>Ref(md$asettle,-1) & md$asettle>Ref(md$aopen,-1)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ONE WHITE SOLDIER",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ONE WHITE SOLDIER",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -424,12 +423,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$blackcandle & !md$shortblack & md$aopen<Ref(md$asettle,-1) & md$asettle<Ref(md$aopen,-1)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ONE BLACK CROW",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ONE BLACK CROW",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -438,12 +437,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & Ref(md$gapdown,-1) & (Ref(md$shortblack,-1)|Ref(md$shortwhite,-1)) & md$whitecandle & md$aopen>pmin(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle<Ref(md$aopen,-2) & md$asettle>Ref(md$body/2+md$asettle,-2)
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MORNING STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MORNING STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -452,12 +451,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-2) & Ref(md$gapup,-1) & (Ref(md$shortblack,-1)|Ref(md$shortwhite,-1)) & md$blackcandle & md$aopen<pmax(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle>Ref(md$aopen,-2) & md$asettle<Ref(md$aopen-(md$body/2),-2)
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH EVENING STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH EVENING STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -466,12 +465,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & Ref(md$gapdown,-1) & Ref(md$doji,-1) & md$whitecandle & md$aopen>pmin(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle>(Ref(md$aopen,-2)+Ref(md$alow,-1)) & md$asettle<Ref(md$aopen,-2) & md$asettle>Ref(md$body+md$asettle,-2)/2
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MORNING DOJI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH MORNING DOJI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -480,12 +479,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-2) & Ref(md$gapup,-1) & Ref(md$doji,-1) & md$blackcandle & md$aopen<pmax(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle<(Ref(md$aopen,-2)+Ref(md$ahigh,-1)) & md$asettle>Ref(md$aopen,-2) & md$asettle<Ref(md$body+md$aopen,-2)/2
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH EVENING DOJI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH EVENING DOJI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -494,12 +493,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & Ref(md$gapdown,-1) & Ref(md$doji,-1) & Ref(md$alow,-2)>Ref(md$ahigh,-1) & Ref(md$ahigh,-1) < md$alow & md$whitecandle & md$aopen>pmin(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle>(Ref(md$aopen,-2)+Ref(md$alow,-1)) & md$asettle<Ref(md$aopen,-2) & md$asettle>Ref(md$body+md$asettle,-2)/2
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ABANDONED BABY",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH ABANDONED BABY",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -508,12 +507,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-2) & Ref(md$gapup,-1) & Ref(md$doji,-1) & Ref(md$ahigh,-2)<Ref(md$alow,-1)& Ref(md$alow,-1)>md$ahigh & md$blackcandle & md$aopen<pmax(Ref(md$aopen,-1),Ref(md$asettle,-1)) & md$asettle<(Ref(md$aopen,-2)+Ref(md$ahigh,-1)) & md$asettle>Ref(md$aopen,-2) & md$asettle<Ref(md$body+md$aopen,-2)/2
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ABANDONED BABY",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ABANDONED BABY",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -522,12 +521,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$doji,-2) & Ref(md$gapdown,-1) & Ref(md$doji,-1) & md$gapup & md$doji
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH TRI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH TRI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -536,12 +535,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$doji,-2) & Ref(md$gapup,-1) & Ref(md$doji,-1) & md$gapdown & md$doji
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH TRI STAR",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH TRI STAR",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -550,12 +549,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalblack|md$longblack,-2) & Ref(md$gapdown,-1) & Ref(md$shortwhite,-1) & md$aopen<=Ref(md$aopen,-1) & md$asettle>Ref(md$asettle,-1) & md$asettle<Ref(md$asettle,-2)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DOWNSIDE GAP TWO RABBITS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DOWNSIDE GAP TWO RABBITS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -564,12 +563,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$normalwhite|md$longwhite,-2) & Ref(md$gapup,-1) & Ref(md$shortblack,-1) & md$aopen>=Ref(md$aopen,-1) & md$asettle<Ref(md$asettle,-1) & md$asettle>Ref(md$asettle,-2)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH UPSIDE GAP TWO CROWS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH UPSIDE GAP TWO CROWS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -578,12 +577,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longblack,-2) & Ref(md$shortblack,-1) & Ref(md$aopen,-1)>Ref(md$asettle,-2) & Ref(md$alow,-1)<Ref(md$alow,-2) & Ref(md$aopen,-1)<Ref(md$aopen,-2) & Ref(md$asettle,-1)>Ref(md$asettle,-2) & md$gapdown & md$shortwhite & md$asettle<Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH UNIQUE THREE RIVER BOTTOM",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH UNIQUE THREE RIVER BOTTOM",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -592,12 +591,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longwhite,-2) & Ref(md$shortwhite,-1) & Ref(md$aopen,-1)<Ref(md$asettle,-2) & Ref(md$ahigh,-1)>Ref(md$ahigh,-2) & Ref(md$aopen,-1)>Ref(md$aopen,-2) & Ref(md$asettle,-1)<Ref(md$asettle,-2) & md$gapup & md$shortblack & md$asettle>Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH UNIQUE THREE MOUNTAIN TOP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH UNIQUE THREE MOUNTAIN TOP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -606,12 +605,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longwhite|md$normalwhite,-2) & Ref(md$longwhite|md$normalwhite,-1) & (md$longwhite|md$normalwhite) & Ref(md$aopen,-1)>Ref(md$aopen,-2) & !Ref(md$gapup,-1) & md$aopen>Ref(md$aopen,-1) & !md$gapup
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE WHITE SOLDIERS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE WHITE SOLDIERS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -620,12 +619,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longblack|md$normalblack,-2) & Ref(md$longblack|md$normalblack,-1) & (md$longblack|md$normalblack) & Ref(md$aopen,-1)<Ref(md$aopen,-2) & !Ref(md$gapdown,-1) & md$aopen<Ref(md$aopen,-1) & !md$gapdown
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE BLACK CROWS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE BLACK CROWS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -634,12 +633,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longblack|md$normalblack,-2) & Ref(md$blackcandle,-1) & md$blackcandle & Ref(md$aopen,-1)<Ref(md$aopen,-2) & !Ref(md$gapdown,-1) & md$aopen<Ref(md$aopen,-1) & !md$gapdown & Ref(md$aopen-md$asettle,-1)<Ref(md$aopen-md$asettle,-2) & md$aopen-md$asettle<Ref(md$aopen-md$asettle,-1) & Ref(md$asettle-md$alow,-1)>Ref(md$asettle-md$alow,-2) & md$asettle-md$alow>Ref(md$asettle-md$alow,-1) & Ref(md$alow,-1)<Ref(md$alow,-2) & md$alow<Ref(md$alow,-1) & Ref(md$asettle,-1)<Ref(md$asettle,-2) & md$asettle<Ref(md$asettle,-1)
   confirmationprice=(md$asettle+md$aopen)/2
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DESCENT BLOCK",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DESCENT BLOCK",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -648,12 +647,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longwhite|md$normalwhite,-2) & Ref(md$whitecandle,-1) & md$whitecandle & Ref(md$aopen,-1)>Ref(md$aopen,-2) & !Ref(md$gapup,-1) & md$aopen>Ref(md$aopen,-1) & !md$gapup & Ref(md$asettle-md$aopen,-1)<Ref(md$asettle-md$aopen,-2) & md$asettle-md$aopen<Ref(md$asettle-md$aopen,-1) & Ref(md$ahigh-md$asettle,-1)>Ref(md$ahigh-md$asettle,-2) & md$ahigh-md$asettle>Ref(md$ahigh-md$asettle,-1) & Ref(md$ahigh,-1)<Ref(md$ahigh,-2) & md$ahigh>Ref(md$ahigh,-1)   & Ref(md$asettle,-1)>Ref(md$asettle,-2) & md$asettle>Ref(md$asettle,-1)
   confirmationprice=(md$asettle+md$aopen)/2
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ADVANCE BLOCK",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH ADVANCE BLOCK",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -664,12 +663,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$gapdown & (md$shortblack|md$doji)
   confirmationprice=(Ref(md$alow,-1)+md$asettle)/2
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DELIBERATION BLOCK",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH DELIBERATION BLOCK",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -680,12 +679,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$gapup & (md$shortwhite|md$doji)
   confirmationprice=(Ref(md$ahigh,-1)+md$asettle)/2
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DELIBERATION BLOCK",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH DELIBERATION BLOCK",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -694,12 +693,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longblack,-2) & Ref(md$gapdown,-1) & Ref(md$shortwhite,-1) & Ref(md$asettle,-1)<Ref(md$asettle,-2) & md$aopen>Ref(md$aopen,-1) & md$aopen<Ref(md$asettle,-1) & md$asettle>Ref(md$asettle,-2)+Ref(md$body,-2)*0.3
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH TWO RABBITS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH TWO RABBITS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -708,12 +707,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$longwhite,-2) & Ref(md$gapup,-1) & Ref(md$shortblack,-1) & Ref(md$asettle,-1)>Ref(md$asettle,-2) & md$aopen<Ref(md$aopen,-1) & md$aopen>Ref(md$asettle,-1) & md$asettle<Ref(md$asettle,-2)-Ref(md$body,-2)*0.3
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH TWO CROWS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH TWO CROWS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -722,12 +721,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & !Ref(md$shortblack,-2) & Ref(md$whitecandle,-1) & Ref(md$asettle,-1)<Ref(md$aopen,-2) & Ref(md$aopen,-1)>Ref(md$asettle,-2) & md$whitecandle & md$asettle>Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE INSIDE UP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE INSIDE UP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -736,12 +735,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-2) & !Ref(md$shortwhite,-2) & Ref(md$blackcandle,-1) & Ref(md$asettle,-1)>Ref(md$aopen,-2) & Ref(md$aopen,-1)<Ref(md$asettle,-2) & md$blackcandle & md$asettle<Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE INSIDE DOWN",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE INSIDE DOWN",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -750,12 +749,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & Ref(md$asettle,-1)>Ref(md$aopen,-2) & Ref(md$aopen,-1)<Ref(md$asettle,-2) & md$whitecandle & md$asettle>Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE OUTSIDE UP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE OUTSIDE UP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -764,12 +763,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-2) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & Ref(md$asettle,-1)<Ref(md$aopen,-2) & Ref(md$aopen,-1)>Ref(md$asettle,-2) & md$blackcandle & md$asettle<Ref(md$asettle,-1)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE OUTSIDE DOWN",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE OUTSIDE DOWN",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -780,12 +779,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$shortblack & md$blackmarubozu & md$alow>Ref(md$alow,-1) & md$body<Ref(md$body,-1)
   confirmationprice=(md$asettle+md$aopen)/2
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE STARS IN THE SOUTH",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE STARS IN THE SOUTH",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -796,12 +795,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$ahigh<Ref(md$ahigh,-1) & md$alow>Ref(md$alow,-1)
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH SQUEEZE ALERT",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH SQUEEZE ALERT",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -812,12 +811,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$ahigh<Ref(md$ahigh,-1) & md$alow>Ref(md$alow,-1)
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH SQUEEZE ALERT",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH SQUEEZE ALERT",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -828,12 +827,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$gapup & md$blackcandle & md$asettle==Ref(md$asettle,-1)
   confirmationprice=(md$asettle+Ref(md$asettle,-1))/2
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH STICK SANDWICH",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH STICK SANDWICH",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -844,12 +843,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$blackcandle & md$gapdown & md$asettle<Ref(md$asettle,-1) # candle 1
   confirmationprice=(md$asettle+md$aopen)/2
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE GAP DOWNS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH THREE GAP DOWNS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -860,12 +859,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$whitecandle & md$gapup & md$asettle>Ref(md$asettle,-1) # candle 1
   confirmationprice=(md$asettle+md$aopen)/2
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE GAP UPS",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH THREE GAP UPS",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -876,12 +875,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   md$blackcandle & md$aopen>Ref(md$ahigh,-1) & md$asettle<Ref(md$alow,-1) # candle 1
   confirmationprice=Ref(md$asettle+md$aopen,-1)/2
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH CONCEALING BABY SWALLOW",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH CONCEALING BABY SWALLOW",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -894,12 +893,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$whitecandle & md$asettle<Ref(md$asettle,-4) & md$asettle>Ref(md$aopen,-3)
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH BREAKAWAY",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH BREAKAWAY",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -912,12 +911,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$blackcandle & md$asettle>Ref(md$asettle,-4) & md$asettle<Ref(md$aopen,-3)
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH BREAKAWAY",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH BREAKAWAY",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -930,12 +929,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$longwhite & md$gapup
   confirmationprice=md$asettle
   stoploss=md$alow
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH LADDER BOTTOM",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH LADDER BOTTOM",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -948,12 +947,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$longblack & md$gapdown
   confirmationprice=md$asettle
   stoploss=md$ahigh
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH LADDER TOP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH LADDER TOP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -966,12 +965,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$longwhite & md$gapup # day 1
   confirmationprice=md$asettle
   stoploss=pmin(md$alow,Ref(md$alow,-1))
-  entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH AFTER BOTTOM GAP UP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BULLISH AFTER BOTTOM GAP UP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
 
@@ -984,12 +983,12 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
     md$longblack & md$gapdown # day 1
   confirmationprice=md$asettle
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
-  entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
-  confirmed=entryprice>0
-  confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
+  #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
+  #confirmed=entryprice>0
+  #confirmationdate=ifelse(confirmed,Ref(md$date,1),NA)
   indices=which(pattern==TRUE)
   if(length(indices)>0){
-    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH LADDER TOP",confirmationprice=confirmationprice[indices],confirmed=confirmed[indices],confirmationdate=as.POSIXct(confirmationdate[indices],tz="Asia/Kolkata",origin="1970-01-01"),entryprice=entryprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
+    out=data.frame(symbol=md$symbol[indices],date=md$date[indices],pattern="BEARISH LADDER TOP",confirmationprice=confirmationprice[indices],stoploss=stoploss[indices],duration=duration,stringsAsFactors = FALSE)
     signals=rbind(signals,out)
   }
   if(nrow(signals)>0){
