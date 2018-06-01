@@ -734,8 +734,34 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
   }
 
   # update splitinformation
-
-
+  splitinfo=getSplitInfo(exchangesymbol)
+  if(nrow(splitinfo)>0){
+    splitinfo=splitinfo[rev(order(splitinfo$date)),]
+    md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
+    splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
+    splitinfo$splitadjust=cumprod(splitinfo$newshares)/cumprod(splitinfo$oldshares)
+    md=merge(md,splitinfo[,c("date","splitadjust")],by.x=c("dateonly"),by.y=c("date"),all.x = TRUE)
+    md=md[ , -which(names(md) %in% c("dateonly"))]
+    md$splitadjust=ifelse(is.na(md$splitadjust),1,md$splitadjust)
+    md$splitadjust=Ref(md$splitadjust,1)
+    md$splitadjust[nrow(md)]=md$splitadjust[nrow(md)-1]
+    md$splitadjust=ifelse(md$splitadjust==Ref(md$splitadjust,-1),1,md$splitadjust)
+    md=md[rev(order(md$date)),]
+    md$splitadjust=cumprod(md$splitadjust)
+    md=md[order(md$date),]
+    md$splitadjust[1]=md$splitadjust[2]
+  }else{
+    md$splitadjust=1
+  }
+  md$settle=md$close
+  md$aopen=md$open/md$splitadjust
+  md$ahigh=md$high/md$splitadjust
+  md$alow=md$low/md$splitadjust
+  md$asettle=md$settle/md$splitadjust
+  md$aclose=md$close/md$splitadjust
+  md$avolume=md$volume*md$splitadjust
+  md$delivered=0
+  md$adelivered=0
   md
 
 }
@@ -3074,7 +3100,7 @@ getSplitInfo<-function(symbol){
   a<-unlist(redisSMembers("splits")) # get values from redis in a vector
   date=sapply(strsplit(a,"_"),"[",1)
   date=strptime(date,format="%Y%m%d")
-  date=as.POSIXct(date)
+  date=as.POSIXct(date,tz="Asia/Kolkata")
   symbol=sapply(strsplit(a,"_"),"[",2)
   oldshares=sapply(strsplit(a,"_"),"[",3)
   newshares=sapply(strsplit(a,"_"),"[",4)
@@ -3082,5 +3108,9 @@ getSplitInfo<-function(symbol){
   splitinfo=data.frame()
   splitinfo=data.frame(date=date[indices],symbol=symbol[indices],oldshares=oldshares[indices],newshares=newshares[indices],stringsAsFactors = FALSE)
   splitinfo=splitinfo[order(splitinfo$date),]
+  if(nrow(splitinfo)>0){
+    splitinfo$oldshares=as.numeric(splitinfo$oldshares)
+    splitinfo$newshares=as.numeric(splitinfo$newshares)
+  }
   splitinfo
 }
