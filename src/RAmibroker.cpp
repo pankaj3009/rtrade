@@ -555,9 +555,9 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
 
 // [[Rcpp::export]]
 
-StringVector linkedsymbols(StringVector initial,StringVector final,String symbol)
+StringVector linkedsymbols(StringVector originalNamesVector,StringVector changedNamesVector,String symbol)
 {
-  int nSize=final.size();
+  int nSize=changedNamesVector.size();
   vector<string>out;
   bool found=true;
   string value=symbol;
@@ -565,9 +565,9 @@ StringVector linkedsymbols(StringVector initial,StringVector final,String symbol
     out.push_back(value);
     label:
       for(int i=0;i<nSize;i++){
-        if(final[i]==value){//original symbol has an initial value
-          if(initial[i]!=value){
-            value=initial[i];
+        if(changedNamesVector[i]==value){//original symbol has an initial value
+          if(originalNamesVector[i]!=value){
+            value=originalNamesVector[i];
             out.push_back(value);
             goto label;
           }else{
