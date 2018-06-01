@@ -1906,32 +1906,42 @@ DataFrame generateSignalsBoundByATR(DataFrame all){
 }
 
 //[[Rcpp::export]]
-NumericVector hhv(DataFrame all, int range, String defaultcol="ahigh"){
+NumericVector hhv(NumericVector data, NumericVector range, String defaultcol="ahigh"){
   // returns hhv for an array, containing defaultcol
-  int nSize=all.nrows();
-  NumericVector high=all[defaultcol];
+  int nSize=data.size();
+  if(range.size()==1){
+    range=NumericVector(nSize,range[0]);
+  }
   NumericVector hhv(nSize,NA_REAL);
   for(int i=0;i<nSize;i++){
-    if(i>=-range-1 & range<0){
-      hhv[i]=*std::max_element(high.begin()+i+range+1,high.begin()+i);
-    }else if(range>0 & i<=nSize-range) {
-      hhv[i]=*std::max_element(high.begin()+i,high.begin()+i+range-1);
+    int shift=range[i];
+    if(i>=-range[i]-1 & range[i]<0){
+      hhv[i]=*std::max_element(data.begin()+i+shift,data.begin()+i+1);
+    }else if(range[i]>0 & i<=nSize-range[i]) {
+      hhv[i]=*std::max_element(data.begin()+i,data.begin()+i+shift+1);
+    }else if(range[i]==0){
+      hhv[i]=data[i];
     }
   }
   return hhv;
 }
 
 //[[Rcpp::export]]
-NumericVector llv(DataFrame all, int range, String defaultcol="alow"){
+NumericVector llv(NumericVector data, NumericVector range, String defaultcol="alow"){
   // returns llv for an array, containing defaultcol
-  int nSize=all.nrows();
-  NumericVector low=all[defaultcol];
+  int nSize=data.size();
+  if(range.size()==1){
+    range=NumericVector(nSize,range[0]);
+  }
   NumericVector llv(nSize,NA_REAL);
   for(int i=0;i<nSize;i++){
-    if(i>=-range-1 & range<0){
-      llv[i]=*std::min_element(low.begin()+i+range+1,low.begin()+i);
-    }else if(range>0 & i<=nSize-range) {
-      llv[i]=*std::max_element(low.begin()+i,low.begin()+i+range-1);
+    int shift=range[i];
+    if(i>=-range[i]-1 & range[i]<0){
+      llv[i]=*std::min_element(data.begin()+i+shift,data.begin()+i+1);
+    }else if(range[i]>0 & i<=nSize-range[i]) {
+      llv[i]=*std::max_element(data.begin()+i,data.begin()+i+shift+1);
+    }else if(range[i]==0){
+      llv[i]=data[i];
     }
   }
   return llv;
