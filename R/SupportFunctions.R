@@ -729,6 +729,7 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
       mdtoday$volume=0
       md=rbind(md,mdtoday)
       md$date=round(md$date,"mins")
+      md$date=as.POSIXct(md$date)
     }
   }
   md
