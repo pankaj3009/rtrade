@@ -19,6 +19,7 @@
 
 #include <Rcpp.h>
 #include <cmath>
+#include <algorithm>
 #include <boost/date_time.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -1902,4 +1903,36 @@ DataFrame generateSignalsBoundByATR(DataFrame all){
   }
   return DataFrame::create(_["date"]=all["date"],_["open"]=open,_["high"]=high,_["low"]=low,_["close"]=close,
                                                _["trade"]=trade,_["lowestclose"]=lowestClose,_["highestclose"]=highestClose,_["atr"]=atr,_["stoploss"]=stoploss,_["stringsAsFactors"] = false);
+}
+
+//[[Rcpp::export]]
+NumericVector hhv(DataFrame all, int range, String defaultcol="ahigh"){
+  // returns hhv for an array, containing defaultcol
+  int nSize=all.nrows();
+  NumericVector high=all[defaultcol];
+  NumericVector hhv(nSize,NA_REAL);
+  for(int i=0;i<nSize;i++){
+    if(i>=-range-1 & range<0){
+      hhv[i]=*std::max_element(high.begin()+i+range+1,high.begin()+i);
+    }else if(range>0 & i<=nSize-range) {
+      hhv[i]=*std::max_element(high.begin()+i,high.begin()+i+range-1);
+    }
+  }
+  return hhv;
+}
+
+//[[Rcpp::export]]
+NumericVector llv(DataFrame all, int range, String defaultcol="alow"){
+  // returns llv for an array, containing defaultcol
+  int nSize=all.nrows();
+  NumericVector low=all[defaultcol];
+  NumericVector llv(nSize,NA_REAL);
+  for(int i=0;i<nSize;i++){
+    if(i>=-range-1 & range<0){
+      llv[i]=*std::min_element(low.begin()+i+range+1,low.begin()+i);
+    }else if(range>0 & i<=nSize-range) {
+      llv[i]=*std::max_element(low.begin()+i,low.begin()+i+range-1);
+    }
+  }
+  return llv;
 }
