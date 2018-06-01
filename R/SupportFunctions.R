@@ -732,6 +732,10 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
       md$date=as.POSIXct(md$date)
     }
   }
+
+  # update splitinformation
+
+
   md
 
 }
@@ -3056,4 +3060,27 @@ loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDu
   }
   md<-changeTimeFrame(md,sourceDuration,destDuration)
   md
+}
+
+
+getSplitInfo<-function(symbol){
+  redisConnect()
+  redisSelect(2)
+  a<-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
+  origsymbols=sapply(strsplit(a,"_"),"[",2)
+  newsymbols=sapply(strsplit(a,"_"),"[",3)
+  linkedsymbols=RTrade::linkedsymbols(origsymbols,newsymbols,symbol)
+  linkedsymbols=paste("^",linkedsymbols,"$",sep="")
+  a<-unlist(redisSMembers("splits")) # get values from redis in a vector
+  date=sapply(strsplit(a,"_"),"[",1)
+  date=strptime(date,format="%Y%m%d")
+  date=as.POSIXct(date)
+  symbol=sapply(strsplit(a,"_"),"[",2)
+  oldshares=sapply(strsplit(a,"_"),"[",3)
+  newshares=sapply(strsplit(a,"_"),"[",4)
+  indices=unlist(sapply(linkedsymbols,grep,symbol))
+  splitinfo=data.frame()
+  splitinfo=data.frame(date=date[indices],symbol=symbol[indices],oldshares=oldshares[indices],newshares=newshares[indices],stringsAsFactors = FALSE)
+  splitinfo=splitinfo[order(splitinfo$date),]
+  splitinfo
 }
