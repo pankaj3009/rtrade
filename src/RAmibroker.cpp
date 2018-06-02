@@ -1861,10 +1861,10 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
 //[[Rcpp::export]]
 DataFrame generateSignalsBoundByATR(DataFrame all){
   int nSize=all.nrows();
-  NumericVector open=all["open"];
-  NumericVector high=all["high"];
-  NumericVector low=all["low"];
-  NumericVector close=all["close"];
+  NumericVector open=all["aopen"];
+  NumericVector high=all["ahigh"];
+  NumericVector low=all["alow"];
+  NumericVector close=all["asettle"];
   NumericVector atr=all["atr"];
   NumericVector trade(nSize);
   NumericVector stoploss(nSize);
@@ -1901,7 +1901,7 @@ DataFrame generateSignalsBoundByATR(DataFrame all){
       stoploss[i]=lowestClose[i]<lowestClose[i-1]?min(lowestClose[i]+atr[i],stoploss[i-1]):stoploss[i-1];
     }
   }
-  return DataFrame::create(_["date"]=all["date"],_["open"]=open,_["high"]=high,_["low"]=low,_["close"]=close,
+  return DataFrame::create(_["date"]=all["date"],_["aopen"]=open,_["ahigh"]=high,_["alow"]=low,_["asettle"]=close,_["symbol"]=all["symbol"],
                                                _["trade"]=trade,_["lowestclose"]=lowestClose,_["highestclose"]=highestClose,_["atr"]=atr,_["stoploss"]=stoploss,_["stringsAsFactors"] = false);
 }
 
