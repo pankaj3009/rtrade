@@ -194,8 +194,9 @@ kGetOHLCV <-
     for (j in length(symbollist):1) {
       #a <- list(...)
       #a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
-      a<-as.list(strsplit(...,",")[[1]])
-      newargs = paste(a, collapse = ",")
+      #a<-as.list(strsplit(...,",")[[1]])
+      #newargs = paste(a, collapse = ",")
+      newargs = paste("symbol", tolower(symbollist[j]), sep = "=")
       startUnix <- as.numeric(as.POSIXct(paste(start, timezone))) * 1000
       endUnix <- as.numeric(as.POSIXct(paste(end, timezone))) * 1000
       startLong <- kDate(startUnix)
