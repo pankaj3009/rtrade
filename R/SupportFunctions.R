@@ -3,6 +3,7 @@ library(rredis)
 library(RQuantLib)
 library(quantmod)
 library(zoo)
+options(scipen=999)
 
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
 
@@ -325,8 +326,9 @@ createFNOSize <-
 
   }
 
-getMostRecentSymbol <- function(symbol, original, final) {
-  out <- linkedsymbols(final, original, symbol)
+getMostRecentSymbol <- function(symbol) {
+  symbolchange=getSymbolChange()
+  out <- linkedsymbols(symbolchange, symbol)
   out <- out[length(out)]
   out
 }
@@ -766,6 +768,7 @@ getIntraDayBars<-function(redisdb,symbol,duration,type,starttime,endtime,minutes
 
 }
 
+
 GetCurrentPosition <-
   function(scrip,
            portfolio,
@@ -847,6 +850,7 @@ CalculateDailyPNL <-
     if (length(brokerage) == 1) {
       brokerage = rep(brokerage, nrow(portfolio))
     }
+    pnl$positioncount=0
     if (nrow(portfolio) > 0) {
       #for (l in 1:193){
       for (l in 1:nrow(portfolio)) {
@@ -901,6 +905,10 @@ CalculateDailyPNL <-
           cumunrealized = seq(0,0,length.out = (dtindexend -  dtindexstart + 1))
           side = portfolio[l, 'trade']
           #for (index in entryindex:5269) {
+          positionindexstart = which(pnl$bizdays == as.Date(md$date[entryindex], tz = "Asia/Kolkata"))
+          positionindexend = which(pnl$bizdays == as.Date(md$date[exitindex], tz = "Asia/Kolkata"))
+          pnl$positioncount[positionindexstart:(positionindexend)]<-pnl$positioncount[positionindexstart:(positionindexend)]+1
+
             for (index in entryindex:(exitindex - 1)) {
             #entryindex,exitindex are indices for portfolio
             #dtindex,dtindexstart,dtindexend are indices for pnl
@@ -3088,29 +3096,213 @@ loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDu
   md
 }
 
-
-getSplitInfo<-function(symbol){
+getSplitInfo<-function(symbol="",complete=FALSE){
   redisConnect()
   redisSelect(2)
-  a<-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
-  origsymbols=sapply(strsplit(a,"_"),"[",2)
-  newsymbols=sapply(strsplit(a,"_"),"[",3)
-  linkedsymbols=RTrade::linkedsymbols(origsymbols,newsymbols,symbol)
-  linkedsymbols=paste("^",linkedsymbols,"$",sep="")
-  a<-unlist(redisSMembers("splits")) # get values from redis in a vector
-  date=sapply(strsplit(a,"_"),"[",1)
-  date=strptime(date,format="%Y%m%d")
-  date=as.POSIXct(date,tz="Asia/Kolkata")
-  symbol=sapply(strsplit(a,"_"),"[",2)
-  oldshares=sapply(strsplit(a,"_"),"[",3)
-  newshares=sapply(strsplit(a,"_"),"[",4)
-  indices=unlist(sapply(linkedsymbols,grep,symbol))
-  splitinfo=data.frame()
-  splitinfo=data.frame(date=date[indices],symbol=symbol[indices],oldshares=oldshares[indices],newshares=newshares[indices],stringsAsFactors = FALSE)
-  splitinfo=splitinfo[order(splitinfo$date),]
-  if(nrow(splitinfo)>0){
-    splitinfo$oldshares=as.numeric(splitinfo$oldshares)
-    splitinfo$newshares=as.numeric(splitinfo$newshares)
+  if(symbol==""){
+    a <-  unlist(redisSMembers("splits")) # get values from redis in a vector
+    tmp <- (strsplit(a, split = "_")) # convert vector to list
+    k <- lengths(tmp) # expansion size for each list element
+    allvalues <-  unlist(tmp) # convert list to vector
+    splitinfo <-  data.frame(
+      date = 1:length(a),
+      symbol = 1:length(a),
+      oldshares = 1:length(a),
+      newshares = 1:length(a),
+      reason = rep("", length(a)),
+      stringsAsFactors = FALSE
+    )
+    for (i in 1:length(a)) {
+      for (j in 1:k[i]) {
+        runsum = cumsum(k)[i]
+        splitinfo[i, j] <- allvalues[runsum - k[i] + j]
+      }
+    }
+    splitinfo$date = as.POSIXct(splitinfo$date, format = "%Y%m%d", tz = "Asia/Kolkata")
+    splitinfo$oldshares <- as.numeric(splitinfo$oldshares)
+    splitinfo$newshares <- as.numeric(splitinfo$newshares)
+  }else{
+    # a<-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
+    # origsymbols=sapply(strsplit(a,"_"),"[",2)
+    # newsymbols=sapply(strsplit(a,"_"),"[",3)
+    symbolchange=getSymbolChange()
+    # linkedsymbols=RTrade::linkedsymbols(origsymbols,newsymbols,symbol)
+    linkedsymbols=linkedsymbols(symbolchange,symbol,complete)$symbol
+    linkedsymbols=paste("^",linkedsymbols,"$",sep="")
+    redisConnect()
+    redisSelect(2)
+    a<-unlist(redisSMembers("splits")) # get values from redis in a vector
+    date=sapply(strsplit(a,"_"),"[",1)
+    date=strptime(date,format="%Y%m%d")
+    date=as.POSIXct(date,tz="Asia/Kolkata")
+    symbol=sapply(strsplit(a,"_"),"[",2)
+    oldshares=sapply(strsplit(a,"_"),"[",3)
+    newshares=sapply(strsplit(a,"_"),"[",4)
+    reason=sapply(strsplit(a,"_"),"[",5)
+    indices=unlist(sapply(linkedsymbols,grep,symbol))
+    splitinfo=data.frame()
+    splitinfo=data.frame(date=date[indices],symbol=symbol[indices],oldshares=oldshares[indices],newshares=newshares[indices],reason=reason[indices],stringsAsFactors = FALSE)
+    splitinfo=splitinfo[order(splitinfo$date),]
+    if(nrow(splitinfo)>0){
+      splitinfo$oldshares=as.numeric(splitinfo$oldshares)
+      splitinfo$newshares=as.numeric(splitinfo$newshares)
+    }
   }
   splitinfo
+}
+
+getSymbolChange<-function(){
+  redisConnect()
+  redisSelect(2)
+    a <-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
+    tmp <-  (strsplit(a, split = "_")) # convert vector to list
+    k <-  lengths(tmp) # expansion size for each list element
+    allvalues <- unlist(tmp) # convert list to vector
+    symbolchange <-
+      data.frame(
+        date = rep("", length(a)),
+        key = rep("", length(a)),
+        newsymbol = rep("", length(a)),
+        stringsAsFactors = FALSE
+      )
+    for (i in 1:length(a)) {
+      for (j in 1:k[i]) {
+        runsum = cumsum(k)[i]
+        symbolchange[i, j] <-
+          allvalues[runsum - k[i] + j]
+      }
+    }
+    symbolchange$date = as.Date(symbolchange$date, format = "%Y%m%d", tz = "Asia/Kolkata")
+    symbolchange$key = gsub("[^0-9A-Za-z/-]", "", symbolchange$key)
+    symbolchange$newsymbol = gsub("[^0-9A-Za-z/-]", "", symbolchange$newsymbol)
+    redisClose()
+    symbolchange
+}
+
+slope <- function (x,array=TRUE,period=252) {
+  if(!array){
+    pointslope(x)
+  }else{
+    value<-rollapply(x,period,pointslope)
+    value=c(rep(0,(length(x)-length(value))),value)
+    unname(value)
+
+  }
+}
+
+r2 <- function (x,array=TRUE,period=252) {
+  if(!array){
+    pointr2(x)
+  }else{
+    value<-rollapply(x,period,pointr2)
+    value<-c(rep(0,(length(x)-length(value))),value)
+    unname(value)
+  }
+}
+
+lmprediction <- function (x,array=TRUE,period=252) {
+  if(!array){
+    pointpredict(x)
+  }else{
+    value<-rollapply(x,period,pointpredict)
+    value<-c(rep(0,(length(x)-length(value))),value)
+    unname(value)
+  }
+}
+
+pointslope<-function(x){
+  res <- (lm(log(x) ~ seq(1:length(x))))
+  res$coefficients[2]
+}
+
+pointr2 <- function(x) {
+  res <- (lm(log(x) ~ seq(1:length(x))))
+  summary(res)$r.squared
+}
+
+pointpredict<-function(x){
+  y=log(x)
+  x1= seq(1:length(x))
+  res <- lm(y ~ x1)
+  out=predict(res,data.frame(x1=length(x)))
+  exp(out)
+}
+
+CashFlow <- function(portfolio, settledate, brokerage) {
+  vcash = rep(0, length(settledate))
+  for (p in 1:nrow(portfolio)) {
+    index = which(settledate == as.Date(portfolio[p, 'entrytime'], tz = "Asia/Kolkata"))
+    vcash[index] = vcash[index] - portfolio[p, 'size'] * portfolio[p, 'entryprice'] - portfolio[p, 'size'] * portfolio[p, 'entryprice'] *
+      brokerage
+  }
+  for (p in 1:nrow(portfolio)) {
+    if (!is.na(portfolio[p, 'exittime'])) {
+      index = which(settledate == as.Date(portfolio[p, 'exittime'], tz = "Asia/Kolkata"))
+      vcash[index] = vcash[index] + portfolio[p, 'size'] *
+        portfolio[p, 'exitprice'] - portfolio[p, 'size'] *
+        portfolio[p, 'exitprice'] * brokerage
+    }
+  }
+  vcash
+
+}
+
+xirr <- function(cf, dates) {
+  # Secant method.
+  secant <-
+    function(par,
+             fn,
+             tol = 1.e-07,
+             itmax = 100,
+             trace = FALSE,
+             ...) {
+      # par = a starting vector with 2 starting values
+      # fn = a function whose first argument is the variable of interest
+      if (length(par) != 2)
+        stop("You must specify a starting parameter vector of length 2")
+      p.2 <- par[1]
+      p.1 <- par[2]
+      f <- rep(NA, length(par))
+      f[1] <- fn(p.1, ...)
+      f[2] <- fn(p.2, ...)
+      iter <- 1
+      pchg <- abs(p.2 - p.1)
+      fval <- f[2]
+      if (trace)
+        cat("par: ", par, "fval: ", f, "\n")
+      while (pchg >= tol &
+             abs(fval) > tol & iter <= itmax) {
+        p.new <- p.2 - (p.2 - p.1) * f[2] / (f[2] - f[1])
+        pchg <- abs(p.new - p.2)
+        fval <-
+          ifelse(is.na(fn(p.new, ...)), 1, fn(p.new, ...))
+        p.1 <- p.2
+        p.2 <- p.new
+        f[1] <- f[2]
+        f[2] <- fval
+        iter <- iter + 1
+        if (trace)
+          cat("par: ", p.new, "fval: ", fval, "\n")
+      }
+      list(par = p.new,
+           value = fval,
+           iter = iter)
+    }
+
+  # Net present value.
+  npv <-
+    function(irr, cashflow, times)
+      sum(cashflow / (1 + irr) ^ times)
+
+  times <-
+    as.numeric(difftime(dates, dates[1], units = "days")) / 365.24
+
+  r <- secant(
+    par = c(0, 0.1),
+    fn = npv,
+    cashflow = cf,
+    times = times
+  )
+
+  return(r$par)
 }
