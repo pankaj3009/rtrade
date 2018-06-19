@@ -20,6 +20,7 @@
 #include <Rcpp.h>
 #include <cmath>
 #include <algorithm>
+#include  <functional>
 #include <boost/date_time.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -553,33 +554,70 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
   return result;
 }
 
+
 // [[Rcpp::export]]
 
-StringVector linkedsymbols(StringVector originalNamesVector,StringVector changedNamesVector,String symbol)
+DataFrame linkedsymbols(DataFrame symbolchange,String ticker, bool complete=false)
 {
+  StringVector originalNamesVector=symbolchange["key"];
+  StringVector changedNamesVector=symbolchange["newsymbol"];
+  DateVector date=symbolchange["date"];
   int nSize=changedNamesVector.size();
   vector<string>out;
+  vector<Date> effectivedate;
+
   bool found=true;
-  string value=symbol;
-  while(found){
-    out.push_back(value);
-    label:
-      for(int i=0;i<nSize;i++){
-        if(changedNamesVector[i]==value){//original symbol has an initial value
-          if(originalNamesVector[i]!=value){
-            value=originalNamesVector[i];
-            out.push_back(value);
-            goto label;
-          }else{
-            break; //example ILFSTRANS & IL&FSTRANS
-          }
+  std::string value=ticker;
+  int i=0;
+  while(i<nSize){
+        if(changedNamesVector[i]==value & std::find(out.begin(), out.end(), value) == out.end()){
+          out.push_back(value);
+          value=originalNamesVector[i];
+          Rcout<<"Setting value:"<<originalNamesVector[i]<<std::endl;
+          effectivedate.push_back(date[i]);
+          i=0;
         }
-        found=false;
-      }
-      return wrap(out);
+        i++;
   }
 
-  return wrap(out);
+  // pass 1. Check if symbol is a changed one. if yes, update date
+  // if no, add
+  if(std::find(out.begin(), out.end(), value) == out.end()){
+    out.push_back(value);
+    effectivedate.push_back(0);
+  }
+
+  i=0;
+  value=ticker;
+  if(complete){
+    while(i<nSize){
+      if(originalNamesVector[i]==value){
+          value=changedNamesVector[i];
+         if(std::find(out.begin(), out.end(), value) == out.end()){
+           out.push_back(value);
+           effectivedate.push_back(date[i]);
+         }
+         i=0;
+      }
+      i++;
+    }
+  }
+
+
+  //return wrap(out);
+  DataFrame df= DataFrame::create(_["date"]=(effectivedate),_["symbol"]=(out));
+  Rcpp::Environment base("package:base");
+  Rcpp::Function order_r = base["order"];
+  NumericVector seq=order_r(df["date"]);
+  nSize=seq.size();
+  vector<string>out_new;
+  vector<Date> effectivedate_new;
+
+  for(int i=0;i<nSize;i++){
+    out_new.push_back(out[seq[i]-1]);
+    effectivedate_new.push_back(effectivedate[seq[i]-1]);
+  }
+  return DataFrame::create(_["date"]=(effectivedate_new),_["symbol"]=(out_new),_["stringsAsFactors"] = false);
 }
 
 
@@ -1229,6 +1267,72 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
   return DataFrame::create(_["symbol"]=(t_symbol),_["trade"]=(t_trade),_["entrytime"]=(t_entrytime),_["entryprice"]=(t_entryprice),
                            _["exittime"]=(t_exittime),_["exitprice"]=(t_exitprice),_["exitreason"]= (t_exitreason),
                              _["bars"]= (t_bars),
+                               _["stringsAsFactors"] = false);
+
+}
+
+//[[Rcpp::export]]
+DataFrame ProcessSurplusCash(const DataFrame cumpnl,int maxpositionSize,int positionvalue,double cashyield,bool debug=false ){
+  if(debug){
+    Rcout<<"### Running ProcessSurplusCash ###"<<std::endl;
+  }
+  int nSize=cumpnl.nrows();
+  //Rcout<<nSize<<std::endl;
+  DateVector timestamp=cumpnl["bizdays"];
+  NumericVector positioncount=cumpnl["positioncount"];
+  vector<const char*> t_symbol;
+  vector<const char*> t_trade;
+  vector<Date> t_entrytime;
+  vector<double> t_entryprice;
+  vector<Date> t_exittime;
+  vector<double> t_exitprice;
+  vector<const char*> t_exitreason;
+  vector<int> t_bars;
+  int currentposition=0;
+
+  for(int i=0;i<nSize;i++){//for each date
+    int gap=maxpositionSize-positioncount[i]-currentposition;
+    Date dt=timestamp[i];
+    //Rcout<<"Date:"<<dt.format()<<", CurrentPosition: "<<currentposition<< ", Gap:"<<gap<<std::endl;
+
+    if(gap>0){
+        for(signed int j=0;j<gap;j++){
+          t_symbol.push_back("INVESTMENT");
+          t_trade.push_back("BUY");
+          t_entrytime.push_back(timestamp[i]);
+          t_entryprice.push_back(positionvalue);
+          t_bars.push_back(0);
+        }
+    }else if(gap <0){ //sell
+      for(signed int j=gap;j<0;j++){
+        t_exittime.push_back(timestamp[i]);
+        t_exitprice.push_back(positionvalue);
+        t_exitreason.push_back("RegularExit");
+      }
+    }
+    currentposition=maxpositionSize-positioncount[i];
+  }
+
+  int unbalancedsize=t_entrytime.size()-t_exittime.size();
+  for(int i=0;i<unbalancedsize;i++){
+    t_exittime.push_back(timestamp[nSize-1]);
+    t_exitprice.push_back(positionvalue);
+    t_exitreason.push_back("Open");
+  }
+  std::transform(t_exittime.begin(),t_exittime.end(),t_entrytime.begin(),t_bars.begin(),std::minus<int>());
+  for( int i=0;i<t_exitprice.size();i++){
+    t_exitprice.at(i)=t_entryprice.at(i)+t_entryprice.at(i)*t_bars.at(i)*cashyield/365;
+    // Rcout<<t_exitprice.at(i)<<":"<<cashyield<<":"<<t_bars.at(i)<<t_entryprice.at(i)<<std::endl;
+
+  }
+
+
+  //Rcout<<t_entrytime.size()<<std::endl;
+  //Rcout<<t_exittime.size()<<std::endl;
+
+  return DataFrame::create(_["symbol"]=(t_symbol),_["trade"]=(t_trade),_["entrytime"]=(t_entrytime),_["entryprice"]=(t_entryprice),
+                             _["exittime"]=(t_exittime),_["exitprice"]=(t_exitprice),_["exitreason"]= (t_exitreason),
+                               _["bars"]= (t_bars),
                                _["stringsAsFactors"] = false);
 
 }
