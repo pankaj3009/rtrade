@@ -183,10 +183,7 @@ kGetOHLCV <-
     input=strsplit(as.list(strsplit(...,",")[[1]])[[1]],"=")[[1]][2]
     md <- data.frame()
     if (!is.null(symbolchange)) {
-      symbollist <-
-        linkedsymbols(symbolchange[, 2], #key
-                      symbolchange[, 3], #newsymbol
-                      toupper(input))
+      symbollist <- linkedsymbols(symbolchange,toupper(input))$symbol
     } else{
       symbollist = c(toupper(input))
     }
@@ -242,8 +239,6 @@ kGetOHLCV <-
         d <- data.frame(out)
         md <- rbind(md, d)
       }
-
-
     }
     if (nrow(md) > 0) {
       md[, 1] <-
@@ -251,75 +246,54 @@ kGetOHLCV <-
       md$symbol <- symbollist[1]
     }
     #handle splits
-    if (!is.null(splits)) {
-      md <- processSplits(md, splits, symbollist,df,end)
-    }else{
-      md<-rbind(df,md)
+    if(!is.null(splits)){
+      md <- processSplits(md, symbollist[1],df)
+    }else if(nrow(md)>0 & ( !is.null(df) & nrow(df)>0)){
+      md<-rbind(df[,c("date", "symbol",ts)],md)
+    }else if(nrow(md)>0){
+      md<-md
+      }else{
+      md<-df
     }
-    if (is.character(filepath)) {
+
+    if (is.character(filepath) &( !is.null(md) & nrow(md)>0)) {
       save(md, file = paste(filepath, symbollist[1], ".Rdata", sep = ""))
     }
     md
   }
 
 
-processSplits <- function(md, splits, symbollist,origmd,end) {
-  if (nrow(md) > 0) {
-    if (is.character(splits$date)) {
-      splits[, 1] <-
-        as.POSIXct(splits[, 1], format = "%Y-%m-%d") # col 1 is date
-    }
+processSplits <- function(md, symbollist,origmd) {
+  if(!is.null(origmd) && nrow(origmd)>0 && is.na(match("splitadjust", names(origmd)))){
+    md<-rbind(origmd,md)
   }
-  if(nrow(origmd)>0){
-    if(is.na(match("splitadjust", names(origmd)))){
-      md<-rbind(origmd,md)
-    }else{
-      superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
-      superset<-superset[superset %in% names(origmd)]
-      md<-rbind(origmd[,superset],md)
-    }
+  else
+    {
+    superset=c("date","open","high","low","settle","close","volume","delivered","symbol")
+    supersetorig<-superset[superset %in% names(origmd)]
+    supersetnew<-superset[superset %in% names(md)]
+    md<-rbind(origmd[,supersetorig],md[,supersetnew])
   }
-
 
   if(!is.null(md) && nrow(md)>0){
-    endreference=as.POSIXct(end)
-    md$splitadjust=1
-    for (i in 1:length(symbollist)) {
-      print(paste("Processing Split for symbol", symbollist[i], sep = " "))
-      subset <-
-        splits[splits[, 2] == symbollist[i],] # col 2 is symbols
-      if (nrow(subset) > 0) {
-        for (j in 1:nrow(subset)) {
-          #print(paste(endreference,subset[,1][j],subset[,1][j]<=endreference))
-          md$splitadjust <-
-            ifelse(md$date < subset[, 1][j] & subset[,1][j]<=endreference,
-                   md$splitadjust*subset[, 4][j]/subset[, 3][j],
-                   #row 3 is oldshare, row 4 is newshares
-                   md$splitadjust)
-          if ("open" %in% colnames(md)) {
-            md$aopen <-md$open/md$splitadjust
-          }
-          if ("high" %in% colnames(md)) {
-            md$ahigh <- md$high/md$splitadjust
-          }
-          if ("low" %in% colnames(md)) {
-            md$alow <- md$low/md$splitadjust
-          }
-          if ("close" %in% colnames(md)) {
-            md$aclose <- md$close/md$splitadjust
-          }
-          if ("settle" %in% colnames(md)) {
-            md$asettle <-md$settle/md$splitadjust
-          }
-          if ("volume" %in% colnames(md)) {
-            md$avolume <-md$volume*md$splitadjust
-          }
-          if ("delivered" %in% colnames(md)) {
-            md$adelivered <-md$delivered*md$splitadjust
-          }
-        }
+      md=md[order(md$date),]
+      print(paste("Processing Split for symbol", symbollist[1], sep = " "))
+      splitinfo=getSplitInfo(symbollist[1])
+      if(nrow(splitinfo)>0){
+        splitinfo=splitinfo[rev(order(splitinfo$date)),]
+        md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
+        splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
+        splitinfo$splitadjust=cumprod(splitinfo$newshares)/cumprod(splitinfo$oldshares)
+        md=merge(md,splitinfo[,c("date","splitadjust")],by.x=c("dateonly"),by.y=c("date"),all.x = TRUE)
+        md=md[ , -which(names(md) %in% c("dateonly"))]
+        md$splitadjust=Ref(md$splitadjust,1)
+        md$splitadjust=ifelse(!is.na(md$splitadjust) & !is.na(Ref(md$splitadjust,-1)),NA_real_,md$splitadjust)
+        md$splitadjust=na.locf(md$splitadjust,na.rm = FALSE,fromLast = TRUE)
+        md$splitadjust=ifelse(is.na(md$splitadjust),1,md$splitadjust)
       }else{
-        # no splits. add columns for adjusted values
+        md$splitadjust=1
+      }
+      #print("Generating adjusted bars")
         if ("open" %in% colnames(md)) {
           md$aopen <-md$open/md$splitadjust
         }
@@ -341,9 +315,9 @@ processSplits <- function(md, splits, symbollist,origmd,end) {
         if ("delivered" %in% colnames(md)) {
           md$adelivered <-md$delivered*md$splitadjust
         }
-      }
-    }
   }
+  #print("Returning split adjusted md")
+
   md
 }
 
