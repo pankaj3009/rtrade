@@ -188,7 +188,7 @@ kGetOHLCV <-
       symbollist = c(toupper(input))
     }
 
-    for (j in length(symbollist):1) {
+    for (j in 1:length(symbollist)) {
       #a <- list(...)
       #a[[1]] = paste("symbol", tolower(symbollist[j]), sep = "=")
       #a<-as.list(strsplit(...,",")[[1]])
@@ -243,11 +243,11 @@ kGetOHLCV <-
     if (nrow(md) > 0) {
       md[, 1] <-
         as.POSIXct(md[, 1] / 1000, origin = "1970-01-01", tz = "Asia/Kolkata")
-      md$symbol <- symbollist[1]
+      md$symbol <- symbollist[length(symbollist)]
     }
     #handle splits
     if(!is.null(splits)){
-      md <- processSplits(md, symbollist[1],df)
+      md <- processSplits(md, symbollist[length(symbollist)],df)
     }else if(nrow(md)>0 & ( !is.null(df) & nrow(df)>0)){
       md<-rbind(df[,c("date", "symbol",ts)],md)
     }else if(nrow(md)>0){
