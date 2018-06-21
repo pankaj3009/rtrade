@@ -8,12 +8,14 @@ Description: The package provides 1. Ability to retrieve equity and futures pric
 License: BSD-3-clause
 LazyData: TRUE
 Imports:
+    Rcpp (>= 0.12.3),
     httr,
     dplyr,
     jsonlite,
     xts,
     rredis,
     RQuantLib,
+    BH,
     quantmod
 Depends:
     httr,
@@ -24,8 +26,6 @@ Depends:
     RQuantLib,
     BH,
     quantmod
-Imports:
-    Rcpp (>= 0.12.3)
 LinkingTo:
     BH,
     Rcpp
