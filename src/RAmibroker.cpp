@@ -573,7 +573,7 @@ DataFrame linkedsymbols(DataFrame symbolchange,String ticker, bool complete=fals
         if(changedNamesVector[i]==value & std::find(out.begin(), out.end(), value) == out.end()){
           out.push_back(value);
           value=originalNamesVector[i];
-          Rcout<<"Setting value:"<<originalNamesVector[i]<<std::endl;
+          //Rcout<<"Setting value:"<<originalNamesVector[i]<<std::endl;
           effectivedate.push_back(date[i]);
           i=0;
         }
