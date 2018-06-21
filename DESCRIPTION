@@ -9,13 +9,15 @@ License: BSD-3-clause
 LazyData: TRUE
 Imports:
     httr,
+    dplyr,
     jsonlite,
     xts,
     rredis,
-    RQuantLib
+    RQuantLib,
     quantmod
 Depends:
     httr,
+    dplyr,
     jsonlite,
     xts,
     rredis,

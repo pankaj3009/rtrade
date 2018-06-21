@@ -18,8 +18,8 @@ reverseEngRSI<-function(C,targetRSI,n){
 
 createIndexConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    redisConnect()
-    redisSelect(redisdb)
+    rredis::redisConnect()
+    rredis::redisSelect(redisdb)
     rediskeys = redisKeys()
     dfstage1 <- data.frame(
       symbol = character(),
@@ -88,7 +88,7 @@ createIndexConstituents <-
       )
       symbols <-
         data.frame(
-          symbol = unlist(redisSMembers(rediskeysShortList[i])),
+          symbol = unlist(rredis::redisSMembers(rediskeysShortList[i])),
           startdate = as.Date(
             seriesstartdate,
             format = "%Y%m%d",
@@ -124,15 +124,15 @@ createIndexConstituents <-
         }
       }
     }
-    redisClose()
+    rredis::redisClose()
     dfstage2
 
   }
 
 createFNOConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    redisConnect()
-    redisSelect(redisdb)
+    rredis::redisConnect()
+    rredis::redisSelect(redisdb)
     rediskeys = redisKeys()
     dfstage1 <- data.frame(
       symbol = character(),
@@ -225,15 +225,15 @@ createFNOConstituents <-
         }
       }
     }
-    redisClose()
+    rredis::redisClose()
     dfstage2
 
   }
 
 createFNOSize <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    redisConnect()
-    redisSelect(redisdb)
+    rredis::redisConnect()
+    rredis::redisSelect(redisdb)
     rediskeys = redisKeys()
     dfstage2 <- data.frame(
       symbol = character(),
@@ -321,7 +321,7 @@ createFNOSize <-
         }
       }
     }
-    redisClose()
+    rredis::redisClose()
     dfstage2
 
   }
@@ -335,8 +335,8 @@ getMostRecentSymbol <- function(symbol) {
 
 readAllSymbols <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    redisConnect()
-    redisSelect(redisdb)
+    rredis::redisConnect()
+    rredis::redisSelect(redisdb)
     rediskeys = redisKeys()
     symbols <- data.frame(
       brokersymbol = character(),
@@ -459,8 +459,8 @@ createPNLSummary <-
     #start,end = string as "yyyy-mm-dd"
     #mdpath = path to market data files for valuing open positions
     #realtrades<-createPNLSummary(0,"swing01","2017-01-01","2017-01-31","/home/psharma/Seafile/rfiles/daily-fno/")
-    redisConnect()
-    redisSelect(redisdb)
+    rredis::redisConnect()
+    rredis::redisSelect(redisdb)
     rediskeys = redisKeys(paste("*",pattern,"*",sep=""))
     actualtrades <-
       data.frame(
@@ -624,13 +624,13 @@ getPriceArrayFromRedis <-
     #duration = [tick,daily]
     # type = [OPT,STK,FUT]
     # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
-    redisConnect()
-    redisSelect(as.numeric(redisdb))
+    rredis::redisConnect()
+    rredis::redisSelect(as.numeric(redisdb))
     start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     a <-
       redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
-    redisClose()
+    rredis::redisClose()
     price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
     if (nrow(price) > 0) {
       price$value = as.numeric(price$value)
@@ -683,13 +683,13 @@ getPriceHistoryFromRedis <-
     #duration = [tick,daily]
     # type = [OPT,STK,FUT]
     # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
-    redisConnect()
-    redisSelect(as.numeric(redisdb))
+    rredis::redisConnect()
+    rredis::redisSelect(as.numeric(redisdb))
     start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     a <-
       redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
-    redisClose()
+    rredis::redisClose()
     price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
     if (nrow(price) > 0) {
       price$value = as.numeric(price$value)
@@ -775,8 +775,8 @@ GetCurrentPosition <-
            path = NULL,
            deriv=FALSE,
            splitadjustedPortfolio=TRUE,
-           trades.till = Sys.Date(),
-           position.on = Sys.Date()) {
+           trades.till = Sys.time(),
+           position.on = Sys.time()) {
     # Returns the current position for a scrip after calculating all rows in portfolio.
     #scrip = String
     #Portfolio = df containing columns[symbol,exittime,trade,size]
@@ -799,13 +799,9 @@ GetCurrentPosition <-
     }
     if (nrow(portfolio) > 0) {
       portfolio <-
-        portfolio[as.Date(portfolio$entrytime, tz = "Asia/Kolkata") <= trades.till, ]
+        portfolio[portfolio$entrytime <= trades.till, ]
       for (row in 1:nrow(portfolio)) {
-        if ((
-          is.na(portfolio[row, 'exittime']) ||
-          as.Date(portfolio[row, 'exittime'], tz = "Asia/Kolkata") >= position.on
-        )
-        &&  portfolio[row, 'symbol'] == scrip) {
+        if ((is.na(portfolio[row, 'exittime']) || portfolio[row, 'exittime'] >= position.on ) &&  portfolio[row, 'symbol'] == scrip) {
           splitadjustment=1
           if(handlesplits){
             if(deriv){
@@ -3097,10 +3093,10 @@ loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDu
 }
 
 getSplitInfo<-function(symbol="",complete=FALSE){
-  redisConnect()
-  redisSelect(2)
+  rredis::redisConnect()
+  rredis::redisSelect(2)
   if(symbol==""){
-    a <-  unlist(redisSMembers("splits")) # get values from redis in a vector
+    a <-  unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
     tmp <- (strsplit(a, split = "_")) # convert vector to list
     k <- lengths(tmp) # expansion size for each list element
     allvalues <-  unlist(tmp) # convert list to vector
@@ -3122,16 +3118,16 @@ getSplitInfo<-function(symbol="",complete=FALSE){
     splitinfo$oldshares <- as.numeric(splitinfo$oldshares)
     splitinfo$newshares <- as.numeric(splitinfo$newshares)
   }else{
-    # a<-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
+    # a<-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
     # origsymbols=sapply(strsplit(a,"_"),"[",2)
     # newsymbols=sapply(strsplit(a,"_"),"[",3)
     symbolchange=getSymbolChange()
     # linkedsymbols=RTrade::linkedsymbols(origsymbols,newsymbols,symbol)
     linkedsymbols=linkedsymbols(symbolchange,symbol,complete)$symbol
     linkedsymbols=paste("^",linkedsymbols,"$",sep="")
-    redisConnect()
-    redisSelect(2)
-    a<-unlist(redisSMembers("splits")) # get values from redis in a vector
+    rredis::redisConnect()
+    rredis::redisSelect(2)
+    a<-unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
     date=sapply(strsplit(a,"_"),"[",1)
     date=strptime(date,format="%Y%m%d")
     date=as.POSIXct(date,tz="Asia/Kolkata")
@@ -3152,9 +3148,9 @@ getSplitInfo<-function(symbol="",complete=FALSE){
 }
 
 getSymbolChange<-function(){
-  redisConnect()
-  redisSelect(2)
-    a <-unlist(redisSMembers("symbolchange")) # get values from redis in a vector
+  rredis::redisConnect()
+  rredis::redisSelect(2)
+    a <-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
     tmp <-  (strsplit(a, split = "_")) # convert vector to list
     k <-  lengths(tmp) # expansion size for each list element
     allvalues <- unlist(tmp) # convert list to vector
@@ -3175,7 +3171,7 @@ getSymbolChange<-function(){
     symbolchange$date = as.Date(symbolchange$date, format = "%Y%m%d", tz = "Asia/Kolkata")
     symbolchange$key = gsub("[^0-9A-Za-z/-]", "", symbolchange$key)
     symbolchange$newsymbol = gsub("[^0-9A-Za-z/-]", "", symbolchange$newsymbol)
-    redisClose()
+    rredis::redisClose()
     symbolchange
 }
 
@@ -3305,4 +3301,110 @@ xirr <- function(cf, dates) {
   )
 
   return(r$par)
+}
+
+placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reverse=FALSE,setDisplaySize=TRUE,kTimeZone="Asia/Kolkata"){
+
+  if(!"entry.splitadjust" %in% names(trades)){
+    trades$entry.splitadjust=1
+  }
+
+  if(!"exit.splitadjust" %in% names(trades)){
+    trades$exit.splitadjust=1
+  }
+
+  if(reverse){
+    trades$side=ifelse(trades$side=="BUY","SHORT","BUY")
+  }
+
+  entryindices=which(trades$entrytime == referenceDate)
+  if (length(entryindices) >= 1) {
+    entrysize = sum(trades[entryindices, c("size")])
+  }
+  exitindices=which(trades$entrytime == referenceDate & trades$exitreason!="Open")
+  if (length(exitindices) >= 1) {
+    exitsize = sum(trades[exitindices, c("size")])
+  }
+
+  # Exit
+  if(length(exitindices)>0){
+    redisConnect()
+    redisSelect(redisdb)
+    out <- trades[exitindices,]
+    for (o in 1:nrow(out)) {
+      change = 0
+      side = "UNDEFINED"
+      # calculate starting positions by excluding trades already considered in this & prior iterations.
+      # Effectively, the abs(startingposition) should keep reducing for duplicate symbols.
+      startingpositionexcluding.this=GetCurrentPosition(out[o, "symbol"], trades[-exitindices[1:o],],trades.till = referenceDate-1,position.on = referenceDate-1)
+      if(grepl("BUY",out[o,"trade"])){
+        change=-out[o,"size"]*out[o,"entry.splitadjust"]/out[o,"exit.splitadjust"]
+        side="SELL"
+      }else{
+        change=out[o,"size"]*out[o,"entry.splitadjust"]/out[o,"exit.splitadjust"]
+        side="COVER"
+      }
+      startingposition = startingpositionexcluding.this-change
+      if(map){
+        parameters$ParentDisplayName=out[o,"mapsymbol"]
+        parameters$ChildDisplayName=out[o,"mapsymbol"]
+      }else{
+        parameters$ParentDisplayName=out[o,"symbol"]
+        parameters$ChildDisplayName=out[o,"symbol"]
+      }
+      parameters$OrderSide=side
+      parameters$StrategyOrderSize=out[o,"size"]*out[o,"entry.splitadjust"]/out[o,"exit.splitadjust"]
+      parameters$StrategyStartingPosition=as.character(abs(startingposition))
+      parameters$OrderReason="REGULAREXIT"
+      if(setDisplaySize){
+        parameters$DisplaySize=out[o,"size"]
+      }
+
+      redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
+      redisString<-gsub("\\[","",redisString)
+      redisString<-gsub("\\]","",redisString)
+      redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
+      redisClose()
+    }
+
+  }
+
+  #Entry
+  if(length(entryindices)>0){
+    redisConnect()
+    redisSelect(redisdb)
+    out <- trades[entryindices,]
+    for (o in 1:nrow(out)) {
+      endingposition=GetCurrentPosition(out[o, "symbol"], trades)
+      change = 0
+      side = "UNDEFINED"
+      if(grepl("BUY",out[o,"trade"])){
+        change=out[o,"size"]
+        side="BUY"
+      }else{
+        change=-out[o,"size"]
+        side="SHORT"
+      }
+      startingposition = endingposition - change
+      if(map){
+        parameters$ParentDisplayName=out[o,"mapsymbol"]
+        parameters$ChildDisplayName=out[o,"mapsymbol"]
+      }else{
+        parameters$ParentDisplayName=out[o,"symbol"]
+        parameters$ChildDisplayName=out[o,"symbol"]
+      }
+      parameters$OrderSide=side
+      parameters$StrategyOrderSize=out[o,"size"]
+      parameters$StrategyStartingPosition=as.character(abs(startingposition))
+      parameters$OrderReason="REGULARENTRY"
+      if(setDisplaySize){
+        parameters$DisplaySize=out[o,"size"]
+      }
+      redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
+      redisString<-gsub("\\[","",redisString)
+      redisString<-gsub("\\]","",redisString)
+      redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
+      redisClose()
+    }
+  }
 }
