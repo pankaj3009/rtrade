@@ -328,8 +328,13 @@ createFNOSize <-
 
 getMostRecentSymbol <- function(symbol) {
   symbolchange=getSymbolChange()
-  out <- linkedsymbols(symbolchange, symbol)
-  out <- out[length(out)]
+  if(length(symbol)==1){
+    out <- linkedsymbols(symbolchange, symbol,TRUE)$symbol
+    out <- out[length(out)]
+  }else{
+    out=lapply(symbol,linkedsymbols,symbolchange=symbolchange,complete=TRUE)
+    out=sapply(out,function(x) x[[2]][length(x[[2]])])
+  }
   out
 }
 
@@ -3303,7 +3308,7 @@ xirr <- function(cf, dates) {
   return(r$par)
 }
 
-placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reverse=FALSE,setDisplaySize=TRUE,kTimeZone="Asia/Kolkata"){
+placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reverse=FALSE,setDisplaySize=TRUE,setLimitPrice=FALSE,kTimeZone="Asia/Kolkata"){
 
   if(!"entry.splitadjust" %in% names(trades)){
     trades$entry.splitadjust=1
@@ -3318,13 +3323,7 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
   }
 
   entryindices=which(trades$entrytime == referenceDate)
-  if (length(entryindices) >= 1) {
-    entrysize = sum(trades[entryindices, c("size")])
-  }
-  exitindices=which(trades$entrytime == referenceDate & trades$exitreason!="Open")
-  if (length(exitindices) >= 1) {
-    exitsize = sum(trades[exitindices, c("size")])
-  }
+  exitindices=which(trades$exittime == referenceDate & trades$exitreason!="Open")
 
   # Exit
   if(length(exitindices)>0){
@@ -3359,7 +3358,9 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       if(setDisplaySize){
         parameters$DisplaySize=out[o,"size"]
       }
-
+      if(setLimitPrice){
+        parameters$LimitPrice=out[o,"exitprice"]
+      }
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
@@ -3397,9 +3398,21 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       parameters$StrategyOrderSize=out[o,"size"]
       parameters$StrategyStartingPosition=as.character(abs(startingposition))
       parameters$OrderReason="REGULARENTRY"
+
       if(setDisplaySize){
         parameters$DisplaySize=out[o,"size"]
       }
+      if(setLimitPrice){
+        parameters$LimitPrice=out[o,"entryprice"]
+      }
+
+      if("tp" %in% names(trades)){
+        parameters$TakeProfit=out[o,"tp"]
+      }
+      if("sl" %in% names(trades)){
+        parameters$StopLoss=out[o,"sl"]
+      }
+
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
