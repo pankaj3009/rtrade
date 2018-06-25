@@ -3365,7 +3365,6 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
       redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
-      redisClose()
     }
 
   }
@@ -3417,7 +3416,6 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
       redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
-      redisClose()
     }
   }
 }
