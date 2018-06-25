@@ -3376,7 +3376,7 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
     redisSelect(redisdb)
     out <- trades[entryindices,]
     for (o in 1:nrow(out)) {
-      endingposition=GetCurrentPosition(out[o, "symbol"], trades)
+      endingposition=GetCurrentPosition(out[o, "symbol"], trades,position.on = referenceDate-1)
       change = 0
       side = "UNDEFINED"
       if(grepl("BUY",out[o,"trade"])){
