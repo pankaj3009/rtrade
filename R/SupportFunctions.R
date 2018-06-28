@@ -2624,7 +2624,9 @@ MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALS
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
-      if (as.Date(itrades$exittime[i],tz="Asia/Kolkata")>=itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i]) {
+      if ((as.Date(itrades$exittime[i],tz="Asia/Kolkata")>itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i])
+        | (as.Date(itrades$exittime[i],tz="Asia/Kolkata")==itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i] & itrades$exitreason[i]=="Open")
+        ) {
         df.copy = itrades[i, ]
         df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
@@ -2645,7 +2647,7 @@ MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALS
     itrades$entryprice[i]=futureTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],kFNODataFolder,kNiftyDataFolder)
     itrades$exitprice[i]=futureTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],kFNODataFolder,kNiftyDataFolder)
   }
-  itrades
+  itrades[order(itrades$entrytime),]
 }
 
 futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafolder,equitydatafolder){
@@ -2659,7 +2661,7 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafo
   load(paste(fnodatafolder,expiry,"/",futureSymbol[1],".Rdata",sep=""))
   md<-unique(md)
   futureprice=md[md$date==tradedate,]
-  if(nrow(futureprice)==1){
+  if(nrow(futureprice)==1 & nrow(underlyingprice)==1){
     if(underlyingtradeprice==underlyingprice$aopen[1]){
       adjustment=futureprice$settle-underlyingprice$settle
     }
