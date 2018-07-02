@@ -3009,7 +3009,7 @@ changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
   }
 }
 
-loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
+loadSymbol<-function(symbol,realtime=FALSE,type="STK",cutoff=NULL,sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
                      equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/"){
   symbolsvector = unlist(strsplit(symbol, "_"))
   filefound=FALSE
@@ -3094,6 +3094,9 @@ loadSymbol<-function(symbol,realtime=FALSE,type="STK",sourceDuration=NULL,destDu
     md<-unique(md)
   }else{
     md<-NA_character_
+  }
+  if(!is.null(cutoff)){
+    md<-md[md$date<=as.POSIXct(cutoff,tz="Asia/Kolkata"),]
   }
   md<-changeTimeFrame(md,sourceDuration,destDuration)
   md
