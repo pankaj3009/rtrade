@@ -281,9 +281,13 @@ processSplits <- function(md, symbollist,origmd) {
       splitinfo=getSplitInfo(symbollist[1])
       if(nrow(splitinfo)>0){
         splitinfo=splitinfo[rev(order(splitinfo$date)),]
+        splitinfo$splitadjust=splitinfo$newshares/splitinfo$oldshares
+        splitinfo=aggregate(splitadjust~date,splitinfo,prod)
         md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
         splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
-        splitinfo$splitadjust=cumprod(splitinfo$newshares)/cumprod(splitinfo$oldshares)
+#        splitinfo$splitadjust=cumprod(splitinfo$newshares)/cumprod(splitinfo$oldshares)
+        splitinfo$splitadjust=cumprod(splitinfo$splitadjust)
+#        aggregatesplitinfo$date=unique(splitinfo$date)
         md=merge(md,splitinfo[,c("date","splitadjust")],by.x=c("dateonly"),by.y=c("date"),all.x = TRUE)
         md=md[ , -which(names(md) %in% c("dateonly"))]
         md$splitadjust=Ref(md$splitadjust,1)
