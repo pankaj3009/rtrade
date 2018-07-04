@@ -280,9 +280,10 @@ processSplits <- function(md, symbollist,origmd) {
       print(paste("Processing Split for symbol", symbollist[1], sep = " "))
       splitinfo=getSplitInfo(symbollist[1])
       if(nrow(splitinfo)>0){
-        splitinfo=splitinfo[rev(order(splitinfo$date)),]
+        #splitinfo=splitinfo[(order(splitinfo$date)),]
         splitinfo$splitadjust=splitinfo$newshares/splitinfo$oldshares
         splitinfo=aggregate(splitadjust~date,splitinfo,prod)
+        splitinfo=splitinfo[rev(order(splitinfo$date)),]
         md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
         splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
 #        splitinfo$splitadjust=cumprod(splitinfo$newshares)/cumprod(splitinfo$oldshares)
