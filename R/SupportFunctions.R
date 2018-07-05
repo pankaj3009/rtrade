@@ -3199,6 +3199,16 @@ r2 <- function (x,array=TRUE,period=252) {
   }
 }
 
+regress<-function(x,array=TRUE,period=252){
+  if(!array){
+    pointregress(x)
+  }else{
+    value<-rollapply(x,period,pointregress)
+    value<-rbind(matrix(0,length(x)-nrow(value),2),value)
+    unname(value)
+  }
+}
+
 lmprediction <- function (x,array=TRUE,period=252) {
   if(!array){
     pointpredict(x)
@@ -3219,6 +3229,11 @@ pointr2 <- function(x) {
   summary(res)$r.squared
 }
 
+pointregress <- function(x) {
+  res <- (lm(log(x) ~ seq(1:length(x))))
+  c(res$coefficients[2],summary(res)$r.squared)
+}
+
 pointpredict<-function(x){
   y=log(x)
   x1= seq(1:length(x))
@@ -3226,6 +3241,7 @@ pointpredict<-function(x){
   out=predict(res,data.frame(x1=length(x)))
   exp(out)
 }
+
 
 CashFlow <- function(portfolio, settledate, brokerage) {
   vcash = rep(0, length(settledate))
