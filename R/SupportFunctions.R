@@ -858,8 +858,8 @@ CalculateDailyPNL <-
       #for (l in 1:193){
       for (l in 1:nrow(portfolio)) {
         name = portfolio[l, 'symbol']
-        entrydate = as.Date(portfolio[l, 'entrytime'], tz = "Asia/Kolkata")
-        exitdate = as.Date(portfolio[l, 'exittime'], tz = "Asia/Kolkata")
+        entrydate = portfolio[l, 'entrytime']
+        exitdate = portfolio[l, 'exittime']
         if (!deriv) {
           load(paste(path, name, ".Rdata", sep = ""))
         } else{
@@ -881,13 +881,13 @@ CalculateDailyPNL <-
           }
         }
         md=unique(md)
-        entryindex = which(as.Date(md$date, tz = "Asia/Kolkata") == entrydate)
-        exitindex = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
+        entryindex = which(md$date == entrydate)
+        exitindex = last(which(md$date <= exitdate))
         unrealizedpnlexists = FALSE
         if (length(exitindex) == 0) {
           # we do not have an exit date
           exitindex = nrow(md)
-          altexitindex = which(as.Date(md$date, tz = "Asia/Kolkata") == pnl$bizdays[nrow(pnl)])
+          altexitindex = which(md$date == pnl$bizdays[nrow(pnl)])
           exitindex = ifelse(length(altexitindex) > 0, altexitindex, exitindex)
           unrealizedpnlexists = TRUE
         }
@@ -896,18 +896,18 @@ CalculateDailyPNL <-
         size = portfolio[l, 'size']
         dtindex = 0
         if (length(entryindex) == 1) {
-          dtindexstart = which(pnl$bizdays == as.Date(md$date[entryindex], tz = "Asia/Kolkata"))
-          dtindexend = which(pnl$bizdays == as.Date(md$date[exitindex], tz ="Asia/Kolkata"))
+          dtindexstart = which(pnl$bizdays == md$date[entryindex])
+          dtindexend = which(pnl$bizdays == md$date[exitindex])
           cumunrealized = seq(0,0,length.out = (dtindexend -  dtindexstart + 1))
           side = portfolio[l, 'trade']
-          positionindexstart = which(pnl$bizdays == as.Date(md$date[entryindex], tz = "Asia/Kolkata"))
-          positionindexend = which(pnl$bizdays == as.Date(md$date[exitindex], tz = "Asia/Kolkata"))
+          positionindexstart = which(pnl$bizdays == md$date[entryindex])
+          positionindexend = which(pnl$bizdays == md$date[exitindex])
           pnl$positioncount[positionindexstart:(positionindexend)]<-pnl$positioncount[positionindexstart:(positionindexend)]+1
 
           for (index in entryindex:(exitindex - 1)) {
             #entryindex,exitindex are indices on md
             #dtindex,dtindexstart,dtindexend are indices on pnl
-            dtindex = which(pnl$bizdays == as.Date(md$date[index], tz = "Asia/Kolkata"))# it is possible that bizdays does not match the md$dates!
+            dtindex = which(pnl$bizdays == md$date[index])# it is possible that bizdays does not match the md$dates!
             if (length(dtindex) > 0) {
               if(handlesplits){
                 newprice=md$asettle[index]
@@ -941,7 +941,7 @@ CalculateDailyPNL <-
           lastdaypnl = ifelse(grepl("BUY", side),(portfolio[l, 'exitprice']*newsplitadjustment - mtm) * size,(mtm - portfolio[l, 'exitprice']*newsplitadjustment) * size)
           if (!unrealizedpnlexists) {
             if (length(dtindex) == 0) {
-              dtindex = which(pnl$bizdays == as.Date(portfolio[l, "exittime"],tz = "Asia/Kolkata")) - 1
+              dtindex = which(pnl$bizdays ==portfolio[l, "exittime"]) - 1
             }
             pnl$realized[(dtindex + 1):nrow(pnl)] <-pnl$realized[(dtindex + 1):nrow(pnl)] + sum(cumunrealized) + lastdaypnl
             if (per.contract.brokerage) {
