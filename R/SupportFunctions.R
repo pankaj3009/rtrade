@@ -2670,6 +2670,11 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafo
 
 }
 
+getmtm<-function(symbol,date){
+  md=loadSymbol(symbol)
+  last(md[md$date<=date,c("asettle")])
+}
+
 sharpe <- function(returns, risk.free.rate = 0.07) {
   sqrt(252) * (mean(returns) - (risk.free.rate / 365)) / sd(returns)
 }
@@ -3262,7 +3267,7 @@ CashFlow <- function(portfolio, settledate, brokerage) {
 
 }
 
-xirr <- function(cf, dates) {
+xirr <- function(cf, dates,par=c(0,0.1),trace=FALSE) {
   # Secant method.
   secant <-
     function(par,
@@ -3288,6 +3293,7 @@ xirr <- function(cf, dates) {
       while (pchg >= tol &
              abs(fval) > tol & iter <= itmax) {
         p.new <- p.2 - (p.2 - p.1) * f[2] / (f[2] - f[1])
+        p.new=max(-0.99,p.new)
         pchg <- abs(p.new - p.2)
         fval <-
           ifelse(is.na(fn(p.new, ...)), 1, fn(p.new, ...))
