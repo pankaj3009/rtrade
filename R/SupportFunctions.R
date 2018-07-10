@@ -815,8 +815,8 @@ GetCurrentPosition <-
             }else{
               load(paste(path,scrip,".Rdata",sep=""))
             }
-            buyindex= which(as.Date(md$date, tz = "Asia/Kolkata") == portfolio[row,'entrytime'])
-            currentindex= which(as.Date(md$date, tz = "Asia/Kolkata") == position.on)
+            buyindex= which(md$date == portfolio[row,'entrytime'])
+            currentindex= which(md$date == position.on)
             if(!splitadjustedPortfolio){
               splitadjustment=md$splitadjust[buyindex]/md$splitadjust[currentindex]
             }else{
@@ -959,7 +959,7 @@ CalculateDailyPNL <-
         }
       }
     }
-    pnl$cashdeployed=pnl$longnpv+pnl$shortnpv-pnl$unrealized-pnl$realized
+    pnl$cashdeployed=pnl$longnpv+pnl$shortnpv-pnl$unrealized-pnl$realized+pnl$brokerage
     pnl$cashflow=c(NA_real_,diff(pnl$cashdeployed))
     pnl$cashflow[1]=pnl$cashdeployed[1]
     pnl$cashflow=-round(pnl$cashflow,0)
