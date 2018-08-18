@@ -55,15 +55,19 @@ kDate <- function(x, y = NULL) {
 }
 
 kMetrics <- function(tags, name, aggregators) {
-  if (!is.null(aggregators)) {
+  if (!is.null(aggregators) && !is.null(name)) {
     result <- list(tags, jsonlite::unbox(name), list(aggregators))
     names(result) <- c("tags", "name", "aggregators")
     #print(result)
 
-
-  } else{
+  } else if(is.null(aggregators)){
     result <- list(tags, jsonlite::unbox(name))
     names(result) <- c("tags", "name")
+    #print("wrong loop")
+    #print(result)
+  }else if(is.null(aggregators) && is.null(name)){
+    result <- list(tags)
+    names(result) <- c("tags")
     #print("wrong loop")
     #print(result)
   }
@@ -81,26 +85,17 @@ kAggregators <- function(x, y, z) {
 }
 
 kTags <- function(value) {
-  input=as.list(strsplit(value,",")[[1]])
-  #input <- list(...)[-length(list(...))]
-  #print("input")
-  #print(input)
-  #print("length input")
-  #print(length(input))
+  input=unlist(strsplit(value,","))
   tags <- list()
   names <- vector()
   for (i in 1:length(input)) {
-    #print("loop #")
-    #print(i)
-    namevalue <- input[[i]]
-    #print("namevalue")
-    #print(namevalue)
-    name <- strsplit(as.character(input[[i]]), "=")[[1]][[1]]
+    namevalue <- input[i]
+    name <- strsplit(input[i], "=")[[1]][[1]]
     #print("name")
     #print(name)
-    value <- strsplit(as.character(input[[i]]), "=")[[1]][[2]]
+    value <- strsplit(input[i], "=")[[1]][[2]]
     value<-gsub(" ","",value)
-    #value<-strsplit(as.character(value),split=",")
+    #value<-strvsplit(as.character(value),split=",")
     #print("value")
     #print(value)
     tags <- c(tags, list(value))
@@ -144,7 +139,7 @@ kgetTags<-function(...,start,end,timezone = "Asia/Kolkata",name,ts,tagname){
       myjson <- toJSON(query, pretty = TRUE)
       r <-
         POST(
-          "http://91.121.165.108:8085/api/v1/datapoints/query/tags",
+          "http://91.121.117.8:8085/api/v1/datapoints/query/tags",
           body = myjson,
           encode = "json"
         )
@@ -198,7 +193,7 @@ kGetOHLCV <-
       endUnix <- as.numeric(as.POSIXct(paste(end, timezone))) * 1000
       startLong <- kDate(startUnix)
       endLong <- kDate(endUnix)
-      tags <- kTags(newargs)
+      tags <- kTags(...)
       out <- matrix()
       aggr = list()
       for (i in 1:length(ts)) {
@@ -215,7 +210,7 @@ kGetOHLCV <-
         print(paste("retrieving", ts[i], "for", symbollist[j], sep = " "))
         r <-
           POST(
-            "http://91.121.165.108:8085/api/v1/datapoints/query",
+            "http://91.121.117.8:8085/api/v1/datapoints/query",
             body = myjson,
             encode = "json"
           )
@@ -228,11 +223,11 @@ kGetOHLCV <-
             )
           colnames(m) <- c("date", ts[i])
           out <- merge(out, m, by = 1, all = TRUE)
-
-
+        }else{
+          out[ts[i]] <- 0
         }
       }
-      if (dim(out)[2] == length(ts) + 1) {
+      if (!is.null(dim(out)) && dim(out)[2] == length(ts) + 1) {
         # generate quotes only if the #columns = # elements in ts
         colnames(out) <- c("date", ts)
         out <- out[rowSums(is.na(out)) != length(ts) + 1,]

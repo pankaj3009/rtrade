@@ -5,6 +5,14 @@ library(quantmod)
 library(zoo)
 options(scipen=999)
 
+data.env<- new.env()
+if(is.null(getOption("datafolder"))){
+  data.env$datafolder="/home/psharma/Dropbox/rfiles/data/daily/"
+}else{
+  data.env$datafolder=getOption("datafolder")
+}
+
+
 specify_decimal <- function(x, k) as.numeric(trimws(format(round(x, k), nsmall=k)))
 
 reverseEngRSI<-function(C,targetRSI,n){
@@ -523,25 +531,10 @@ createPNLSummary <-
             symbol = data["entrysymbol"]
             if (deriv) {
               symbolsvector = unlist(strsplit(symbol, "_"))
-              load(
-                paste(
-                  mdpath,
-                  symbolsvector[3],
-                  "/",
-                  symbol,
-                  ".Rdata",
-                  sep =
-                    ""
-                )
-              )
+              md=loadSymbol(symbol,days=100000)
             } else{
               symbolsvector = unlist(strsplit(symbol, "_"))
-              load(paste(
-                mdpath,
-                symbolsvector[1],
-                ".Rdata",
-                sep = ""
-              ))
+              md=loadSymbol(symbol,days=100000)
             }
             index = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
             if (length(index) == 0) {
@@ -623,7 +616,7 @@ getExpiryDate <- function(mydate) {
 }
 
 getPriceArrayFromRedis <-
-  function(redisdb, symbol, duration, type, starttime,endtime) {
+  function(redisdb, symbol, duration, type, starttime,endtime,tz="Asia/Kolkata") {
     # Retrieves OHLCS prices from redisdb (currently no 9) starting from todaydate till end date.
     #symbol = redis symbol name in db=9
     #duration = [tick,daily]
@@ -643,8 +636,11 @@ getPriceArrayFromRedis <-
       low = min(price$value)
       open = price$value[1]
       close = price$value[nrow(price)]
+      timeformat = as.POSIXct(first(price)$time/1000, origin="1970-01-01")
+      timeformat=strftime(timeformat,format="%Y-%m-%d",tz=tz)
+      timeformat=as.POSIXct(timeformat)
       out = data.frame(
-        date = as.POSIXct(starttime, format = "%Y-%m-%d"),
+        date = timeformat,
         open = open,
         high = high,
         low = low,
@@ -654,7 +650,6 @@ getPriceArrayFromRedis <-
     } else{
       out = data.frame()
     }
-
     return(out)
   }
 
@@ -705,7 +700,6 @@ getPriceHistoryFromRedis <-
     } else{
       out = data.frame()
     }
-
     return(out)
   }
 
@@ -793,10 +787,10 @@ GetCurrentPosition <-
     handlesplits=FALSE
     if(!is.null(path)){
       if(deriv){
-        symbolsvector = unlist(strsplit(name, "_"))
-        load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+        symbolsvector = unlist(strsplit(scrip, "_"))
+        md=loadSymbol(scrip,days=1000000)
       }else{
-        load(paste(path,scrip,".Rdata",sep=""))
+        md=loadSymbol(scrip,days=1000000)
       }
       if("splitadjust" %in% colnames(md)){
         handlesplits=TRUE
@@ -811,9 +805,9 @@ GetCurrentPosition <-
           if(handlesplits){
             if(deriv){
               symbolsvector = unlist(strsplit(name, "_"))
-              load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
+              md=loadSymbol(scrip,days=1000000)
             }else{
-              load(paste(path,scrip,".Rdata",sep=""))
+              md=loadSymbol(scrip,days=1000000)
             }
             buyindex= which(md$date == portfolio[row,'entrytime'])
             currentindex= which(md$date == position.on)
@@ -836,7 +830,6 @@ GetCurrentPosition <-
 CalculateDailyPNL <-
   function(portfolio,
            pnl,
-           path,
            brokerage,
            per.contract.brokerage = TRUE,
            deriv = FALSE) {
@@ -860,26 +853,11 @@ CalculateDailyPNL <-
         name = portfolio[l, 'symbol']
         entrydate = portfolio[l, 'entrytime']
         exitdate = portfolio[l, 'exittime']
-        if (!deriv) {
-          load(paste(path, name, ".Rdata", sep = ""))
-        } else{
-          symbolsvector = unlist(strsplit(name, "_"))
-          load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
-        }
-
+        md=loadSymbol(name,days=1000000)
         handlesplits=FALSE
-        if(!is.null(path)){
-          if (!deriv) {
-            load(paste(path, name, ".Rdata", sep = ""))
-          } else{
-            symbolsvector = unlist(strsplit(name, "_"))
-            load(paste(path,symbolsvector[3],"/",name,".Rdata",sep = ""))
-          }
-
-          if("splitadjust" %in% colnames(md)){
+        if("splitadjust" %in% colnames(md)){
             handlesplits=TRUE
           }
-        }
         md=unique(md)
         entryindex = which(md$date == entrydate)
         exitindex = last(which(md$date <= exitdate))
@@ -967,1659 +945,14 @@ CalculateDailyPNL <-
 
   }
 
-optionTradeSignalsLongOnly <- function(signals,
-                                       fnodatafolder,
-                                       equitydatafolder,
-                                       rollover = FALSE) {
-  out = data.frame(
-    date = as.POSIXct(character()),
-    symbol = character(),
-    buy = numeric(),
-    sell = numeric(),
-    short = numeric(),
-    cover = numeric(),
-    buyprice = numeric(),
-    sellprice = numeric(),
-    shortprice = numeric(),
-    coverprice = numeric(),
-    stringsAsFactors = FALSE
-  )
 
-  #### Amend signals for any rollover ####
-  signals$inlongtrade <- RTrade::Flip(signals$buy, signals$sell)
-  signals$inshorttrade <-
-    RTrade::Flip(signals$short, signals$cover)
-  if (rollover) {
-    signals$rolloverdate <-
-      signals$currentmonthexpiry != signals$entrycontractexpiry &
-      signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
-    signals$rolloverorders <-
-      signals$rolloverdate &
-      ((
-        signals$inlongtrade &
-          Ref(signals$inlongtrade, -1)
-      ) |
-        (
-          signals$inshorttrade & Ref(signals$inshorttrade, -1)
-        ))
-    for (i in 1:nrow(signals)) {
-      if (signals$rolloverorders[i] == TRUE) {
-        if (signals$inlongtrade[i] == 1) {
-          df.copy = signals[i, ]
-          signals$sell[i] = 1
-          indexofbuy = getBuyIndices(signals, i)
-          #indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-          for (j in 1:length(indexofbuy)) {
-            if (j == 1) {
-              df.copy$buy[1] = 1
-            } else{
-              df.copy$buy[1] = 999
-            }
-            df.copy$strike[1] = signals$strike[indexofbuy[j]]
-            signals <- rbind(signals,
-                             df.copy)
-          }
-        } else if (signals$inshorttrade[i] == 1) {
-          df.copy = signals[i, ]
-          signals$cover[i] = 1
-          indexofshort = getShortIndices(signals, i)
-          for (j in 1:length(indexofshort)) {
-            if (j == 1) {
-              df.copy$short[1] = 1
-            } else{
-              df.copy$short[1] = 999
-            }
-            df.copy$strike[1] = signals$strike[indexofshort[j]]
-            signals <- rbind(signals,
-                             df.copy)
-          }
-        }
-      }
-    }
-  }
-  signals <-
-    getClosestStrikeUniverse(signals, fnodatafolder, equitydatafolder, kTimeZone)
-  signals <- signals[order(signals$date), ]
-
-  #### Entry ####
-  expiry = format(signals[, c("entrycontractexpiry")], format = "%Y%m%d")
-  signals$symbol = ifelse(
-    signals$buy > 0,
-    paste(
-      unlist(strsplit(signals$symbol, "_"))[1],
-      "OPT",
-      expiry,
-      "CALL",
-      signals$strike,
-      sep = "_"
-    ),
-    ifelse(
-      signals$short > 0,
-      paste(
-        unlist(strsplit(signals$symbol, "_"))[1],
-        "OPT",
-        expiry,
-        "PUT",
-        signals$strike,
-        sep = "_"
-      ),
-      signals$symbol
-    )
-  )
-  for (i in 1:nrow(signals)) {
-    if (signals$buy[i] > 0) {
-      symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-      load(
-        paste(
-          fnodatafolder,
-          symbolsvector[3],
-          "/",
-          signals$symbol[i],
-          ".Rdata",
-          sep = ""
-        )
-      )
-      datarow = md[md$date == signals$date[i],]
-      buyprice = datarow$settle[1]
-      out = rbind(
-        out,
-        data.frame(
-          date = signals$date[i],
-          symbol = signals$symbol[i],
-          buy = signals$buy[i],
-          sell = 0,
-          short = 0,
-          cover = 0,
-          buyprice = buyprice,
-          sellprice = 0,
-          shortprice = 0,
-          coverprice = 0
-        )
-      )
-
-    } else if (signals$short[i] > 0) {
-      symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-      load(
-        paste(
-          fnodatafolder,
-          symbolsvector[3],
-          "/",
-          signals$symbol[i],
-          ".Rdata",
-          sep = ""
-        )
-      )
-      datarow = md[md$date == signals$date[i],]
-      shortprice = datarow$settle[1]
-      out = rbind(
-        out,
-        data.frame(
-          date = signals$date[i],
-          symbol = signals$symbol[i],
-          buy = signals$short[i],
-          sell = 0,
-          short = 0,
-          cover = 0,
-          buyprice = shortprice,
-          sellprice = 0,
-          shortprice = 0,
-          coverprice = 0
-        )
-      )
-    }
-  }
-
-  # Adjust for scenario where there is no rollover and the position(s) is/are open on expiry date
-  # indexofbuy = sapply(seq(1:length(signals$buy)), function(x) {
-  #   index = tail(which(signals$buy[1:(x - 1)] > 0), 1)
-  # })
-  # indexofshort = sapply(seq(1:length(signals$short)), function(x) {
-  #   index = tail(which(signals$short[1:(x - 1)] > 0), 1)
-  # })
-  # indexofbuy = unlist(indexofbuy)
-  # indexofshort = unlist(indexofshort)
-  # indexofshort = c(rep(0, (nrow(signals) - length(indexofshort))), indexofshort)
-  # indexofbuy = c(rep(0, (nrow(signals) - length(indexofbuy))), indexofbuy)
-  # indexofentry = pmax(indexofbuy, indexofshort)
-  # for (i in 1:nrow(signals)) {
-  #   symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-  #   if (length(symbolsvector) == 1 && indexofentry[i] > 0) {
-  #     indexofbuy = getBuyIndices(signals, i)
-  #     if (length(indexofbuy) > 0) {
-  #       for (j in 1:length(indexofbuy)) {
-  #         symbolsvector = unlist(strsplit(signals$symbol[indexofbuy[j]], "_"))
-  #         expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
-  #         if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-  #           if (signals$cover[i] == 0 && signals$sell[i] == 0)
-  #             #continuing trade. close the trade
-  #             if (Ref(signals$inlongtrade, -1)[i] > 0) {
-  #               signals$sell[i] = 1
-  #             } else if (Ref(signals$inshorttrade, -1)[i] > 0) {
-  #               signals$cover[i] = 1
-  #             }
-  #         }
-  #       }
-  #     }
-  #   }
-  # }
-
-  for (i in 1:nrow(signals)) {
-    if (signals$inlongtrade[i] > 0) {
-      indexofbuy = getBuyIndices(signals, i,0)
-      if (length(indexofbuy) > 0) {
-        for (j in 1:length(indexofbuy)) {
-          if(i>indexofbuy[j]){
-            symbolsvector = unlist(strsplit(
-              signals$symbol[indexofbuy[j]],
-              "_"
-            ))
-            expiry = as.Date(
-              strptime(
-                symbolsvector[3],
-                "%Y%m%d",
-                tz = "Asia/Kolkata"
-              )
-            )
-            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-              signals$sell[i] = 1
-            }
-          }
-
-        }
-
-      }
-    } else if (signals$inshorttrade[i] > 0) {
-      indexofshort = getShortIndices(signals, i)
-      if (length(indexofshort) > 0) {
-        for (j in 1:length(indexofshort)) {
-          if(i>indexofshort[j]){
-            symbolsvector = unlist(strsplit(
-              signals$symbol[indexofshort[j]],
-              "_"
-            ))
-            expiry = as.Date(
-              strptime(
-                symbolsvector[3],
-                "%Y%m%d",
-                tz = "Asia/Kolkata"
-              )
-            )
-            if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-              signals$cover[i] = 1
-            }
-          }
-
-        }
-      }
-
-    }
-  }
-
-  #### Exit ####
-  for (i in 1:nrow(signals)) {
-    if (signals$sell[i] > 0) {
-      indexofbuy = getBuyIndices(signals, i)
-      #      indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-      if (length(indexofbuy) >= 1) {
-        uniquesymbols = NULL
-        for (j in 1:length(indexofbuy)) {
-          if (length(grep(
-            signals$symbol[indexofbuy[j]],
-            uniquesymbols
-          )) == 0) {
-            uniquesymbols[length(uniquesymbols) + 1] <-
-              signals$symbol[indexofbuy[j]]
-            symbolsvector = unlist(strsplit(
-              signals$symbol[indexofbuy[j]],
-              "_"
-            ))
-            load(
-              paste(
-                fnodatafolder,
-                symbolsvector[3],
-                "/",
-                signals$symbol[indexofbuy[j]],
-                ".Rdata",
-                sep = ""
-              )
-            )
-            datarow = md[md$date == signals$date[i],]
-            if (nrow(datarow) == 1) {
-              load(
-                paste(
-                  equitydatafolder,
-                  symbolsvector[1],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              udatarow = md[md$date == signals$date[i],]
-              sellprice = NA_real_
-              if (signals$sell[i] == 1) {
-                expiry = as.Date(
-                  strptime(
-                    symbolsvector[3],
-                    "%Y%m%d",
-                    tz = "Asia/Kolkata"
-                  )
-                )
-                if (as.Date(
-                  datarow$date,
-                  tz = "Asia/Kolkata"
-                ) ==
-                expiry) {
-                  if (symbolsvector[4] == "CALL") {
-                    sellprice = max(
-                      0,
-                      udatarow$settle[1] - as.numeric(
-                        symbolsvector[5]
-                      )
-                    )
-                  } else{
-                    sellprice = max(
-                      0,
-                      as.numeric(
-                        symbolsvector[5]
-                      ) - udatarow$settle[1]
-                    )
-                  }
-                } else{
-                  sellprice = datarow$settle[1]
-                }
-              } else if (signals$sell[i] > 1) {
-                expiry = as.Date(
-                  strptime(
-                    symbolsvector[3],
-                    "%Y%m%d",
-                    tz = "Asia/Kolkata"
-                  )
-                )
-                dte = businessDaysBetween(
-                  "India",
-                  as.Date(
-                    signals$date[i],
-                    tz = "Asia/Kolkata"
-                  ),
-                  expiry
-                )
-                vol=tryCatch({EuropeanOptionImpliedVolatility(
-                  tolower(
-                    symbolsvector[4]
-                  ),
-                  datarow$settle[1],
-                  udatarow$settle[1],
-                  as.numeric(
-                    symbolsvector[5]
-                  ),
-                  0.015,
-                  0.06,
-                  dte / 365,
-                  0.01
-                )},error=function(err){0.01})
-                greeks <- EuropeanOption(
-                  tolower(
-                    symbolsvector[4]
-                  ),
-                  signals$sellprice[i],
-                  as.numeric(
-                    symbolsvector[5]
-                  ),
-                  0.015,
-                  0.06,
-                  dte / 365,
-                  vol
-                )
-                sellprice = greeks$value
-              }
-
-              if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                # add row to signals
-                out = rbind(
-                  out,
-                  data.frame(
-                    date = signals$date[i],
-                    symbol = signals$symbol[indexofbuy[j]],
-                    buy = 0,
-                    sell = signals$sell[i],
-                    short =
-                      0,
-                    cover = 0,
-                    buyprice = 0,
-                    sellprice = sellprice,
-                    shortprice = 0,
-                    coverprice = 0
-                  )
-                )
-              } else{
-                indexofsignal = which(
-                  out$date == signals$date[i] &
-                    out$symbol == signals$symbol[indexofbuy[j]]
-                )
-                out$sell[indexofsignal] = signals$sell[i]
-                out$sellprice[indexofsignal] = sellprice
-              }
-            }
-            # check if record is for today
-            else  if (as.Date(signals$date[i],tz = "Asia/Kolkata") == Sys.Date()) {
-              if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                # add row to signals
-                out = rbind(
-                  out,
-                  data.frame(
-                    date = signals$date[i],
-                    symbol = signals$symbol[indexofbuy[j]],
-                    buy = 0,
-                    sell = signals$sell[i],
-                    short =
-                      0,
-                    cover = 0,
-                    buyprice = 0,
-                    sellprice = 0,
-                    shortprice = 0,
-                    coverprice = 0
-                  )
-                )
-
-              } else{
-                indexofsignal = which(
-                  out$date == signals$date[i] &
-                    out$symbol == signals$symbol[indexofbuy[j]]
-                )
-                out$sell[indexofsignal] =
-                  signals$sell[i]
-                out$sellprice[indexofsignal] =
-                  0
-              }
-            }else{
-              print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
-            }
-
-          }
-        }
-
-      }
-    } else if (signals$cover[i] > 0) {
-      indexofshort = getShortIndices(signals, i)
-      #indexofshort=tail(which(signals$short[1:(i-1)]>0),1)
-      if (length(indexofshort) >= 1) {
-        uniquesymbols = NULL
-        for (j in 1:length(indexofshort)) {
-          if (length(grep(
-            signals$symbol[indexofshort[j]],
-            uniquesymbols
-          )) == 0) {
-            uniquesymbols[length(uniquesymbols) + 1] <-
-              signals$symbol[indexofshort[j]]
-            symbolsvector = unlist(strsplit(
-              signals$symbol[indexofshort[j]],
-              "_"
-            ))
-            load(
-              paste(
-                fnodatafolder,
-                symbolsvector[3],
-                "/",
-                signals$symbol[indexofshort[j]],
-                ".Rdata",
-                sep = ""
-              )
-            )
-            datarow = md[md$date == signals$date[i],]
-            if (nrow(datarow) == 1) {
-              load(
-                paste(
-                  equitydatafolder,
-                  symbolsvector[1],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              udatarow = md[md$date == signals$date[i],]
-              coverprice = NA_real_
-              if (signals$cover[i] == 1) {
-                coverprice = datarow$settle[1]
-              } else if (signals$cover[i] > 1) {
-                expiry = as.Date(
-                  strptime(
-                    symbolsvector[3],
-                    "%Y%m%d",
-                    tz = "Asia/Kolkata"
-                  )
-                )
-                dte = businessDaysBetween(
-                  "India",
-                  as.Date(
-                    signals$date[i],
-                    tz = "Asia/Kolkata"
-                  ),
-                  expiry
-                )
-                vol = tryCatch({EuropeanOptionImpliedVolatility(
-                  tolower(
-                    symbolsvector[4]
-                  ),
-                  datarow$settle[1],
-                  udatarow$settle[1],
-                  as.numeric(
-                    symbolsvector[5]
-                  ),
-                  0.015,
-                  0.06,
-                  dte / 365,
-                  0.1
-                )},error=function(err){0.01})
-
-                greeks <- EuropeanOption(
-                  tolower(
-                    symbolsvector[4]
-                  ),
-                  signals$coverprice[i],
-                  as.numeric(
-                    symbolsvector[5]
-                  ),
-                  0.015,
-                  0.06,
-                  dte / 365,
-                  vol
-                )
-                coverprice = greeks$value
-              }
-
-              if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                # add row to signals
-                out = rbind(
-                  out,
-                  data.frame(
-                    date = signals$date[i],
-                    symbol = signals$symbol[indexofshort[j]],
-                    buy = 0,
-                    sell = signals$cover[i],
-                    short = 0,
-                    cover = 0,
-                    buyprice = 0,
-                    sellprice = coverprice,
-                    shortprice = 0,
-                    coverprice = 0
-                  )
-                )
-              } else{
-                indexofsignal = which(
-                  out$date == signals$date[i] &
-                    out$symbol == signals$symbol[indexofshort[j]]
-                )
-                out$sell[indexofsignal] = signals$cover[i]
-                out$sellprice[indexofsignal] = coverprice
-              }
-            }
-            # check if record is for today
-            else if (as.Date(signals$date[i],
-                             tz = "Asia/Kolkata") == Sys.Date()) {
-              if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                # add row to signals
-                out = rbind(
-                  out,
-                  data.frame(
-                    date = signals$date[i],
-                    symbol = signals$symbol[indexofshort[j]],
-                    buy = 0,
-                    sell = signals$cover[i],
-                    short = 0,
-                    cover = 0,
-                    buyprice = 0,
-                    sellprice = 0,
-                    shortprice = 0,
-                    coverprice = 0
-                  )
-                )
-
-              } else{
-                indexofsignal = which(
-                  out$date == signals$date[i] &
-                    out$symbol == signals$symbol[indexofshort[j]]
-                )
-                out$sell[indexofsignal] = signals$cover[i]
-                out$sellprice[indexofsignal] = 0
-              }
-            }else{
-              print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
-            }
-
-          }
-
-        }
-      }
-
-    }
-  }
-  out[order(out$date), ]
-}
-
-optionTradeSignalsShortOnly <-
-  function(signals,
-           fnodatafolder,
-           equitydatafolder,
-           rollover = FALSE) {
-    out = data.frame(
-      date = as.POSIXct(character()),
-      symbol = character(),
-      buy = numeric(),
-      sell = numeric(),
-      short = numeric(),
-      cover = numeric(),
-      buyprice = numeric(),
-      sellprice = numeric(),
-      shortprice = numeric(),
-      coverprice = numeric(),
-      stringsAsFactors = FALSE
-    )
-
-    # amend signals for any rollover
-    signals$inlongtrade <- RTrade::Flip(signals$buy, signals$sell)
-    signals$inshorttrade <-
-      RTrade::Flip(signals$short, signals$cover)
-
-    if (rollover) {
-      signals$rolloverdate <-
-        signals$currentmonthexpiry != signals$entrycontractexpiry &
-        signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
-      signals$rolloverorders <-
-        signals$rolloverdate &
-        ((
-          signals$inlongtrade &
-            Ref(signals$inlongtrade, -1)
-        ) |
-          (
-            signals$inshorttrade & Ref(signals$inshorttrade, -1)
-          ))
-      for (i in 1:nrow(signals)) {
-        if (signals$rolloverorders[i] == TRUE) {
-          if (signals$inlongtrade[i] == 1) {
-            df.copy = signals[i, ]
-            signals$sell[i] = 1
-            indexofbuy = getBuyIndices(signals, i)
-            #indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-            for (j in 1:length(indexofbuy)) {
-              if (j == 1) {
-                df.copy$buy[1] = 1
-              } else{
-                df.copy$buy[1] = 999
-              }
-              df.copy$strike[1] = signals$strike[indexofbuy[j]]
-              signals <- rbind(signals,
-                               df.copy)
-            }
-          } else if (signals$inshorttrade[i] == 1) {
-            df.copy = signals[i, ]
-            signals$cover[i] = 1
-            indexofshort = getShortIndices(signals, i)
-            for (j in 1:length(indexofshort)) {
-              if (j == 1) {
-                df.copy$short[1] = 1
-              } else{
-                df.copy$short[1] = 999
-              }
-              df.copy$strike[1] = signals$strike[indexofshort[j]]
-              signals <- rbind(signals,
-                               df.copy)
-            }
-          }
-        }
-      }
-    }
-    signals <-
-      getClosestStrikeUniverse(signals, fnodatafolder, equitydatafolder, kTimeZone)
-    signals <- signals[order(signals$date), ]
-
-    #Entry
-    expiry = format(signals[, c("entrycontractexpiry")], format = "%Y%m%d")
-    signals$symbol = ifelse(
-      signals$buy > 0,
-      paste(
-        unlist(strsplit(signals$symbol, "_"))[1],
-        "OPT",
-        expiry,
-        "PUT",
-        signals$strike,
-        sep = "_"
-      ),
-      ifelse(
-        signals$short > 0,
-        paste(
-          unlist(strsplit(signals$symbol, "_"))[1],
-          "OPT",
-          expiry,
-          "CALL",
-          signals$strike,
-          sep = "_"
-        ),
-        signals$symbol
-      )
-    )
-
-    for (i in 1:nrow(signals)) {
-      if (signals$buy[i] > 0) {
-        symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-        load(
-          paste(
-            fnodatafolder,
-            symbolsvector[3],
-            "/",
-            signals$symbol[i],
-            ".Rdata",
-            sep = ""
-          )
-        )
-        datarow = md[md$date == signals$date[i],]
-        buyprice = datarow$settle[1]
-        out = rbind(
-          out,
-          data.frame(
-            date = signals$date[i],
-            symbol = signals$symbol[i],
-            buy = 0,
-            sell = 0,
-            short = signals$buy[i],
-            cover = 0,
-            buyprice = 0,
-            sellprice = 0,
-            shortprice = buyprice,
-            coverprice = 0
-          )
-        )
-
-      } else if (signals$short[i] > 0) {
-        symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-        load(
-          paste(
-            fnodatafolder,
-            symbolsvector[3],
-            "/",
-            signals$symbol[i],
-            ".Rdata",
-            sep = ""
-          )
-        )
-        datarow = md[md$date == signals$date[i],]
-        shortprice = datarow$settle[1]
-        out = rbind(
-          out,
-          data.frame(
-            date = signals$date[i],
-            symbol = signals$symbol[i],
-            buy = 0,
-            sell = 0,
-            short = signals$short[i],
-            cover = 0,
-            buyprice = 0,
-            sellprice = 0,
-            shortprice = shortprice,
-            coverprice = 0
-          )
-        )
-      }
-    }
-
-    # Adjust for scenario where there is no rollover and the position is open on expiry date
-    # indexofbuy = sapply(seq(1:length(signals$buy)), function(x) {
-    #   index = tail(which(signals$buy[1:(x - 1)] > 0), 1)
-    # })
-    # indexofshort = sapply(seq(1:length(signals$short)), function(x) {
-    #   index = tail(which(signals$short[1:(x - 1)] > 0), 1)
-    # })
-    # indexofbuy = unlist(indexofbuy)
-    # indexofshort = unlist(indexofshort)
-    # indexofshort = c(rep(0, (nrow(signals) - length(indexofshort))), indexofshort)
-    # indexofbuy = c(rep(0, (nrow(signals) - length(indexofbuy))), indexofbuy)
-    # indexofentry = pmax(indexofbuy, indexofshort)
-    # for (i in 1:nrow(signals)) {
-    #   symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-    #   if (length(symbolsvector) == 1 && indexofentry[i] > 0) {
-    #     symbolsvector = unlist(strsplit(signals$symbol[indexofentry[i]], "_"))
-    #     expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
-    #     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-    #       if (signals$cover[i] == 0 && signals$sell[i] == 0)
-    #         #continuing trade. close the trade
-    #         if (Ref(signals$inlongtrade, -1)[i] > 0) {
-    #           signals$sell[i] = 1
-    #         } else if (Ref(signals$inshorttrade, -1)[i] > 0) {
-    #           signals$cover[i] = 1
-    #         }
-    #     }
-    #   }
-    # }
-
-    for (i in 1:nrow(signals)) {
-      if (signals$inlongtrade[i] > 0) {
-        indexofbuy = getBuyIndices(signals, i,0)
-        if (length(indexofbuy) > 0) {
-          for (j in 1:length(indexofbuy)) {
-            if(i>indexofbuy[j]){
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofbuy[j]],
-                "_"
-              ))
-              expiry = as.Date(
-                strptime(
-                  symbolsvector[3],
-                  "%Y%m%d",
-                  tz = "Asia/Kolkata"
-                )
-              )
-              if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                signals$sell[i] = 1
-              }
-            }
-
-          }
-
-        }
-      } else if (signals$inshorttrade[i] > 0) {
-        indexofshort = getShortIndices(signals, i,0)
-        if (length(indexofshort) > 0) {
-          for (j in 1:length(indexofshort)) {
-            if(i>indexofshort[j]){
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofshort[j]],
-                "_"
-              ))
-              expiry = as.Date(
-                strptime(
-                  symbolsvector[3],
-                  "%Y%m%d",
-                  tz = "Asia/Kolkata"
-                )
-              )
-              if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                signals$cover[i] = 1
-              }
-            }
-
-          }
-        }
-
-      }
-    }
-
-    #Exit
-    for (i in 1:nrow(signals)) {
-      if (signals$sell[i] > 0) {
-        indexofbuy = getBuyIndices(signals, i)
-        #     indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-        if (length(indexofbuy) >= 1) {
-          uniquesymbols = NULL
-          for (j in 1:length(indexofbuy)) {
-            if (length(grep(
-              signals$symbol[indexofbuy[j]],
-              uniquesymbols
-            )) == 0) {
-              uniquesymbols[length(uniquesymbols) + 1] <-
-                signals$symbol[indexofbuy[j]]
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofbuy[j]],
-                "_"
-              ))
-              load(
-                paste(
-                  fnodatafolder,
-                  symbolsvector[3],
-                  "/",
-                  signals$symbol[indexofbuy[j]],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              datarow = md[md$date == signals$date[i],]
-              if (nrow(datarow) == 1) {
-                load(
-                  paste(
-                    equitydatafolder,
-                    symbolsvector[1],
-                    ".Rdata",
-                    sep = ""
-                  )
-                )
-                udatarow = md[md$date == signals$date[i],]
-                sellprice = NA_real_
-                if (signals$sell[i] == 1) {
-                  sellprice = datarow$settle[1]
-                } else if (signals$sell[i] > 1) {
-                  expiry = as.Date(
-                    strptime(
-                      symbolsvector[3],
-                      "%Y%m%d",
-                      tz = "Asia/Kolkata"
-                    )
-                  )
-                  dte = businessDaysBetween(
-                    "India",
-                    as.Date(
-                      signals$date[i],
-                      tz = "Asia/Kolkata"
-                    ),
-                    expiry
-                  )
-                  vol = EuropeanOptionImpliedVolatility(
-                    tolower(
-                      symbolsvector[4]
-                    ),
-                    datarow$settle[1],
-                    udatarow$settle[1],
-                    as.numeric(
-                      symbolsvector[5]
-                    ),
-                    0.015,
-                    0.06,
-                    dte / 365,
-                    0.1
-                  )
-                  greeks <- EuropeanOption(
-                    tolower(
-                      symbolsvector[4]
-                    ),
-                    signals$sellprice[i],
-                    as.numeric(
-                      symbolsvector[5]
-                    ),
-                    0.015,
-                    0.06,
-                    dte / 365,
-                    vol
-                  )
-                  sellprice = greeks$value
-                }
-
-                if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofbuy[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$sell[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = sellprice
-                    )
-                  )
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofbuy[j]]
-                  )
-                  out$cover[indexofsignal] = signals$sell[i]
-                  out$coverprice[indexofsignal] = sellprice
-                }
-              }
-              # check if record is for today
-              else  if (as.Date(signals$date[i],
-                                tz = "Asia/Kolkata") == Sys.Date()) {
-                if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofbuy[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$sell[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = 0
-                    )
-                  )
-
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofbuy[j]]
-                  )
-                  out$cover[indexofsignal] = signals$sell[i]
-                  out$coverprice[indexofsignal] = 0
-                }
-              }else{
-                print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
-              }
-
-            }
-
-
-          }
-
-        }
-      } else if (signals$cover[i] > 0) {
-        indexofshort = getShortIndices(signals, i)
-        if (length(indexofshort) >= 1) {
-          uniquesymbols = NULL
-          for (j in 1:length(indexofshort)) {
-            if (length(grep(
-              signals$symbol[indexofshort[j]],
-              uniquesymbols
-            )) == 0) {
-              uniquesymbols[length(uniquesymbols) + 1] <-
-                signals$symbol[indexofshort[j]]
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofshort[j]],
-                "_"
-              ))
-              load(
-                paste(
-                  fnodatafolder,
-                  symbolsvector[3],
-                  "/",
-                  signals$symbol[indexofshort[j]],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              datarow = md[md$date == signals$date[i],]
-              if (nrow(datarow) == 1) {
-                load(
-                  paste(
-                    equitydatafolder,
-                    symbolsvector[1],
-                    ".Rdata",
-                    sep = ""
-                  )
-                )
-                udatarow = md[md$date == signals$date[i],]
-                coverprice = NA_real_
-                if (signals$cover[i] == 1) {
-                  coverprice = datarow$settle[1]
-                } else if (signals$cover[i] > 1) {
-                  expiry = as.Date(
-                    strptime(
-                      symbolsvector[3],
-                      "%Y%m%d",
-                      tz = "Asia/Kolkata"
-                    )
-                  )
-                  dte = businessDaysBetween(
-                    "India",
-                    as.Date(
-                      signals$date[i],
-                      tz = "Asia/Kolkata"
-                    ),
-                    expiry
-                  )
-                  vol = EuropeanOptionImpliedVolatility(
-                    tolower(
-                      symbolsvector[4]
-                    ),
-                    datarow$settle[1],
-                    udatarow$settle[1],
-                    as.numeric(
-                      symbolsvector[5]
-                    ),
-                    0.015,
-                    0.06,
-                    dte / 365,
-                    0.1
-                  )
-                  greeks <- EuropeanOption(
-                    tolower(
-                      symbolsvector[4]
-                    ),
-                    signals$coverprice[i],
-                    as.numeric(
-                      symbolsvector[5]
-                    ),
-                    0.015,
-                    0.06,
-                    dte / 365,
-                    vol
-                  )
-                  coverprice = greeks$value
-                }
-
-                if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofshort[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$cover[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = coverprice
-                    )
-                  )
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofshort[j]]
-                  )
-                  out$cover[indexofsignal] = signals$cover[i]
-                  out$coverprice[indexofsignal] = coverprice
-                }
-              }     # check if record is for today
-              else if (as.Date(signals$date[i],
-                               tz = "Asia/Kolkata") == Sys.Date()) {
-                if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofshort[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$cover[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = 0
-                    )
-                  )
-
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofshort[j]]
-                  )
-                  out$cover[indexofsignal] = signals$cover[i]
-                  out$coverprice[indexofsignal] = 0
-                }
-              }else{
-                print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
-              }
-
-            }
-
-          }
-
-        }
-      }
-    }
-    out[order(out$date), ]
-  }
-
-futureTradeSignals <-
-  function(signals,
-           fnodatafolder,
-           equitydatafolder,
-           rollover = FALSE) {
-    out = data.frame(
-      date = as.POSIXct(character()),
-      symbol = character(),
-      buy = numeric(),
-      sell = numeric(),
-      short = numeric(),
-      cover = numeric(),
-      buyprice = numeric(),
-      sellprice = numeric(),
-      shortprice = numeric(),
-      coverprice = numeric(),
-      stringsAsFactors = FALSE
-    )
-    signals$inlongtrade <- RTrade::Flip(signals$buy, signals$sell)
-    signals$inshorttrade <-
-      RTrade::Flip(signals$short, signals$cover)
-
-    # amend signals for any rollover
-    signals$inlongtrade <- RTrade::Flip(signals$buy, signals$sell)
-    signals$inshorttrade <-
-      RTrade::Flip(signals$short, signals$cover)
-
-    if (rollover) {
-      # signals$rolloverdate <-
-      #         signals$currentmonthexpiry != signals$entrycontractexpiry &
-      #         signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
-      signals$rolloverdate <-
-        signals$entrycontractexpiry != Ref(signals$entrycontractexpiry, -1)
-
-      signals$rolloverorders <-  signals$rolloverdate &
-        ((
-          signals$inlongtrade & Ref(signals$inlongtrade, -1)
-        ) |
-          (
-            signals$inshorttrade & Ref(signals$inshorttrade, -1)
-          ))
-      for (i in 1:nrow(signals)) {
-        if (signals$rolloverorders[i] == TRUE) {
-          if (signals$inlongtrade[i] == 1) {
-            df.copy = signals[i, ]
-            signals$sell[i] = 9
-            indexofbuy = getBuyIndices(signals, i)
-            #indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-            for (j in 1:length(indexofbuy)) {
-              df.copy$buy[1] = signals$buy[indexofbuy[j]]
-              # if (j == 1) {
-              #               df.copy$buy[1] = signals[indexofbuy[j],"buy"]
-              #       } else{
-              #               df.copy$buy[1] = 999
-              #       }
-              df.copy$strike[1] = signals$strike[indexofbuy[j]]
-              signals <- rbind(signals, df.copy)
-            }
-          } else if (signals$inshorttrade[i] == 1) {
-            df.copy = signals[i, ]
-            signals$cover[i] = 9
-            indexofshort = getShortIndices(signals, i)
-            for (j in 1:length(indexofshort)) {
-              df.copy$short[1] = signals$short[indexofshort[j]]
-              # if (j == 1) {
-              #         df.copy$short[1] = 1
-              # } else{
-              #         df.copy$short[1] = 999
-              # }
-              df.copy$strike[1] = signals$strike[indexofshort[j]]
-              signals <- rbind(signals, df.copy)
-            }
-          }
-        }
-      }
-    }
-    signals <- signals[order(signals$date), ]
-    expiry = format(signals[, c("entrycontractexpiry")], format = "%Y%m%d")
-    signals$symbol = ifelse(
-      signals$buy > 0,
-      paste(unlist(strsplit(
-        signals$symbol, "_"
-      ))[1], "FUT", expiry, "", "", sep = "_"),
-      ifelse(
-        signals$short > 0,
-        paste(unlist(strsplit(
-          signals$symbol, "_"
-        ))[1], "FUT", expiry, "", "", sep = "_"),
-        signals$symbol
-      )
-    )
-    #Entry
-    for (i in 1:nrow(signals)) {
-      if (signals$buy[i] > 0) {
-        symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-        load(
-          paste(
-            fnodatafolder,
-            symbolsvector[3],
-            "/",
-            signals$symbol[i],
-            ".Rdata",
-            sep = ""
-          )
-        )
-        datarow = md[md$date == signals$date[i],]
-        buyprice = datarow$settle[1]
-        out = rbind(
-          out,
-          data.frame(
-            date = signals$date[i],
-            symbol = signals$symbol[i],
-            buy = signals$buy[i],
-            sell = 0,
-            short = 0,
-            cover = 0,
-            buyprice = buyprice,
-            sellprice = 0,
-            shortprice = 0,
-            coverprice = 0
-          )
-        )
-
-      } else if (signals$short[i] > 0) {
-        symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-        load(
-          paste(
-            fnodatafolder,
-            symbolsvector[3],
-            "/",
-            signals$symbol[i],
-            ".Rdata",
-            sep = ""
-          )
-        )
-        datarow = md[md$date == signals$date[i],]
-        shortprice = datarow$settle[1]
-        out = rbind(
-          out,
-          data.frame(
-            date = signals$date[i],
-            symbol = signals$symbol[i],
-            buy = 0,
-            sell = 0,
-            short = signals$short[i],
-            cover = 0,
-            buyprice = 0,
-            sellprice = 0,
-            shortprice = shortprice,
-            coverprice = 0
-          )
-        )
-      }
-    }
-
-    # Adjust for scenario where there is no rollover and the position is open on expiry date
-    # indexofbuy = sapply(seq(1:length(signals$buy)), function(x) {
-    #   index = tail(which(signals$buy[1:(x - 1)] > 0), 1)
-    # })
-    # indexofshort = sapply(seq(1:length(signals$short)), function(x) {
-    #   index = tail(which(signals$short[1:(x - 1)] > 0), 1)
-    # })
-    # indexofbuy = unlist(indexofbuy)
-    # indexofshort = unlist(indexofshort)
-    # indexofshort = c(rep(0, (nrow(signals) - length(indexofshort))), indexofshort)
-    # indexofbuy = c(rep(0, (nrow(signals) - length(indexofbuy))), indexofbuy)
-    # indexofentry = pmax(indexofbuy, indexofshort)
-    # for (i in 1:nrow(signals)) {
-    #   symbolsvector = unlist(strsplit(signals$symbol[i], "_"))
-    #   if (length(symbolsvector) == 1 && indexofentry[i] > 0) {
-    #     symbolsvector = unlist(strsplit(signals$symbol[indexofentry[i]], "_"))
-    #     expiry = as.Date(strptime(symbolsvector[3], "%Y%m%d", tz = "Asia/Kolkata"))
-    #     if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-    #       if (signals$cover[i] == 0 && signals$sell[i] == 0)
-    #         #continuing trade. close the trade
-    #         if (Ref(signals$inlongtrade, -1)[i] > 0) {
-    #           signals$sell[i] = 1
-    #         } else if (Ref(signals$inshorttrade, -1)[i] > 0) {
-    #           signals$cover[i] = 1
-    #         }
-    #     }
-    #   }
-    # }
-    if(!rollover){
-      for (i in 1:nrow(signals)) {
-        if (signals$inlongtrade[i] > 0) {
-          indexofbuy = getBuyIndices(signals, i,0)
-          if (length(indexofbuy) > 0) {
-            for (j in 1:length(indexofbuy)) {
-              if(i>indexofbuy[j]){
-                symbolsvector = unlist(strsplit(
-                  signals$symbol[indexofbuy[j]],
-                  "_"
-                ))
-                expiry = as.Date(
-                  strptime(
-                    symbolsvector[3],
-                    "%Y%m%d",
-                    tz = "Asia/Kolkata"
-                  )
-                )
-                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                  signals$sell[i] = 1
-                }
-              }
-
-            }
-
-          }
-        } else if (signals$inshorttrade[i] > 0) {
-          indexofshort = getShortIndices(signals, i,0)
-          if (length(indexofshort) > 0) {
-            for (j in 1:length(indexofshort)) {
-              if(i>indexofshort[j]){
-                symbolsvector = unlist(strsplit(
-                  signals$symbol[indexofshort[j]],
-                  "_"
-                ))
-                expiry = as.Date(
-                  strptime(
-                    symbolsvector[3],
-                    "%Y%m%d",
-                    tz = "Asia/Kolkata"
-                  )
-                )
-                if (expiry == as.Date(signals$date[i], tz = "Asia/Kolkata")) {
-                  signals$cover[i] = 1
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-
-
-    #Exit
-    for (i in 1:nrow(signals)) {
-      if (signals$sell[i] > 0) {
-        indexofbuy = getBuyIndices(signals, i)
-        #     indexofbuy=tail(which(signals$buy[1:(i-1)]>0),1)
-        if (length(indexofbuy) >= 1) {
-          uniquesymbols = NULL
-          for (j in 1:length(indexofbuy)) {
-            if (length(grep(
-              signals$symbol[indexofbuy[j]],
-              uniquesymbols
-            )) == 0) {
-              uniquesymbols[length(uniquesymbols) + 1] <-
-                signals$symbol[indexofbuy[j]]
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofbuy[j]],
-                "_"
-              ))
-              load(
-                paste(
-                  fnodatafolder,
-                  symbolsvector[3],
-                  "/",
-                  signals$symbol[indexofbuy[j]],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              md<-unique(md)
-              datarow = md[md$date == signals$date[i],]
-              if (nrow(datarow) == 1) {
-                load(
-                  paste(
-                    equitydatafolder,
-                    symbolsvector[1],
-                    ".Rdata",
-                    sep = ""
-                  )
-                )
-                md<-unique(md)
-                udatarow = md[md$date == signals$date[i],]
-                spread = NA_real_
-                if (datarow$open[1] != datarow$high[1] ||
-                    datarow$open[1] != datarow$low[1]) {
-                  spread = (
-                    datarow$high[1] + datarow$low[1] + datarow$settle[1] - (
-                      udatarow$high[1] +
-                        udatarow$low[1] + udatarow$settle[1]
-                    )
-                  ) / 3
-                } else if (datarow$open[1] == datarow$high[1]) {
-                  spread = (
-                    datarow$low[1] + datarow$settle[1] - (
-                      udatarow$low[1] + udatarow$settle[1]
-                    )
-                  ) /
-                    2
-                } else{
-                  spread = (
-                    datarow$high[1] + datarow$settle[1] - (
-                      udatarow$high[1] + udatarow$settle[1]
-                    )
-                  ) /
-                    2
-                }
-                sellprice = NA_real_
-                if (signals$sell[i] == 1||signals$sell[i] == 9) {
-                  sellprice = datarow$settle[1]
-                } else if (signals$sell[i] > 1) {
-                  splitratio=udatarow$splitadjust[1]
-                  sellprice = signals$sellprice[i]*splitratio + spread
-                }
-                if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofbuy[j]],
-                      buy = 0,
-                      sell = signals$sell[i],
-                      short = 0,
-                      cover = 0,
-                      buyprice = 0,
-                      sellprice = sellprice,
-                      shortprice = 0,
-                      coverprice = 0
-                    )
-                  )
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofbuy[j]]
-                  )
-                  out$sell[indexofsignal] = signals$sell[i]
-                  out$sellprice[indexofsignal] = sellprice
-                }
-              }       # check if record is for today
-              else if (as.Date(signals$date[i],
-                               tz = "Asia/Kolkata") == Sys.Date()) {
-                if (signals$symbol[i] != signals$symbol[indexofbuy[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofbuy[j]],
-                      buy = 0,
-                      sell = signals$sell[i],
-                      short = 0,
-                      cover = 0,
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = 0
-                    )
-                  )
-
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofbuy[j]]
-                  )
-                  out$sell[indexofsignal] = signals$sell[i]
-                  out$sellprice[indexofsignal] = 0
-                }
-              }else{
-                print(paste("Missing data for symbol ",signals$symbol[indexofbuy[j]]," for date ",signals$date[i],sep=""))
-              }
-
-            }
-          }
-
-        }
-      } else if (signals$cover[i] > 0) {
-        indexofshort = getShortIndices(signals, i)
-        if (length(indexofshort) >= 1) {
-          uniquesymbols = NULL
-          for (j in 1:length(indexofshort)) {
-            if (length(grep(
-              signals$symbol[indexofshort[j]],
-              uniquesymbols
-            )) == 0) {
-              uniquesymbols[length(uniquesymbols) + 1] <-
-                signals$symbol[indexofshort[j]]
-              symbolsvector = unlist(strsplit(
-                signals$symbol[indexofshort[j]],
-                "_"
-              ))
-              load(
-                paste(
-                  fnodatafolder,
-                  symbolsvector[3],
-                  "/",
-                  signals$symbol[indexofshort[j]],
-                  ".Rdata",
-                  sep = ""
-                )
-              )
-              md<-unique(md)
-              datarow = md[md$date == signals$date[i],]
-              if (nrow(datarow) == 1) {
-                load(
-                  paste(
-                    equitydatafolder,
-                    symbolsvector[1],
-                    ".Rdata",
-                    sep = ""
-                  )
-                )
-                md<-unique(md)
-                udatarow = md[md$date == signals$date[i],]
-                spread = NA_real_
-                if (datarow$open[1] != datarow$high[1] ||
-                    datarow$open[1] != datarow$low[1]) {
-                  spread = (
-                    datarow$high[1] + datarow$low[1] + datarow$settle[1] - (
-                      udatarow$high[1] +
-                        udatarow$low[1] + udatarow$settle[1]
-                    )
-                  ) / 3
-                } else if (datarow$open[1] == datarow$high[1]) {
-                  spread = (
-                    datarow$low[1] + datarow$settle[1] - (
-                      udatarow$low[1] + udatarow$settle[1]
-                    )
-                  ) /
-                    2
-                } else{
-                  spread = (
-                    datarow$high[1] + datarow$settle[1] - (
-                      udatarow$high[1] + udatarow$settle[1]
-                    )
-                  ) /
-                    2
-                }
-                coverprice = NA_real_
-                if (signals$cover[i] == 1|signals$cover[i] == 9) {
-                  coverprice = datarow$settle[1]
-                } else if (signals$cover[i] > 1) {
-                  splitratio=udatarow$splitadjust[1]
-                  coverprice = signals$coverprice[i]*splitratio + spread
-                  #print(paste("symbol:",udatarow$symbol[1],", date:",udatarow$date[1],", coverprice:",signals$coverprice[i], ", splitratio:",splitratio,",spread:",spread))
-                }
-
-                if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofshort[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$cover[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = coverprice
-                    )
-                  )
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofshort[j]]
-                  )
-                  out$cover[indexofsignal] = signals$cover[i]
-                  out$coverprice[indexofsignal] = coverprice
-                }
-              }       # check if record is for today
-              else if (as.Date(signals$date[i],
-                               tz = "Asia/Kolkata") == Sys.Date()) {
-                if (signals$symbol[i] != signals$symbol[indexofshort[j]]) {
-                  # add row to signals
-                  out = rbind(
-                    out,
-                    data.frame(
-                      date = signals$date[i],
-                      symbol = signals$symbol[indexofshort[j]],
-                      buy = 0,
-                      sell = 0,
-                      short = 0,
-                      cover = signals$cover[i],
-                      buyprice = 0,
-                      sellprice = 0,
-                      shortprice = 0,
-                      coverprice = 0
-                    )
-                  )
-
-                } else{
-                  indexofsignal = which(
-                    out$date == signals$date[i] &
-                      out$symbol == signals$symbol[indexofshort[j]]
-                  )
-                  out$cover[indexofsignal] = signals$cover[i]
-                  out$coverprice[indexofsignal] = 0
-                }
-              }else{
-                print(paste("Missing data for symbol ",signals$symbol[indexofshort[j]]," for date ",signals$date[i],sep=""))
-              }
-
-            }
-          }
-        }
-      }
-    }
-    out[order(out$date), ]
-  }
-
-MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALSE){
+MapToFutureTrades<-function(itrades,rollover=FALSE){
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
       if ((as.Date(itrades$exittime[i],tz="Asia/Kolkata")>itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i])
-        | (as.Date(itrades$exittime[i],tz="Asia/Kolkata")==itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i] & itrades$exitreason[i]=="Open")
-        ) {
+          | (as.Date(itrades$exittime[i],tz="Asia/Kolkata")==itrades$entrycontractexpiry[i] & itrades$entrycontractexpiry[i]!=itrades$exitcontractexpiry[i] & itrades$exitreason[i]=="Open")
+      ) {
         df.copy = itrades[i, ]
         df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
@@ -2633,29 +966,33 @@ MapToFutureTrades<-function(itrades,fnodatafolder,equitydatafolder,rollover=FALS
 
   # Substitute contract
   expiry = format(itrades[, c("entrycontractexpiry")], format = "%Y%m%d")
-  itrades$symbol = paste(itrades$symbol, "FUT", expiry, "", "", sep = "_")
+  itrades$shortname=sapply(strsplit(itrades$symbol,"_"),"[",1)
+  itrades$symbol = paste(itrades$shortname, "FUT", expiry, "", "", sep = "_")
 
   # Substitute Price Array
   for(i in 1:nrow(itrades)){
-    itrades$entryprice[i]=futureTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],kFNODataFolder,kNiftyDataFolder)
-    itrades$exitprice[i]=futureTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],kFNODataFolder,kNiftyDataFolder)
+    itrades$entryprice[i]=futureTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i])
+    itrades$exitprice[i]=futureTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i])
   }
   itrades[order(itrades$entrytime),]
 }
 
-futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafolder,equitydatafolder){
+futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice){
   # Return unadjusted futureprice for the tradedate
   underlying=sapply(strsplit(futureSymbol[1],"_"),"[",1)
   expiry=sapply(strsplit(futureSymbol[1],"_"),"[",3)
-  load(paste(equitydatafolder,underlying[1],".Rdata",sep=""))
+  md=loadUnderlyingSymbol(futureSymbol[1],days=1000000)
+  if(!("splitadjust" %in% names(md))){
+    md$splitadjust=1
+  }
   md<-unique(md)
   underlyingprice=md[md$date==tradedate,]
   adjustment=0
-  load(paste(fnodatafolder,expiry,"/",futureSymbol[1],".Rdata",sep=""))
+  md=loadSymbol(futureSymbol[1],days=1000000)
   md<-unique(md)
   futureprice=md[md$date==tradedate,]
   if(nrow(futureprice)==1 & nrow(underlyingprice)==1){
-    if(underlyingtradeprice==underlyingprice$aopen[1]){
+    if(underlyingtradeprice==underlyingprice$open[1]/underlyingprice$splitadjust[1]){
       adjustment=futureprice$settle-underlyingprice$settle
     }
     if(adjustment[1]>0){
@@ -2671,7 +1008,7 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice,fnodatafo
 }
 
 getmtm<-function(symbol,date){
-  md=loadSymbol(symbol)
+  md=loadSymbol(symbol,cutoff=date,days=5)
   last(md[md$date<=date,c("asettle")])
 }
 
@@ -2682,15 +1019,16 @@ sharpe <- function(returns, risk.free.rate = 0.07) {
 getAllStrikesForExpiry <-
   function(underlyingshortname,
            expiry,
-           fnodatafolder) {
+           datafolder="/home/psharma/Dropbox/rfiles/data/") {
+    datafolder=paste(datafolder,"daily/opt/",sep="")
     potentialSymbols = list.files(
-      paste(fnodatafolder, expiry, sep = ""),
-      pattern = paste(underlyingshortname, "_", sep = "")
+      paste(datafolder, expiry, sep = ""),
+      pattern = paste(underlyingshortname, "_OPT", sep = "")
     )
     b <- lapply(potentialSymbols, strsplit, split = "_")
     c <- sapply(b, tail, n = 1L)
     d <- sapply(c, tail, n = 1L)
-    e <- sapply(d, strsplit, "\\.Rdata")
+    e <- sapply(d, strsplit, "\\.rds")
     #as.numeric(sapply(e,function(x){x[length(x)-1]}))
     e<-as.numeric(e)
     if(underlyingshortname=="NSENIFTY"){
@@ -2703,28 +1041,14 @@ getAllStrikesForExpiry <-
 getClosestStrike <-
   function(dates,
            underlyingshortname,
-           expiry,
-           fnodatafolder,
-           equitydatafolder) {
+           expiry) {
     # date is posixct
     # expiry is string %Y%m%d
     # underlyingshortname is just the symbol short name like RELIANCE
     strikes <-
-      getAllStrikesForExpiry(underlyingshortname, expiry, fnodatafolder)
+      getAllStrikesForExpiry(underlyingshortname, expiry)
     strikes = strikes[complete.cases(strikes)]
-    load(
-      paste(
-        fnodatafolder,
-        expiry,
-        "/",
-        underlyingshortname,
-        "_FUT_",
-        expiry,
-        "__",
-        ".Rdata",
-        sep = ""
-      )
-    )
+    md=loadSymbol(paste(underlyingshortname,"_FUT_",expiry,"__",sep=""))
     datesubset = md$date %in% dates
     prices = md[datesubset, 'settle']
     #datesubset=md[md$date %in% dates,'date']
@@ -2739,7 +1063,7 @@ getClosestStrike <-
     } else{
       longsymbol=paste(underlyingshortname,"_FUT_",expiry,"__",sep="")
       today<-strftime(as.Date(dates[1],format="%Y%m%d",tz=kTimeZone),format="%Y-%m-%d",tz=kTimeZone)
-      newrow <- getPriceArrayFromRedis(9,longsymbol,"tick","close",paste(today, " 09:12:00"), paste(today, " 15:30:00"))
+      newrow <- getPriceArrayFromRedis(9,longsymbol,"tick","close",paste(today, " 09:12:00"), paste(today, "15:30:00"))
       if(nrow(newrow)==1){
         prices = newrow$close
         strikeIndex <-
@@ -2757,17 +1081,14 @@ getClosestStrike <-
   }
 
 getClosestStrikeUniverse <-
-  function(dfsignals,
-           fnodatafolder,
-           equitydatafolder,
-           timeZone) {
+  function(dfsignals,timeZone) {
     dfsignals$strike = NA_real_
     for (i in 1:nrow(dfsignals)) {
       if (dfsignals$buy[i] > 0 ||
           dfsignals$sell[i] > 0 || dfsignals$short[i] > 0 ||
           dfsignals$cover[i] > 0) {
         symbolsvector = unlist(strsplit(dfsignals$symbol[i], "_"))
-        dfsignals$strike[i] = getClosestStrike(dfsignals$date[i],symbolsvector[1],strftime(dfsignals$entrycontractexpiry[i],"%Y%m%d",tz = timeZone),fnodatafolder,equitydatafolder)
+        dfsignals$strike[i] = getClosestStrike(dfsignals$date[i],symbolsvector[1],strftime(dfsignals$entrycontractexpiry[i],"%Y%m%d",tz = timeZone))
       }
     }
     dfsignals
@@ -2776,14 +1097,11 @@ getClosestStrikeUniverse <-
   }
 
 getStrikeByClosestSettlePrice <-
-  function(trades,
-           fnodatafolder,
-           equitydatafolder,
-           timeZone) {
+  function(trades,timeZone) {
     trades$strike = NA_real_
     for (i in 1:nrow(trades)) {
       symbolsvector = unlist(strsplit(trades$symbol[i], "_"))
-      trades$strike[i] = getClosestStrike(trades$entrytime[i],symbolsvector[1],strftime(trades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone),fnodatafolder,equitydatafolder)
+      trades$strike[i] = getClosestStrike(trades$entrytime[i],symbolsvector[1],strftime(trades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone))
     }
     trades
     #dfsignals[!is.na(dfsignals$strike),]
@@ -2794,11 +1112,9 @@ getMaxOIStrike <-
   function(dates,
            underlyingshortname,
            expiry,
-           fnodatafolder,
-           equitydatafolder,
            right) {
     strikesUniverse <-
-      getAllStrikesForExpiry(underlyingshortname, expiry, fnodatafolder)
+      getAllStrikesForExpiry(underlyingshortname, expiry)
     strikesUniverse = strikesUniverse[complete.cases(strikesUniverse)]
     oi <- numeric(length = length(dates))
     strike <- numeric(length = length(dates))
@@ -2817,13 +1133,7 @@ getMaxOIStrike <-
       cdate = dates[i]
       tempoi <- numeric(length = length(strikesUniverse))
       for (s in 1:length(strikesUniverse)) {
-        load(paste(
-          fnodatafolder,
-          expiry,
-          "/",
-          symbols[s],
-          sep = ""
-        ))
+        md=loadSymbol(symbols[s])
         index = which(md$date == cdate)
         if (length(index) == 1) {
           tempoi[s] = md[index, 'oi']
@@ -2842,19 +1152,13 @@ getMaxOIStrike <-
   }
 
 chart <-
-  function(symbol,
-           start=NULL,
-           end=NULL,
-           realtime = FALSE,
-           type = "STK",
-           fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
-           equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/",...) {
-      md<-loadSymbol(symbol,realtime,type,...)
-    if (symbol == "NSENIFTY") {
-      md$aclose = md$asettle
-    }
-    if(is.null(nrow(md))){
-      symbols=sapply(strsplit(list.files(equitydatafolder),"\\."),'[',1)
+  function(symbol,...) {
+    md<-loadSymbol(symbol,...)
+    if(nrow(md)==0){
+      type=tolower(strsplit(symbol,"_")[[1]][2])
+      path=paste("/home/psharma/Dropbox/rfiles/data/daily/",type,sep="")
+      symbols=sapply(strsplit(list.files(path),"\\."),'[',1)
+      symbols=sapply(strsplit(symbols,"_"),'[',1)
       shortlist=symbols[grep(substr(symbol,1,5),symbols)]
       if(length(shortlist)>0){
         print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
@@ -2862,12 +1166,10 @@ chart <-
       return()
     }
     symbolname=NULL
+    dtindex=which(names(md)=="date")
     if(length(grep("aopen",names(md)))>0){
-      symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"))
-    }else{
-      symbolname = convertToXTS(md, c("open", "high", "low", "settle", "volume"))
+      symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"),dateIndex = dtindex)
     }
-    #      symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "aclose", "avolume"))
     customTheme = chartTheme(
       "white",
       up.col = "dark green",
@@ -2888,13 +1190,8 @@ chart <-
     )
     names(symbolname)<-c("open","high","low","close","volume")
     name<-as.character(md$symbol[1])
-    if(is.null(start)){
-      start=''
-    }
-    if(is.null(end)){
-      end=''
-    }
-
+    start=strftime(md$date[1],format="%Y-%m-%d")
+    end=strftime(md$date[nrow(md)],format="%Y-%m-%d")
     chartSeries(symbolname,
                 subset = paste(start, "::", end, sep = ""),
                 theme = customTheme,
@@ -2902,10 +1199,10 @@ chart <-
     symbolname[paste(start, "::", end, sep = "")]
   }
 
-QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type="STK",...){
+QuickChart<-function(symbol,...){
   #symbol=deparse(substitute(symbol))
   #type=deparse(substitute(type))
-  out<-chart(symbol,startdate,enddate,realtime,type,...)
+  out<-chart(symbol,...)
   if(!is.null(out)){
     out.md<-convertToDF(out)
     trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
@@ -2917,76 +1214,66 @@ QuickChart<-function(symbol,startdate=NULL,enddate=NULL,realtime=FALSE,type="STK
   }
 }
 
-
-
-changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
+changeTimeFrame<-function(md,src=NULL, dest=NULL){
   names<-as.character()
   data<-xts()
   index<-as.integer()
   out<-data.frame()
-  if(!is.null(nrow(md)) & !is.null(sourceDuration) & !is.null(destDuration)){
-    if(sourceDuration=="DAILY"){
-      if(destDuration=="WEEKLY"){
+  if(!is.null(nrow(md)) & !is.null(src) & !is.null(dest)){
+    if(src=="daily"){
+      if(dest=="weekly"){
         names<-names(md)
         names<-names[!names %in% c("symbol","date")]
         data<-convertToXTS(md,names)
         fridays = as.POSIXlt(time(data))$wday == 5
         indx <- c(0,which(fridays),nrow(data))
-      }else if(destDuration=="MONTHLY"){
+      }else if(dest=="monthly"){
         names<-names(md)
         names<-names[!names %in% c("symbol","date")]
         data<-convertToXTS(md,names)
         months = as.POSIXlt(time(data))$mon
         indx <- c(0,which(diff(months)!=0),nrow(data))
       }
-    }
-
-    if(length(names)>0)
-      for(i in seq_along(names)){
-        if(grepl("aopen",names[i])){
-          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=first))
-        }
-        if(grepl("ahigh",names[i])){
-          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=max))
-        }
-        if(grepl("alow",names[i])){
-          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=min))
-        }
-        if(grepl("aclose",names[i])|grepl("asettle",names[i])||grepl("split",names[i])|grepl("interest",names[i])){
-          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=last))
-        }
-        if(grepl("avolume",names[i])|grepl("adelivered",names[i])){
-          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=sum))
+    }else if(src=="persecond"){
+      k=gsub("[^[:digit:]]", "", dest)
+      if(k!=""){
+        symbol=md$symbol[nrow(md)]
+        period=gsub("[[:digit:]]", "", dest)
+        mdseries=convertToXTS(md[,c("date","close")])
+        mdseries=mdseries["T09:15/T15:30"]
+        if(!is.null(mdseries)){
+          mdtoday=to.period(mdseries,period="minutes",k=k,indexAt = "startof")
+          mdtoday=convertToDF(mdtoday)
+          rownames(mdtoday)=c()
+          names(mdtoday)=c("open","high","low","close","date")
+          mdtoday$symbol=symbol
+          mdtoday$volume=0
+          md=mdtoday
+          md$date=round(md$date,"mins")
+          md$date=as.POSIXct(md$date)
         }
       }
-    if(length(which(names=="aopen"))==1){
-      assign("open",get("aopen")*get("splitadjust"))
-      colnames(open)<-"open"
     }
-    if(length(which(names=="ahigh"))==1){
-      assign("high",get("ahigh")*get("splitadjust"))
-      colnames(high)<-"high"
+
+    if(length(names)>0){
+      for(i in seq_along(names)){
+        if(grepl("open",names[i])||grepl("aopen",names[i])){
+          assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=first))
+        }else
+          if(grepl("high",names[i])||grepl("ahigh",names[i])){
+            assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=max))
+          }else
+            if(grepl("low",names[i])||grepl("alow",names[i])){
+              assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=min))
+            }else
+              if(grepl("volume",names[i])||grepl("delivered",names[i])||grepl("avolume",names[i])){
+                assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=sum))
+              }else{
+                assign(names[i],period.apply(data[,names[i]], INDEX=indx, FUN=last))
+              }
+      }
     }
-    if(length(which(names=="alow"))==1){
-      assign("low",get("alow")*get("splitadjust"))
-      colnames(low)<-"low"
-    }
-    if(length(which(names=="asettle"))==1){
-      assign("settle",get("asettle")*get("splitadjust"))
-      colnames(settle)<-"settle"
-    }
-    if(length(which(names=="aclose"))==1){
-      assign("close",get("aclose")*get("splitadjust"))
-      colnames(close)<-"close"
-    }
-    if(length(which(names=="avolume"))==1){
-      assign("volume",get("avolume")/get("splitadjust"))
-      colnames(volume)<-"volume"
-    }
-    if(length(which(names=="adelivered"))==1){
-      assign("delivered",get("adelivered")/get("splitadjust"))
-      colnames(delivered)<-"delivered"
-    }
+
     if(length(names)>=2){
       out<-get(names[1])
       for(i in 2:length(names)){
@@ -3007,104 +1294,279 @@ changeTimeFrame<-function(md,sourceDuration=NULL, destDuration=NULL){
   }
 }
 
-loadSymbol<-function(symbol,realtime=FALSE,type="STK",cutoff=NULL,sourceDuration=NULL,destDuration=NULL,fnodatafolder = "/home/psharma/Dropbox/rfiles/dailyfno/",
-                     equitydatafolder = "/home/psharma/Dropbox/rfiles/daily/"){
-  symbolsvector = unlist(strsplit(symbol, "_"))
-  filefound=FALSE
-  if(length(symbolsvector)==1){
-    fileName=paste(equitydatafolder,symbol,".Rdata",sep="")
-    if(file.exists(fileName)){
-      load(fileName)
-      filefound=TRUE
-    }
+
+loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",datafolder="/home/psharma/Dropbox/rfiles/data/",days=365,tz="Asia/Kolkata"){
+  if(is.null(cutoff)){
+    cutoff=Sys.time()
   }else{
-    fileName=paste(fnodatafolder,symbolsvector[3],"/",symbol,".Rdata",sep ="")
-    if(file.exists(fileName)){
-      load(fileName)
-      filefound=TRUE
+    cutoff=as.POSIXct(cutoff,tz=tz)
+  }
+  if(days==365 && src=="persecond"){
+    days=3
+    if(dest=="daily"){
+      dest="5minutes"
     }
   }
-  if(filefound && realtime && !is.na(type)){
-    today=strftime(Sys.Date(),tz=kTimeZone,format="%Y-%m-%d")
-    newrow=RTrade::getPriceArrayFromRedis(9,paste(symbol,"_",type,"___",sep=""),"tick","close",paste(today, " 09:12:00"),paste(today, " 15:30:00"))
-    if(nrow(newrow)==1){
-      if(!is.na(type)){
+  if(dest=="weekly"){
+    starttime=cutoff-7*days*24*60*60
+  }else if(dest=="monthly"){
+    starttime=cutoff-30*days*24*60*60
+  }else{
+    starttime=cutoff-days*24*60*60
+  }
+  md=readRDS3(symbol,datafolder,starttime,cutoff,src) # md in src duration
+  # add realtime data if needed
+  symbolsvector = unlist(strsplit(symbol, "_"))
+  type=toupper(symbolsvector[2])
+  if(nrow(md)>0 && !is.na(type) && src=="daily"){
+    if(realtime){
+      realtimestart=as.POSIXct(ifelse(nrow(md)>0,last(md$date)+1*24*60*60,Sys.time()-1*24*60*60),origin="1970-01-01",tz=tz)
+      newrow=getRealTimeData(symbol,realtimestart,src,tz)
+      md <- rbind(md, newrow)
+      # update splitinformation
+      splitinfo=getSplitInfo(symbolsvector[1])
+      if(nrow(splitinfo)>0){
+        if("splitadjust" %in% names(md)){
+          md=subset(md,select= -splitadjust)
+        }
+        splitinfo$splitadjust=splitinfo$newshares/splitinfo$oldshares
+        splitinfo=aggregate(splitadjust~date,splitinfo,prod)
+        splitinfo=splitinfo[rev(order(splitinfo$date)),]
+        md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
+        splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
+        splitinfo$splitadjust=cumprod(splitinfo$splitadjust)
+        md=merge(md,splitinfo[,c("date","splitadjust")],by.x=c("dateonly"),by.y=c("date"),all.x = TRUE)
+        md$splitadjust=Ref(md$splitadjust,1)
+        md$splitadjust=ifelse(!is.na(md$splitadjust) & !is.na(Ref(md$splitadjust,-1)),NA_real_,md$splitadjust)
+        md$splitadjust=na.locf(md$splitadjust,na.rm = FALSE,fromLast = TRUE)
+        lastsplitadjust=last(splitinfo[splitinfo$date>last(md$dateonly),"splitadjust"])
+        if(is.na(lastsplitadjust)||length(lastsplitadjust)==0){
+          lastsplitadjust=1
+        }
+        md=md[ , -which(names(md) %in% c("dateonly"))]
+        md$splitadjust=ifelse(is.na(md$splitadjust),lastsplitadjust,md$splitadjust)
+      }else{
+        md$splitadjust=1
+      }
+    }
+
+    if(!("splitadjust" %in% names(md))){
+      md$splitadjust=1
+    }
+    md$aopen=md$open/md$splitadjust
+    md$ahigh=md$high/md$splitadjust
+    md$alow=md$low/md$splitadjust
+    md$aclose=md$close/md$splitadjust
+    md$asettle=md$settle/md$splitadjust
+    md$avolume=md$volume*md$splitadjust
+
+    # convert md to destination duration
+    md<-changeTimeFrame(md,src,dest)
+    rownames(md)=NULL
+  }
+
+  if(nrow(md)>0 && !is.na(type) && src=="persecond"){
+    if(realtime){
+      realtimestart=as.POSIXct(ifelse(nrow(md)>0,last(md$date)+1,Sys.time()-1*24*60*60),origin="1970-01-01",tz=tz)
+      newrow=getRealTimeData(symbol,realtimestart,src,tz)
+      md <- rbind(md, newrow)
+    }
+    # convert md to destination duration
+    md<-changeTimeFrame(md,src,dest)
+    # update splitinformation
+    splitinfo=getSplitInfo(symbolsvector[1])
+    if(nrow(splitinfo)>0){
+      if("splitadjust" %in% names(md)){
+        md=subset(md,select= -splitadjust)
+      }
+      splitinfo$splitadjust=splitinfo$newshares/splitinfo$oldshares
+      splitinfo=aggregate(splitadjust~date,splitinfo,prod)
+      splitinfo=splitinfo[rev(order(splitinfo$date)),]
+      md$dateonly=as.Date(md$date,tz="Asia/Kolkata")
+      splitinfo$date=as.Date(splitinfo$date,tz="Asia/Kolkata")
+      splitinfo$splitadjust=cumprod(splitinfo$splitadjust)
+      md=merge(md,splitinfo[,c("date","splitadjust")],by.x=c("dateonly"),by.y=c("date"),all.x = TRUE)
+      md$splitadjust=Ref(md$splitadjust,1)
+      md$splitadjust=ifelse(!is.na(md$splitadjust) & !is.na(Ref(md$splitadjust,-1)),NA_real_,md$splitadjust)
+      md$splitadjust=na.locf(md$splitadjust,na.rm = FALSE,fromLast = TRUE)
+      lastsplitadjust=last(splitinfo[splitinfo$date>last(md$dateonly),"splitadjust"])
+      if(length(lastsplitadjust)==0 || is.na(lastsplitadjust)){
+        lastsplitadjust=1
+      }
+      md=md[ , -which(names(md) %in% c("dateonly"))]
+      md$splitadjust=ifelse(is.na(md$splitadjust),lastsplitadjust,md$splitadjust)
+    }else{
+      md$splitadjust=1
+    }
+
+    md$settle=md$close
+    md$aopen=md$open/md$splitadjust
+    md$ahigh=md$high/md$splitadjust
+    md$alow=md$low/md$splitadjust
+    md$aclose=md$close/md$splitadjust
+    md$asettle=md$settle/md$splitadjust
+    md$avolume=md$volume*md$splitadjust
+    rownames(md)=NULL
+  }
+
+  if(nrow(md)==0){
+    type=tolower(strsplit(symbol,"_")[[1]][2])
+    path=paste("/home/psharma/Dropbox/rfiles/data/daily/",type,sep="")
+    symbols=sapply(strsplit(list.files(path),"\\."),'[',1)
+    symbols=sapply(strsplit(symbols,"_"),'[',1)
+    shortlist=symbols[grep(substr(symbol,1,5),symbols)]
+    if(length(shortlist)>0){
+      print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
+    }
+    return(md)
+  }
+  md
+
+}
+
+loadUnderlyingSymbol<-function(symbol,...){
+  symbolsvector=unlist(strsplit(symbol,"_"))
+  symbolsvector[3]=""
+  symbolsvector[4]=""
+  symbolsvector[5]=""
+  if(grepl("NIFTY",symbolsvector[1])){
+    symbolsvector[2]="IND"
+  }else{
+    symbolsvector[2]="STK"
+  }
+  underlying=paste(symbolsvector,collapse="_")
+  loadSymbol(underlying,...)
+}
+
+getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
+  newrow=data.frame()
+  today=strftime(Sys.Date(),tz=tz,format="%Y-%m-%d")
+  start=strftime(realtimestart,tz=tz,format="%Y-%m-%d %H:%M:%S")
+  symbolsvector = unlist(strsplit(symbol, "_"))
+  type=toupper(symbolsvector[2])
+    if(!is.na(type)){
+      if(bar=="daily"){
+        newrow=getPriceArrayFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"),tz)
+        if(nrow(newrow)==1){
         if(type=="STK"){
+            newrow <-
+              data.frame(
+                "date" = newrow$date[1],
+                "open" = newrow$open[1],
+                "high" = newrow$high[1],
+                "low" = newrow$low[1],
+                "close" = newrow$close[1],
+                "settle" = newrow$close[1],
+                "volume" = 0,
+                "tradecount"=0,
+                "delivered"=0,
+                "tradedvalue"=0,
+                "symbol" = symbol,
+                "splitadjust" = 1,
+                stringsAsFactors = FALSE
+              )
+
+          }
+        }
+
+        if(type=="IND"){
           newrow <-
             data.frame(
-              "symbol" = symbol,
               "date" = newrow$date[1],
               "open" = newrow$open[1],
               "high" = newrow$high[1],
               "low" = newrow$low[1],
               "close" = newrow$close[1],
               "settle" = newrow$close[1],
-              "delivered"=0,
               "volume" = 0,
-              "aopen" = newrow$open[1],
-              "ahigh" = newrow$high[1],
-              "alow" = newrow$low[1],
-              "aclose" = newrow$close[1],
-              "asettle" = newrow$close[1],
-              "adelivered"=0,
-              "avolume" = 0,
-              "splitadjust" = 1
-            )
-        }else if(type=="IND"){
-          newrow <-
-            data.frame(
-              "symbol" = symbol,
-              "date" = newrow$date[1],
-              "open" = newrow$open[1],
-              "high" = newrow$high[1],
-              "low" = newrow$low[1],
-              "close" = newrow$close[1],
-              "settle" = newrow$close[1],
-              "volume" = 0,
-              "aopen" = newrow$open[1],
-              "ahigh" = newrow$high[1],
-              "alow" = newrow$low[1],
-              "aclose" = newrow$close[1],
-              "asettle" = newrow$close[1],
-              "avolume" = 0,
-              "splitadjust" = 1
+              "tradedvalue"=0,
+              "pe"=0,
+              "pb"=0,
+              "dividendyield"=0,
+              "symbol" = symbol
             )
         }
 
+        if(type=="FUT" ||type=="OPT"){
+          newrow <-
+            data.frame(
+              "date" = newrow$date[1],
+              "open" = newrow$open[1],
+              "high" = newrow$high[1],
+              "low" = newrow$low[1],
+              "close" = newrow$close[1],
+              "settle" = newrow$close[1],
+              "volume" = 0,
+              "oi"=0,
+              "tradevalue"=0,
+              "symbol" = symbol,
+              stringsAsFactors = FALSE
+            )
+        }
       }else{
-        newrow <-
-          data.frame(
-            "symbol" = symbol,
-            "date" = newrow$date[1],
-            "open" = newrow$open[1],
-            "high" = newrow$high[1],
-            "low" = newrow$low[1],
-            "close" = newrow$close[1],
-            "settle" = newrow$close[1],
-            "volume" = 0,
-            "oi"=0
-          )
+        mdtodayseries=getPriceHistoryFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"))
+        if(nrow(mdtodayseries)>0){
+          newrow <-
+            data.frame(
+              "date" = mdtodayseries$date,
+              "open" = mdtodayseries$value,
+              "high" = mdtodayseries$value,
+              "low" = mdtodayseries$value,
+              "close" = mdtodayseries$value,
+              "volume" = 0,
+              "symbol" = symbol,
+              stringsAsFactors = FALSE
+            )
+        }
       }
     }
-    md <- rbind(md, newrow)
-  }
-  if(filefound){
-    md<-unique(md)
+
+  newrow
+}
+
+readRDS3<-function(symbol,folder,starttime,endtime,duration){
+  md=data.frame()
+  symbolsvector = unlist(strsplit(symbol, "_"))
+  type=tolower(symbolsvector[2])
+  folder=paste(folder,duration,"/",type,"/",sep="")
+  if(duration=="persecond"){
+    dates=list.dirs(folder,full.names = FALSE,recursive=FALSE)
+    #    starttime_s=substring(strftime(starttime),1,10)
+    #    endtime_s=substring(strftime(endtime),1,10)
+    starttime_s=substring(strftime(starttime),1,10)
+    endtime_s=strftime(endtime)
+    dates=dates[dates>=starttime_s & dates<=endtime_s]
+    for(d in seq_len(length(dates))){
+      filename=paste(folder,dates[d],"/",symbol,"_",dates[d],".rds",sep="")
+      md=rbind(md,readRDS2(filename))
+    }
   }else{
-    md<-NA_character_
+    if(type=="fut"||type=="opt"){
+      filename=paste(folder,symbolsvector[3],"/",symbol,".rds",sep="")
+    }else{
+      filename=paste(folder,symbol,".rds",sep="")
+    }
+    md=readRDS2(filename)
   }
-  if(!is.null(cutoff)){
-    md<-md[md$date<=as.POSIXct(cutoff,tz="Asia/Kolkata"),]
-  }
-  md<-changeTimeFrame(md,sourceDuration,destDuration)
+  md=md[md$date>=starttime & md$date<=endtime,]
   md
 }
 
+readRDS2=function(filename){
+  if(file.exists(filename)){
+    readRDS(filename)
+  }else{
+    data.frame()
+  }
+}
+
+
 getSplitInfo<-function(symbol="",complete=FALSE){
-  rredis::redisConnect()
-  rredis::redisSelect(2)
   if(symbol==""){
+    rredis::redisConnect()
+    rredis::redisSelect(2)
     a <-  unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
+    rredis::redisClose()
     tmp <- (strsplit(a, split = "_")) # convert vector to list
     k <- lengths(tmp) # expansion size for each list element
     allvalues <-  unlist(tmp) # convert list to vector
@@ -3136,6 +1598,7 @@ getSplitInfo<-function(symbol="",complete=FALSE){
     rredis::redisConnect()
     rredis::redisSelect(2)
     a<-unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
+    rredis::redisClose()
     date=sapply(strsplit(a,"_"),"[",1)
     date=strptime(date,format="%Y%m%d")
     date=as.POSIXct(date,tz="Asia/Kolkata")
@@ -3158,29 +1621,29 @@ getSplitInfo<-function(symbol="",complete=FALSE){
 getSymbolChange<-function(){
   rredis::redisConnect()
   rredis::redisSelect(2)
-    a <-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
-    tmp <-  (strsplit(a, split = "_")) # convert vector to list
-    k <-  lengths(tmp) # expansion size for each list element
-    allvalues <- unlist(tmp) # convert list to vector
-    symbolchange <-
-      data.frame(
-        date = rep("", length(a)),
-        key = rep("", length(a)),
-        newsymbol = rep("", length(a)),
-        stringsAsFactors = FALSE
-      )
-    for (i in 1:length(a)) {
-      for (j in 1:k[i]) {
-        runsum = cumsum(k)[i]
-        symbolchange[i, j] <-
-          allvalues[runsum - k[i] + j]
-      }
+  a <-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
+  tmp <-  (strsplit(a, split = "_")) # convert vector to list
+  k <-  lengths(tmp) # expansion size for each list element
+  allvalues <- unlist(tmp) # convert list to vector
+  symbolchange <-
+    data.frame(
+      date = rep("", length(a)),
+      key = rep("", length(a)),
+      newsymbol = rep("", length(a)),
+      stringsAsFactors = FALSE
+    )
+  for (i in 1:length(a)) {
+    for (j in 1:k[i]) {
+      runsum = cumsum(k)[i]
+      symbolchange[i, j] <-
+        allvalues[runsum - k[i] + j]
     }
-    symbolchange$date = as.Date(symbolchange$date, format = "%Y%m%d", tz = "Asia/Kolkata")
-    symbolchange$key = gsub("[^0-9A-Za-z/-]", "", symbolchange$key)
-    symbolchange$newsymbol = gsub("[^0-9A-Za-z/-]", "", symbolchange$newsymbol)
-    rredis::redisClose()
-    symbolchange
+  }
+  symbolchange$date = as.Date(symbolchange$date, format = "%Y%m%d", tz = "Asia/Kolkata")
+  symbolchange$key = gsub("[^0-9A-Za-z/-]", "", symbolchange$key)
+  symbolchange$newsymbol = gsub("[^0-9A-Za-z/-]", "", symbolchange$newsymbol)
+  rredis::redisClose()
+  symbolchange
 }
 
 slope <- function (x,array=TRUE,period=252) {

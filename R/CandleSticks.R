@@ -2,18 +2,8 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   if(is.data.frame(s)){
     md=s
   }else{
-    md<-loadSymbol(s,realtime,type)
+    md<-loadSymbol(s,realtime)
   }
-  if(length(names(md))==7){
-    md$aopen=md$open
-    md$ahigh=md$high
-    md$alow=md$low
-    md$aclose=md$close
-    md$asettle=md$close
-    md$avolume=md$volume
-    rownames(md)=seq(1:nrow(md))
-  }
-  md.xts=convertToXTS(md)
   t<-Trend(md$date,md$ahigh,md$alow,md$asettle)
   md<-merge(md,t,by="date")
   #atr<-ATR(md[,c("ahigh","alow","asettle")],n=23)
