@@ -856,8 +856,8 @@ CalculateDailyPNL <-
         md=loadSymbol(name,days=1000000)
         handlesplits=FALSE
         if("splitadjust" %in% colnames(md)){
-            handlesplits=TRUE
-          }
+          handlesplits=TRUE
+        }
         md=unique(md)
         entryindex = which(md$date == entrydate)
         exitindex = last(which(md$date <= exitdate))
@@ -1302,10 +1302,11 @@ loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",
   }
   if(days==365 && src=="persecond"){
     days=3
-    if(dest=="daily"){
-      dest="5minutes"
-    }
   }
+  if(src=="persecond" && dest=="daily"){
+    dest="5minutes"
+  }
+
   if(dest=="weekly"){
     starttime=cutoff-7*days*24*60*60
   }else if(dest=="monthly"){
@@ -1443,32 +1444,11 @@ getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
   start=strftime(realtimestart,tz=tz,format="%Y-%m-%d %H:%M:%S")
   symbolsvector = unlist(strsplit(symbol, "_"))
   type=toupper(symbolsvector[2])
-    if(!is.na(type)){
-      if(bar=="daily"){
-        newrow=getPriceArrayFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"),tz)
-        if(nrow(newrow)==1){
+  if(!is.na(type)){
+    if(bar=="daily"){
+      newrow=getPriceArrayFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"),tz)
+      if(nrow(newrow)==1){
         if(type=="STK"){
-            newrow <-
-              data.frame(
-                "date" = newrow$date[1],
-                "open" = newrow$open[1],
-                "high" = newrow$high[1],
-                "low" = newrow$low[1],
-                "close" = newrow$close[1],
-                "settle" = newrow$close[1],
-                "volume" = 0,
-                "tradecount"=0,
-                "delivered"=0,
-                "tradedvalue"=0,
-                "symbol" = symbol,
-                "splitadjust" = 1,
-                stringsAsFactors = FALSE
-              )
-
-          }
-        }
-
-        if(type=="IND"){
           newrow <-
             data.frame(
               "date" = newrow$date[1],
@@ -1478,47 +1458,68 @@ getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
               "close" = newrow$close[1],
               "settle" = newrow$close[1],
               "volume" = 0,
+              "tradecount"=0,
+              "delivered"=0,
               "tradedvalue"=0,
-              "pe"=0,
-              "pb"=0,
-              "dividendyield"=0,
-              "symbol" = symbol
+              "symbol" = symbol,
+              "splitadjust" = 1,
+              stringsAsFactors = FALSE
             )
-        }
 
-        if(type=="FUT" ||type=="OPT"){
-          newrow <-
-            data.frame(
-              "date" = newrow$date[1],
-              "open" = newrow$open[1],
-              "high" = newrow$high[1],
-              "low" = newrow$low[1],
-              "close" = newrow$close[1],
-              "settle" = newrow$close[1],
-              "volume" = 0,
-              "oi"=0,
-              "tradevalue"=0,
-              "symbol" = symbol,
-              stringsAsFactors = FALSE
-            )
-        }
-      }else{
-        mdtodayseries=getPriceHistoryFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"))
-        if(nrow(mdtodayseries)>0){
-          newrow <-
-            data.frame(
-              "date" = mdtodayseries$date,
-              "open" = mdtodayseries$value,
-              "high" = mdtodayseries$value,
-              "low" = mdtodayseries$value,
-              "close" = mdtodayseries$value,
-              "volume" = 0,
-              "symbol" = symbol,
-              stringsAsFactors = FALSE
-            )
         }
       }
+
+      if(type=="IND"){
+        newrow <-
+          data.frame(
+            "date" = newrow$date[1],
+            "open" = newrow$open[1],
+            "high" = newrow$high[1],
+            "low" = newrow$low[1],
+            "close" = newrow$close[1],
+            "settle" = newrow$close[1],
+            "volume" = 0,
+            "tradedvalue"=0,
+            "pe"=0,
+            "pb"=0,
+            "dividendyield"=0,
+            "symbol" = symbol
+          )
+      }
+
+      if(type=="FUT" ||type=="OPT"){
+        newrow <-
+          data.frame(
+            "date" = newrow$date[1],
+            "open" = newrow$open[1],
+            "high" = newrow$high[1],
+            "low" = newrow$low[1],
+            "close" = newrow$close[1],
+            "settle" = newrow$close[1],
+            "volume" = 0,
+            "oi"=0,
+            "tradevalue"=0,
+            "symbol" = symbol,
+            stringsAsFactors = FALSE
+          )
+      }
+    }else{
+      mdtodayseries=getPriceHistoryFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"))
+      if(nrow(mdtodayseries)>0){
+        newrow <-
+          data.frame(
+            "date" = mdtodayseries$date,
+            "open" = mdtodayseries$value,
+            "high" = mdtodayseries$value,
+            "low" = mdtodayseries$value,
+            "close" = mdtodayseries$value,
+            "volume" = 0,
+            "symbol" = symbol,
+            stringsAsFactors = FALSE
+          )
+      }
     }
+  }
 
   newrow
 }
