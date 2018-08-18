@@ -5,11 +5,11 @@ library(quantmod)
 library(zoo)
 options(scipen=999)
 
-data.env<- new.env()
+#data.env<- new.env()
 if(is.null(getOption("datafolder"))){
-  data.env$datafolder="/home/psharma/Dropbox/rfiles/data/daily/"
+  datafolder="/home/psharma/Dropbox/rfiles/data/"
 }else{
-  data.env$datafolder=getOption("datafolder")
+  datafolder=getOption("datafolder")
 }
 
 
@@ -1018,8 +1018,7 @@ sharpe <- function(returns, risk.free.rate = 0.07) {
 
 getAllStrikesForExpiry <-
   function(underlyingshortname,
-           expiry,
-           datafolder="/home/psharma/Dropbox/rfiles/data/") {
+           expiry) {
     datafolder=paste(datafolder,"daily/opt/",sep="")
     potentialSymbols = list.files(
       paste(datafolder, expiry, sep = ""),
@@ -1295,7 +1294,7 @@ changeTimeFrame<-function(md,src=NULL, dest=NULL){
 }
 
 
-loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",datafolder="/home/psharma/Dropbox/rfiles/data/",days=365,tz="Asia/Kolkata"){
+loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",days=365,tz="Asia/Kolkata"){
   if(is.null(cutoff)){
     cutoff=Sys.time()
   }else{
@@ -1314,7 +1313,7 @@ loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",
   }else{
     starttime=cutoff-days*24*60*60
   }
-  md=readRDS3(symbol,datafolder,starttime,cutoff,src) # md in src duration
+  md=readRDS3(symbol,starttime,cutoff,src) # md in src duration
   # add realtime data if needed
   symbolsvector = unlist(strsplit(symbol, "_"))
   type=toupper(symbolsvector[2])
@@ -1524,11 +1523,11 @@ getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
   newrow
 }
 
-readRDS3<-function(symbol,folder,starttime,endtime,duration){
+readRDS3<-function(symbol,starttime,endtime,duration){
   md=data.frame()
   symbolsvector = unlist(strsplit(symbol, "_"))
   type=tolower(symbolsvector[2])
-  folder=paste(folder,duration,"/",type,"/",sep="")
+  folder=paste(datafolder,duration,"/",type,"/",sep="")
   if(duration=="persecond"){
     dates=list.dirs(folder,full.names = FALSE,recursive=FALSE)
     #    starttime_s=substring(strftime(starttime),1,10)
