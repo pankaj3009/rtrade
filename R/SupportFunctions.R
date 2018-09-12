@@ -1162,7 +1162,7 @@ QuickChart<-function(symbol,...){
     if(length(shortlist)>0){
       print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
     }
-    return()
+    return(md)
   }
   symbolname=NULL
   dtindex=which(names(md)=="date")
