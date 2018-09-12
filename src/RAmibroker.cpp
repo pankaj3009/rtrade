@@ -559,12 +559,12 @@ NumericVector Cross(NumericVector snake,NumericVector reference){
 
 DataFrame linkedsymbols(DataFrame symbolchange,String ticker, bool complete=false)
 {
-  StringVector originalNamesVector=symbolchange["key"];
+  StringVector originalNamesVector=symbolchange["oldsymbol"];
   StringVector changedNamesVector=symbolchange["newsymbol"];
-  DateVector date=symbolchange["date"];
+  DatetimeVector date=symbolchange["effectivedate"];
   int nSize=changedNamesVector.size();
   vector<string>out;
-  vector<Date> effectivedate;
+  vector<Datetime> effectivedate;
 
   bool found=true;
   std::string value=ticker;
@@ -584,7 +584,7 @@ DataFrame linkedsymbols(DataFrame symbolchange,String ticker, bool complete=fals
   // if no, add
   if(std::find(out.begin(), out.end(), value) == out.end()){
     out.push_back(value);
-    effectivedate.push_back(0);
+    effectivedate.push_back(1);
   }
 
   i=0;
@@ -611,7 +611,7 @@ DataFrame linkedsymbols(DataFrame symbolchange,String ticker, bool complete=fals
   NumericVector seq=order_r(df["date"]);
   nSize=seq.size();
   vector<string>out_new;
-  vector<Date> effectivedate_new;
+  vector<Datetime> effectivedate_new;
 
   for(int i=0;i<nSize;i++){
     out_new.push_back(out[seq[i]-1]);
