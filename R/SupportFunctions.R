@@ -1150,65 +1150,62 @@ getMaxOIStrike <-
     strike
   }
 
-chart <-
-  function(symbol,...) {
-    md<-loadSymbol(symbol,...)
-    if(nrow(md)==0){
-      type=tolower(strsplit(symbol,"_")[[1]][2])
-      path=paste("/home/psharma/Dropbox/rfiles/data/daily/",type,sep="")
-      symbols=sapply(strsplit(list.files(path),"\\."),'[',1)
-      symbols=sapply(strsplit(symbols,"_"),'[',1)
-      shortlist=symbols[grep(substr(symbol,1,5),symbols)]
-      if(length(shortlist)>0){
-        print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
-      }
-      return()
-    }
-    symbolname=NULL
-    dtindex=which(names(md)=="date")
-    if(length(grep("aopen",names(md)))>0){
-      symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"),dateIndex = dtindex)
-    }
-    customTheme = chartTheme(
-      "white",
-      up.col = "dark green",
-      dn.col = "dark red",
-      main.col = "#000000",
-      sub.col = "#000000",
-      border = "#000000",
-      dn.up.col = "dark red",
-      up.up.col = "dark green",
-      dn.dn.col = "dark red",
-      up.dn.col = "dark green",
-      up.border = "#000000",
-      dn.border = "#000000",
-      dn.up.border = "#000000",
-      up.up.border = "#000000",
-      dn.dn.border = "#000000",
-      up.dn.border = "#000000"
-    )
-    names(symbolname)<-c("open","high","low","close","volume")
-    name<-as.character(md$symbol[1])
-    start=strftime(md$date[1],format="%Y-%m-%d")
-    end=strftime(md$date[nrow(md)],format="%Y-%m-%d")
-    chartSeries(symbolname,
-                subset = paste(start, "::", end, sep = ""),
-                theme = customTheme,
-                name=name)
-    symbolname[paste(start, "::", end, sep = "")]
-  }
 
 QuickChart<-function(symbol,...){
-  #symbol=deparse(substitute(symbol))
-  #type=deparse(substitute(type))
-  out<-chart(symbol,...)
+  md<-loadSymbol(symbol,...)
+  if(nrow(md)==0){
+    type=tolower(strsplit(symbol,"_")[[1]][2])
+    path=paste(datafolder,"daily/",type,sep="")
+    symbols=sapply(strsplit(list.files(path),"\\."),'[',1)
+    symbols=sapply(strsplit(symbols,"_"),'[',1)
+    shortlist=symbols[grep(substr(symbol,1,5),symbols)]
+    if(length(shortlist)>0){
+      print(paste("Did you mean..",paste(shortlist,collapse=" or "),sep=" "))
+    }
+    return()
+  }
+  symbolname=NULL
+  dtindex=which(names(md)=="date")
+  if(length(grep("aopen",names(md)))>0){
+    symbolname = convertToXTS(md, c("aopen", "ahigh", "alow", "asettle", "avolume"),dateIndex = dtindex)
+  }
+  customTheme = chartTheme(
+    "white",
+    up.col = "dark green",
+    dn.col = "dark red",
+    main.col = "#000000",
+    sub.col = "#000000",
+    border = "#000000",
+    dn.up.col = "dark red",
+    up.up.col = "dark green",
+    dn.dn.col = "dark red",
+    up.dn.col = "dark green",
+    up.border = "#000000",
+    dn.border = "#000000",
+    dn.up.border = "#000000",
+    up.up.border = "#000000",
+    dn.dn.border = "#000000",
+    up.dn.border = "#000000"
+  )
+  names(symbolname)<-c("open","high","low","close","volume")
+  name<-as.character(md$symbol[1])
+  start=strftime(md$date[1],format="%Y-%m-%d")
+  end=strftime(md$date[nrow(md)],format="%Y-%m-%d")
+  out<-symbolname[paste(start, "::", end, sep = "")]
   if(!is.null(out)){
     out.md<-convertToDF(out)
     trend.md<-RTrade::Trend(out.md$date,out.md$high,out.md$low,out.md$close)
-    swinglevel=xts(trend.md$swinglevel,out.md$date)
-    plot(addTA(swinglevel,on=1, type='s',lty=3))
-    trend=xts(trend.md$trend,out.md$date)
-    plot(addTA(trend,type='s'))
+    swinglevel<<-xts(trend.md$swinglevel,out.md$date)
+    # library(pryr)
+    #   print(where("swinglevel"))
+    #    print(where("chartSeries"))
+    #    plot(addTA(swinglevel,on=1, type='s',lty=3))
+    trend<<-xts(trend.md$trend,out.md$date)
+    #    plot(addTA(trend,type='s'))
+    chartSeries(symbolname,TA=list("addTA(swinglevel,on=1,type='s',lty=3)","addTA(trend,type='s')"),
+                subset = paste(start, "::", end, sep = ""),
+                theme = customTheme,
+                name=name,...)
     md<-out.md
   }
 }
@@ -1294,7 +1291,7 @@ changeTimeFrame<-function(md,src=NULL, dest=NULL){
 }
 
 
-loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",days=365,tz="Asia/Kolkata"){
+loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",days=365,tz="Asia/Kolkata",...){
   if(is.null(cutoff)){
     cutoff=Sys.time()
   }else{
@@ -1411,7 +1408,7 @@ loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",
 
   if(nrow(md)==0){
     type=tolower(strsplit(symbol,"_")[[1]][2])
-    path=paste("/home/psharma/Dropbox/rfiles/data/daily/",type,sep="")
+    path=paste(datafolder,"daily/",type,sep="")
     symbols=sapply(strsplit(list.files(path),"\\."),'[',1)
     symbols=sapply(strsplit(symbols,"_"),'[',1)
     shortlist=symbols[grep(substr(symbol,1,5),symbols)]
@@ -1524,6 +1521,50 @@ getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
   newrow
 }
 
+
+getTickDataToDF<-function(symbol,date=NULL,redisdb=9,tz="Asia/Kolkata"){
+  if(is.null(date)){
+    date=as.character(Sys.Date())
+  }
+  s=symbol
+  targetfile=paste(datafolder,"tick","/",date,"/",symbol,"_",date,".rds",sep="")
+  if(file.exists(targetfile)){
+    return(readRDS(targetfile))
+  }
+  starttime=paste(date,"09:05:00")
+  endtime=paste(date,"15:35:00")
+  starttime=as.numeric(as.POSIXct(starttime,origin="1970-01-01",tz=tz))*1000
+  endtime=as.numeric(as.POSIXct(endtime,origin="1970-01-01",tz=tz))*1000
+  redisConnect()
+  redisSelect(redisdb)
+  keys=rredis::redisKeys(pattern=paste(symbol,"tick*",sep=":"))
+  df=data.frame()
+  for(k in keys){
+    values=rredis::redisZRangeByScore(k,starttime,endtime)
+    values=unlist(values)
+    if(!is.null(values)){
+      time=sapply(values,function(x) fromJSON(x)$time)/1000
+      names(time)=NULL
+      assign(strsplit(k,":")[[1]][3],unname(as.numeric(sapply(values,function(x) fromJSON(x)$value))))
+      out=data.frame(date=time)
+      out[strsplit(k,":")[[1]][3]]=get(strsplit(k,":")[[1]][3])
+      assign(strsplit(k,":")[[1]][3],out)
+      if(nrow(df)==0){
+        df=get(strsplit(k,":")[[1]][3])
+      }else{
+        df=merge(df,get(strsplit(k,":")[[1]][3]),all.x = TRUE,all.y = TRUE)
+      }
+    }
+  }
+  redisClose()
+  #df <- mutate_all(df, function(x) as.numeric(as.character(x)))
+  if(nrow(df)>0){
+    df$date=as.POSIXct(df$date,origin="1970-01-01",tz="Asia/Kolkata")
+    df$symbol=symbol
+  }
+  df
+}
+
 readRDS3<-function(symbol,starttime,endtime,duration){
   md=data.frame()
   symbolsvector = unlist(strsplit(symbol, "_"))
@@ -1562,31 +1603,11 @@ readRDS2=function(filename){
 
 
 getSplitInfo<-function(symbol="",complete=FALSE){
+  splitinfo=readRDS(paste(datafolder,"static/splits.rds",sep=""))
+  splitinfo$date=as.POSIXct(splitinfo$date,tz="Asia/Kolkata",format="%Y%m%d")
+
   if(symbol==""){
-    rredis::redisConnect()
-    rredis::redisSelect(2)
-    a <-  unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
-    rredis::redisClose()
-    tmp <- (strsplit(a, split = "_")) # convert vector to list
-    k <- lengths(tmp) # expansion size for each list element
-    allvalues <-  unlist(tmp) # convert list to vector
-    splitinfo <-  data.frame(
-      date = 1:length(a),
-      symbol = 1:length(a),
-      oldshares = 1:length(a),
-      newshares = 1:length(a),
-      reason = rep("", length(a)),
-      stringsAsFactors = FALSE
-    )
-    for (i in 1:length(a)) {
-      for (j in 1:k[i]) {
-        runsum = cumsum(k)[i]
-        splitinfo[i, j] <- allvalues[runsum - k[i] + j]
-      }
-    }
-    splitinfo$date = as.POSIXct(splitinfo$date, format = "%Y%m%d", tz = "Asia/Kolkata")
-    splitinfo$oldshares <- as.numeric(splitinfo$oldshares)
-    splitinfo$newshares <- as.numeric(splitinfo$newshares)
+    return(splitinfo)
   }else{
     # a<-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
     # origsymbols=sapply(strsplit(a,"_"),"[",2)
@@ -1595,54 +1616,18 @@ getSplitInfo<-function(symbol="",complete=FALSE){
     # linkedsymbols=RTrade::linkedsymbols(origsymbols,newsymbols,symbol)
     linkedsymbols=linkedsymbols(symbolchange,symbol,complete)$symbol
     linkedsymbols=paste("^",linkedsymbols,"$",sep="")
-    rredis::redisConnect()
-    rredis::redisSelect(2)
-    a<-unlist(rredis::redisSMembers("splits")) # get values from redis in a vector
-    rredis::redisClose()
-    date=sapply(strsplit(a,"_"),"[",1)
-    date=strptime(date,format="%Y%m%d")
-    date=as.POSIXct(date,tz="Asia/Kolkata")
-    symbol=sapply(strsplit(a,"_"),"[",2)
-    oldshares=sapply(strsplit(a,"_"),"[",3)
-    newshares=sapply(strsplit(a,"_"),"[",4)
-    reason=sapply(strsplit(a,"_"),"[",5)
-    indices=unlist(sapply(linkedsymbols,grep,symbol))
-    splitinfo=data.frame()
-    splitinfo=data.frame(date=date[indices],symbol=symbol[indices],oldshares=oldshares[indices],newshares=newshares[indices],reason=reason[indices],stringsAsFactors = FALSE)
-    splitinfo=splitinfo[order(splitinfo$date),]
+    indices=unlist(sapply(linkedsymbols,grep,splitinfo$symbol))
+    splitinfo=splitinfo[indices,]
     if(nrow(splitinfo)>0){
-      splitinfo$oldshares=as.numeric(splitinfo$oldshares)
-      splitinfo$newshares=as.numeric(splitinfo$newshares)
+      splitinfo=splitinfo[order(splitinfo$date),]
     }
   }
   splitinfo
 }
 
 getSymbolChange<-function(){
-  rredis::redisConnect()
-  rredis::redisSelect(2)
-  a <-unlist(rredis::redisSMembers("symbolchange")) # get values from redis in a vector
-  tmp <-  (strsplit(a, split = "_")) # convert vector to list
-  k <-  lengths(tmp) # expansion size for each list element
-  allvalues <- unlist(tmp) # convert list to vector
-  symbolchange <-
-    data.frame(
-      date = rep("", length(a)),
-      key = rep("", length(a)),
-      newsymbol = rep("", length(a)),
-      stringsAsFactors = FALSE
-    )
-  for (i in 1:length(a)) {
-    for (j in 1:k[i]) {
-      runsum = cumsum(k)[i]
-      symbolchange[i, j] <-
-        allvalues[runsum - k[i] + j]
-    }
-  }
-  symbolchange$date = as.Date(symbolchange$date, format = "%Y%m%d", tz = "Asia/Kolkata")
-  symbolchange$key = gsub("[^0-9A-Za-z/-]", "", symbolchange$key)
-  symbolchange$newsymbol = gsub("[^0-9A-Za-z/-]", "", symbolchange$newsymbol)
-  rredis::redisClose()
+  symbolchange=readRDS(paste(datafolder,"static/symbolchange.rds",sep=""))
+  symbolchange$effectivedate=as.POSIXct(symbolchange$effectivedate,tz="Asia/Kolkata",format="%Y%m%d")
   symbolchange
 }
 
