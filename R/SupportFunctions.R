@@ -461,130 +461,116 @@ readAllSymbols <-
 #   return(actualtrades)
 # }
 
-createPNLSummary <-
-  function(redisdb,
-           pattern,
-           start,
-           end,
-           mdpath,
-           deriv = FALSE) {
-    #pattern = strategy name (Case sensitive)
-    #start,end = string as "yyyy-mm-dd"
-    #mdpath = path to market data files for valuing open positions
-    #realtrades<-createPNLSummary(0,"swing01","2017-01-01","2017-01-31","/home/psharma/Seafile/rfiles/daily-fno/")
-    rredis::redisConnect()
-    rredis::redisSelect(redisdb)
-    rediskeys = redisKeys(paste("*",pattern,"*",sep=""))
-    actualtrades <-
-      data.frame(
-        symbol = character(),
-        trade = character(),
-        entrysize = as.numeric(),
-        entrytime = as.POSIXct(character()),
-        entryprice = numeric(),
-        exittime = as.POSIXct(character()),
-        exitprice = as.numeric(),
-        percentprofit = as.numeric(),
-        bars = as.numeric(),
-        brokerage = as.numeric(),
-        netpercentprofit = as.numeric(),
-        netprofit = as.numeric(),
-        key = character(),
-        stringsAsFactors = FALSE
-      )
-    periodstartdate = as.Date(start, tz = "Asia/Kolkata")
-    periodenddate = as.Date(end, tz = "Asia/Kolkata")
+createPNLSummary <- function(redisdb,pattern,start,end) {
+  #pattern = strategy name (Case sensitive)
+  #start,end = string as "yyyy-mm-dd"
+  #mdpath = path to market data files for valuing open positions
+  #realtrades<-createPNLSummary(0,"swing01","2017-01-01","2017-01-31","/home/psharma/Seafile/rfiles/daily-fno/")
+  rredis::redisConnect()
+  rredis::redisSelect(redisdb)
+  actualtrades <-
+    data.frame(
+      symbol = character(),
+      trade = character(),
+      size = as.numeric(),
+      entrytime = as.POSIXct(character()),
+      entryprice = numeric(),
+      exittime = as.POSIXct(character()),
+      exitprice = as.numeric(),
+      percentprofit = as.numeric(),
+      bars = as.numeric(),
+      exitreason=character(),
+      brokerage = as.numeric(),
+      netpercentprofit = as.numeric(),
+      pnl = as.numeric(),
+      key = character(),
+      netposition=as.numeric(),
+      stringsAsFactors = FALSE
+    )
+  periodstartdate = as.Date(start, tz = "Asia/Kolkata")
+  periodenddate = as.Date(end, tz = "Asia/Kolkata")
 
-    rediskeysShortList <- as.character()
-    for (i in 1:length(rediskeys)) {
-      l = length(grep(pattern, rediskeys[i]))
-      if (l > 0) {
-        if (grepl("opentrades", rediskeys[i]) ||
-            grepl("closedtrades", rediskeys[i])) {
-          rediskeysShortList <- rbind(rediskeysShortList,
-                                      rediskeys[i])
-        }
-      }
-    }
-    rediskeysShortList <- sort(rediskeysShortList)
-    # loop through keys and generate pnl
-    if(length(rediskeysShortList)>0){
-      for (i in 1:length(rediskeysShortList)) {
-        data <- unlist(redisHGetAll(rediskeysShortList[i]))
-        exitprice = 0
-        entrydate = data["entrytime"]
-        exitdate = data["exittime"]
-        entrydate = as.Date(entrydate, tz = "Asia/Kolkata")
-        exitdate = ifelse(
-          is.na(exitdate),
-          Sys.Date(),
-          as.Date(
-            exitdate,
-            format = "%Y-%m-%d %H:%M:%S",
-            tz = "Asia/Kolkata",
-            origin = "1970-01-01"
-          )
+  rediskeysShortList <- as.character()
+  rediskeysShortList=rredis::redisKeys(pattern)
+  rediskeysShortList <- sort(rediskeysShortList)
+  # loop through keys and generate pnl
+  if(length(rediskeysShortList)>0){
+    for (i in 1:length(rediskeysShortList)) {
+      data <- unlist(redisHGetAll(rediskeysShortList[i]))
+      exitprice = 0
+      entrydate = data["entrytime"]
+      exitdate = data["exittime"]
+      entrydate = as.Date(entrydate, tz = "Asia/Kolkata")
+      exitdate = ifelse(
+        is.na(exitdate),
+        Sys.Date(),
+        as.Date(
+          exitdate,
+          format = "%Y-%m-%d %H:%M:%S",
+          tz = "Asia/Kolkata",
+          origin = "1970-01-01"
         )
-        if (exitdate >= periodstartdate &&
-            entrydate <= periodenddate) {
-          if (grepl("opentrades", rediskeysShortList[i])) {
-            symbol = data["entrysymbol"]
-            if (deriv) {
-              symbolsvector = unlist(strsplit(symbol, "_"))
-              md=loadSymbol(symbol,days=100000)
-            } else{
-              symbolsvector = unlist(strsplit(symbol, "_"))
-              md=loadSymbol(symbol,days=100000)
-            }
-            index = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
-            if (length(index) == 0) {
-              index = nrow(md)
-            }
-            exitprice = md$settle[index]
-          } else{
-            exitprice = as.numeric(data["exitprice"])
+      )
+      if (exitdate >= periodstartdate &&
+          entrydate <= periodenddate) {
+        if (grepl("opentrades", rediskeysShortList[i])) {
+          symbol = data["entrysymbol"]
+          symbolsvector = unlist(strsplit(symbol, "_"))
+          md=loadSymbol(symbol,days=100000)
+          index = which(as.Date(md$date, tz = "Asia/Kolkata") == exitdate)
+          if (length(index) == 0) {
+            index = nrow(md)
           }
-          percentprofit = (exitprice - as.numeric(data["entryprice"])) / as.numeric(data["entryprice"])
-          percentprofit = ifelse(data["entryside"] == "BUY",
-                                 percentprofit,
-                                 -percentprofit)
-          entrybrokerage=as.numeric(data["entrybrokerage"])
-          entrybrokerage=ifelse(is.na(entrybrokerage),0,entrybrokerage)
-          exitbrokerage=as.numeric(data["exitbrokerage"])
-          exitbrokerage=ifelse(is.na(exitbrokerage),0,exitbrokerage)
-          brokerage = entrybrokerage + exitbrokerage
-          netpercentprofit = percentprofit - (brokerage / (
-            as.numeric(data["entryprice"]) *
-              as.numeric(data["entrysize"])
-          ))
-          netprofit = (exitprice - as.numeric(data["entryprice"])) * as.numeric(data["entrysize"]) -
-            brokerage
-          netprofit = ifelse(data["entryside"] == "BUY", netprofit, -netprofit)
-          df = data.frame(
-            symbol = data["parentsymbol"],
-            trade = data["entryside"],
-            entrysize = as.numeric(data["entrysize"]),
-            entrytime = as.POSIXct(data["entrytime"], tz = "Asia/Kolkata"),
-            entryprice = as.numeric(data["entryprice"]),
-            exittime = as.POSIXct(data["exittime"], tz = "Asia/Kolkata"),
-            exitprice = exitprice,
-            percentprofit = percentprofit,
-            bars = 0,
-            brokerage = brokerage,
-            netpercentprofit = netpercentprofit,
-            netprofit = netprofit,
-            key = rediskeysShortList[i],
-            stringsAsFactors = FALSE
-          )
-          rownames(df) <- NULL
-          actualtrades = rbind(actualtrades, df)
-
+          exitprice = md$settle[index]
+        } else{
+          exitprice = as.numeric(data["exitprice"])
         }
+        percentprofit = (exitprice - as.numeric(data["entryprice"])) / as.numeric(data["entryprice"])
+        percentprofit = ifelse(data["entryside"] == "BUY",
+                               percentprofit,
+                               -percentprofit)
+        entrybrokerage=as.numeric(data["entrybrokerage"])
+        entrybrokerage=ifelse(is.na(entrybrokerage),0,entrybrokerage)
+        exitbrokerage=as.numeric(data["exitbrokerage"])
+        exitbrokerage=ifelse(is.na(exitbrokerage),0,exitbrokerage)
+        exitsize=as.numeric(data["exitsize"])
+        exitsize=ifelse(is.na(exitsize),0,exitsize)
+        brokerage = entrybrokerage + exitbrokerage
+        netpercentprofit = percentprofit - (brokerage / (
+          as.numeric(data["entryprice"]) *
+            as.numeric(data["entrysize"])
+        ))
+        netprofit = (exitprice - as.numeric(data["entryprice"])) * as.numeric(data["entrysize"]) -
+          brokerage
+        netprofit = ifelse(data["entryside"] == "BUY", netprofit, -netprofit)
+        exitreason=ifelse(is.na(as.character(data["exitreason"])),"Open",as.character(data["exitreason"]))
+        df = data.frame(
+          symbol = data["parentsymbol"],
+          trade = data["entryside"],
+          size = as.numeric(data["entrysize"]),
+          entrytime = as.POSIXct(data["entrytime"], tz = "Asia/Kolkata"),
+          entryprice = as.numeric(data["entryprice"]),
+          exittime = as.POSIXct(data["exittime"], tz = "Asia/Kolkata"),
+          exitprice = exitprice,
+          percentprofit = percentprofit,
+          bars = 0,
+          exitreason=exitreason,
+          brokerage = brokerage,
+          netpercentprofit = netpercentprofit,
+          pnl = netprofit,
+          key = rediskeysShortList[i],
+          netposition=ifelse(data["entryside"]=="BUY",as.numeric(data["entrysize"])-exitsize,-as.numeric(data["entrysize"])+exitsize),
+          stringsAsFactors = FALSE
+        )
+        rownames(df) <- NULL
+        actualtrades = rbind(actualtrades, df)
+
       }
     }
-    #return(actualtrades[with(trades,order(entrytime)),])
-    actualtrades
   }
+  #return(actualtrades[with(trades,order(entrytime)),])
+  actualtrades
+}
 
 getExpiryDate <- function(mydate) {
   #mydate = Date object
@@ -636,7 +622,7 @@ getPriceArrayFromRedis <-
       low = min(price$value)
       open = price$value[1]
       close = price$value[nrow(price)]
-      timeformat = as.POSIXct(first(price)$time/1000, origin="1970-01-01")
+      timeformat = as.POSIXct(first(price$time)/1000, origin="1970-01-01")
       timeformat=strftime(timeformat,format="%Y-%m-%d",tz=tz)
       timeformat=as.POSIXct(timeformat)
       out = data.frame(
@@ -831,28 +817,35 @@ CalculateDailyPNL <-
   function(portfolio,
            pnl,
            brokerage,
-           per.contract.brokerage = TRUE,
-           deriv = FALSE) {
+           margin=1,
+           marginOnUnrealized=FALSE,
+           intraday=FALSE,
+           timeZone="Asia/Kolkata") {
     #Returns realized and unrealized pnl for each day
     # Should be called after portfolio is constructed
     # portfolio = df containing columns[symbol,entrytime,exittime,entryprice,exitprice,trade,size]
     # portfolio$exitdate should be NA for rows that still have open positions.
-    #pnl = pnl<-data.frame(bizdays=as.Date(subset$date,tz="Asia/Kolkata"),realized=0,unrealized=0,brokerage=0)
-    # path = string containing path to market data, ending with "/"
+    # pnl = pnl<-data.frame(bizdays=as.Date(subset$date,tz="Asia/Kolkata"),realized=0,unrealized=0,brokerage=0)
     #brokerage = % brokerage of trade value
     #realized and unrealized profits are cumulative till date
-    if (length(brokerage) == 1) {
-      brokerage = rep(brokerage, nrow(portfolio))
-    }
+    # realized and unrealized pnl are gross of brokerage. To get net pnl, dont forget to subtract brokerage
+    # margin weights longnpv and shortnpv for margin
+    # marginOnUnrealized=TRUE ensures that cashdeployed includes unrealized profit, as this unrealized profit can result in margin calls.
+    # intraday flag should be set to false for EOD strategies, as entrytime/exittime might not match market data time
     pnl$positioncount=0
     pnl$longnpv=0
     pnl$shortnpv=0
     if (nrow(portfolio) > 0) {
-      #for (l in 1:193){
+      #for (l in 1:107){
       for (l in 1:nrow(portfolio)) {
         name = portfolio[l, 'symbol']
-        entrydate = portfolio[l, 'entrytime']
-        exitdate = portfolio[l, 'exittime']
+        if(intraday){
+          entrydate = portfolio[l, 'entrytime']
+          exitdate = portfolio[l, 'exittime']
+        }else{
+          entrydate=as.POSIXct(strftime(as.Date(portfolio[l, 'entrytime'],timeZone=timeZone)))
+          exitdate=as.POSIXct(strftime(as.Date(portfolio[l, 'exittime'],timeZone=timeZone)))
+        }
         md=loadSymbol(name,days=1000000)
         handlesplits=FALSE
         if("splitadjust" %in% colnames(md)){
@@ -860,7 +853,11 @@ CalculateDailyPNL <-
         }
         md=unique(md)
         entryindex = which(md$date == entrydate)
-        exitindex = last(which(md$date <= exitdate))
+        if(portfolio[l,c("exitreason")]=="Open"){
+          exitindex=as.numeric()
+        }else{
+          exitindex=last(which(md$date <= exitdate))
+        }
         unrealizedpnlexists = FALSE
         if (length(exitindex) == 0) {
           # we do not have an exit date
@@ -892,13 +889,6 @@ CalculateDailyPNL <-
               }else{
                 newprice = md$settle[index]
               }
-              if(handlesplits){
-                if(index==entryindex){
-                  newsplitadjustment=1
-                }else{
-                  newsplitadjustment=md$splitadjust[(index-1)]/md$splitadjust[index]
-                }
-              }
               newsplitadjustment=1
               pnl$unrealized[dtindex:nrow(pnl)] <-  pnl$unrealized[dtindex:nrow(pnl)] + ifelse(grepl("BUY", side),(newprice*newsplitadjustment - mtm)*size,(mtm - newprice*newsplitadjustment) * size)
               cumunrealized[(dtindex - dtindexstart + 1)] = ifelse(grepl("BUY", side),(newprice*newsplitadjustment - mtm) * size,(mtm - newprice*newsplitadjustment ) * size )
@@ -906,11 +896,7 @@ CalculateDailyPNL <-
               pnl$shortnpv[dtindex]=pnl$shortnpv[dtindex]+ifelse(grepl("SHORT", side),(newprice*newsplitadjustment)*size,0)
               mtm <- newprice
               if (index == entryindex) {
-                if (per.contract.brokerage) {
-                  pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] * size
-                } else{
-                  pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] * size * portfolio[l, 'entryprice']
-                }
+                pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + calculateBrokerage(portfolio[l,],kBrokerage,calculation = "ENTRY")
               }
             }
           }
@@ -922,12 +908,8 @@ CalculateDailyPNL <-
               dtindex = which(pnl$bizdays ==portfolio[l, "exittime"]) - 1
             }
             pnl$realized[(dtindex + 1):nrow(pnl)] <-pnl$realized[(dtindex + 1):nrow(pnl)] + sum(cumunrealized) + lastdaypnl
-            if (per.contract.brokerage) {
-              pnl$brokerage[(dtindex + 1):nrow(pnl)] = pnl$brokerage[(dtindex + 1):nrow(pnl)] + brokerage[l] * size
-            } else{
-              pnl$brokerage[dtindex:nrow(pnl)] = pnl$brokerage[dtindex:nrow(pnl)] + brokerage[l] *
-                size * portfolio[l, 'exitprice']*md$splitadjust[(index)]/md$splitadjust[exitindex]
-            }
+            pnl$brokerage[(dtindex + 1):nrow(pnl)] = pnl$brokerage[(dtindex + 1):nrow(pnl)] + calculateBrokerage(portfolio[l,],kBrokerage,calculation = "EXIT")
+
             pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex + 1):nrow(pnl)] - sum(cumunrealized)
           } else{
             pnl$unrealized[(dtindex + 1):nrow(pnl)] = pnl$unrealized[(dtindex + 1):nrow(pnl)] + lastdaypnl
@@ -937,7 +919,12 @@ CalculateDailyPNL <-
         }
       }
     }
-    pnl$cashdeployed=pnl$longnpv+pnl$shortnpv-pnl$unrealized-pnl$realized+pnl$brokerage
+    if(marginOnUnrealized){
+      pnl$cashdeployed=pnl$longnpv*margin+pnl$shortnpv*margin-pnl$unrealized-pnl$realized+pnl$brokerage
+    }else{
+      pnl$cashdeployed=pnl$longnpv*margin+pnl$shortnpv*margin-pnl$realized+pnl$brokerage
+    }
+
     pnl$cashflow=c(NA_real_,diff(pnl$cashdeployed))
     pnl$cashflow[1]=pnl$cashdeployed[1]
     pnl$cashflow=-round(pnl$cashflow,0)
@@ -946,7 +933,15 @@ CalculateDailyPNL <-
   }
 
 
-MapToFutureTrades<-function(itrades,rollover=FALSE){
+MapToFutureTrades<-function(itrades,rollover=FALSE,tz=kTimeZone){
+  itrades$entrymonth <- as.Date(sapply(itrades$entrytime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
+  nextexpiry <- as.Date(sapply(as.Date(itrades$entrymonth + 20, tz = kTimeZone,,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,,origin="1970-01-01")
+  itrades$entrycontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$entrytime, tz = kTimeZone,origin="1970-01-01"),itrades$entrymonth) < 1,nextexpiry,itrades$entrymonth),tz = kTimeZone,origin="1970-01-01")
+  itrades$exitmonth <- as.Date(sapply(itrades$exittime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
+  nextexpiry <- as.Date(sapply(as.Date(itrades$exitmonth + 20, tz = kTimeZone,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,origin="1970-01-01")
+  itrades$exitcontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$exittime, tz = kTimeZone,origin="1970-01-01"),itrades$exitmonth) < 1,nextexpiry,itrades$exitmonth),tz = kTimeZone,origin="1970-01-01")
+  itrades<-getStrikeByClosestSettlePrice(itrades,kTimeZone)
+
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
@@ -1008,8 +1003,47 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice){
 }
 
 getmtm<-function(symbol,date){
-  md=loadSymbol(symbol,cutoff=date,days=5)
-  last(md[md$date<=date,c("asettle")])
+  md=loadSymbol(symbol,cutoff=date,days=365)
+  mtm=list()
+  mtm$value=last(md[md$date<=date,c("asettle")])
+  mtm$time=last(md[md$date<=date,c("date")])
+  mtm
+}
+
+getmtmRealTime<-function(symbol,redisdb=9,tz="Asia/Kolkata"){
+  rredis::redisConnect()
+  rredis::redisSelect(as.numeric(redisdb))
+  key=paste(symbol,"tick","close",sep=":")
+  json=rredis::redisZRange(key,-1,-1)
+  if(!is.null(json)){
+    json=jsonlite::fromJSON(as.character(json))
+    json$time=as.POSIXct(json$time/1000,tz=tz,origin="1970-01-01")
+    json$value=as.numeric(json$value)
+  }
+  json
+}
+
+revalPortfolio<-function(trades,kBrokerage,realtime=FALSE,allocation=1){
+  indicesToMTM=which(trades$exitreason=="Open" | (is.na(trades$exitprice) & !is.na(trades$entryprice)))
+  for( i in seq_along(indicesToMTM)){
+    index=indicesToMTM[i]
+    symbol=trades$symbol[index]
+    if(realtime){
+      mtm=getmtmRealTime(symbol)
+    }else{
+      mtm=getmtm(symbol,Sys.time())
+    }
+
+    if(!is.null(mtm)){
+      trades$exittime[index]=mtm$time
+      trades$exitprice[index]=mtm$value
+    }
+  }
+  trades$size=round(trades$size*allocation)
+  trades$brokerageamount=calculateBrokerage(trades,kBrokerage)
+  trades$pnl<-ifelse(trades$exitprice==0|trades$entryprice==0,0,(trades$exitprice-trades$entryprice)*trades$size-trades$brokerageamount)
+  trades$pnl<-ifelse(trades$trade=="BUY",trades$pnl,-trades$pnl)
+  trades
 }
 
 sharpe <- function(returns, risk.free.rate = 0.07) {
@@ -1464,41 +1498,41 @@ getRealTimeData<-function(symbol,realtimestart,bar="daily",tz="Asia/Kolkata"){
             )
 
         }
-      }
 
-      if(type=="IND"){
-        newrow <-
-          data.frame(
-            "date" = newrow$date[1],
-            "open" = newrow$open[1],
-            "high" = newrow$high[1],
-            "low" = newrow$low[1],
-            "close" = newrow$close[1],
-            "settle" = newrow$close[1],
-            "volume" = 0,
-            "tradedvalue"=0,
-            "pe"=0,
-            "pb"=0,
-            "dividendyield"=0,
-            "symbol" = symbol
-          )
-      }
+        if(type=="IND"){
+          newrow <-
+            data.frame(
+              "date" = newrow$date[1],
+              "open" = newrow$open[1],
+              "high" = newrow$high[1],
+              "low" = newrow$low[1],
+              "close" = newrow$close[1],
+              "settle" = newrow$close[1],
+              "volume" = 0,
+              "tradedvalue"=0,
+              "pe"=0,
+              "pb"=0,
+              "dividendyield"=0,
+              "symbol" = symbol
+            )
+        }
 
-      if(type=="FUT" ||type=="OPT"){
-        newrow <-
-          data.frame(
-            "date" = newrow$date[1],
-            "open" = newrow$open[1],
-            "high" = newrow$high[1],
-            "low" = newrow$low[1],
-            "close" = newrow$close[1],
-            "settle" = newrow$close[1],
-            "volume" = 0,
-            "oi"=0,
-            "tradevalue"=0,
-            "symbol" = symbol,
-            stringsAsFactors = FALSE
-          )
+        if(type=="FUT" ||type=="OPT"){
+          newrow <-
+            data.frame(
+              "date" = newrow$date[1],
+              "open" = newrow$open[1],
+              "high" = newrow$high[1],
+              "low" = newrow$low[1],
+              "close" = newrow$close[1],
+              "settle" = newrow$close[1],
+              "volume" = 0,
+              "oi"=0,
+              "tradevalue"=0,
+              "symbol" = symbol,
+              stringsAsFactors = FALSE
+            )
+        }
       }
     }else{
       mdtodayseries=getPriceHistoryFromRedis(9,symbol,"tick","close",start,paste(today, "15:30:00"))
@@ -1886,4 +1920,222 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
     }
   }
+}
+
+generateExecutionSummary<-function(trades,backteststart,backtestend,strategyname,strategydb,kSubscribers,kBrokerage,kCommittedCapital,kMargin=1,kMarginOnUnrealized=FALSE,kInvestmentReturn=0.06,kOverdraftPenalty=0.2,executiondb=0){
+  # 1.1 Strategy Metrics
+  if(nrow(trades)>0){
+    for(i in seq_along(nrow(kSubscribers$subscribers))){
+      if(kSubscribers$subscribers$account[i]==""){
+        account=NA_character_
+      }else{
+        account=kSubscribers$subscribers$account[i]
+      }
+      receiver.email=kSubscribers$subscribers$email[i]
+      allocation=kSubscribers$subscribers$percent[i]
+      if(kSubscribers$subscribers$externalfile[i]==""){
+        externalfile=NA_character_
+      }else{
+        externalfile=kSubscribers$subscribers$externalfile[i]
+      }
+      if(!(is.na(account) && is.na(externalfile))){ # if both values are na, there is no recon poss with execution. Skip
+        trades=revalPortfolio(trades,kBrokerage,TRUE,allocation=allocation)
+        exittime=trades$exittime[!is.na(trades$exittime)]
+        BackTestEndTime=max(exittime)
+        bizdays=unique(signals$date)
+        bizdays=bizdays[bizdays>=as.POSIXct(backteststart,tz=kTimeZone) & bizdays<=as.POSIXct(backtestend,tz=kTimeZone)]
+        pnl<-data.frame(bizdays,realized=0,unrealized=0,brokerage=0)
+        cumpnl<-CalculateDailyPNL(trades,pnl,kBrokerage,margin=1,marginOnUnrealized = FALSE)
+        cumpnl$idlecash=kCommittedCapital-cumpnl$cashdeployed
+        cumpnl$daysdeployed=as.numeric(c(diff.POSIXt(cumpnl$bizdays),0))
+        cumpnl$investmentreturn=ifelse(cumpnl$idlecash>0,cumpnl$idlecash*cumpnl$daysdeployed*kInvestmentReturn/365,-cumpnl$idlecash*cumpnl$daysdeployed*kOverdraftPenalty/365)
+        cumpnl$investmentreturn=cumsum(cumpnl$investmentreturn)
+
+        pnl <-  cumpnl$realized + cumpnl$unrealized - cumpnl$brokerage + cumpnl$investmentreturn
+        dailypnl <-  pnl - Ref(pnl, -1)
+        dailypnl <-  ifelse(is.na(dailypnl),0,dailypnl)
+        dailyreturn <-  ifelse(cumpnl$longnpv +cumpnl$shortnpv== 0, 0,dailypnl / kCommittedCapital)
+        sharpe <- sharpe(dailyreturn)
+        sharpe=formatC(sharpe,format="f",digits=2)
+
+        cumpnl$cashflow[nrow(cumpnl)]=cumpnl$cashflow[nrow(cumpnl)]+(cumpnl$longnpv+cumpnl$shortnpv)[nrow(cumpnl)]*kMargin
+        xirr=xirr(cumpnl$cashflow,cumpnl$bizdays,trace = TRUE)*100
+        xirr=formatC(xirr,format="f",digits=2)
+        xirr=paste0(xirr,"%")
+
+        daysOfStrategy=as.numeric(min(Sys.Date(),backtestend)) - as.numeric(as.Date(backteststart))
+        yearsOfStrategy=daysOfStrategy/365
+        if(yearsOfStrategy<1){
+          yearsOfStrategy=1
+        }
+        annualizedSimpleReturn=formatC(sum(trades$pnl)*36500/(daysOfStrategy*kCommittedCapital*yearsOfStrategy),format="f",digits=2)
+        annualizedSimpleReturn=paste0(annualizedSimpleReturn,"%")
+
+        WinRatio=sum(trades$pnl>0)*100/nrow(trades)
+        WinRatio=paste0(specify_decimal(WinRatio,2),"%")
+
+        Metrics=c("Net Profit","Annual Return (Simple)", "IRR","Sharpe","Win Ratio")
+        Strategy=c(formatC(specify_decimal(sum(trades$pnl),0),format="d",big.mark = ","),annualizedSimpleReturn,xirr,sharpe,WinRatio)
+        Metrics=cbind(Metrics,Strategy)
+
+        # 1.2 Execution metrics
+        if(is.na(externalfile)){
+          pattern=paste("*trades*",tolower(strategyname),"*",toupper(account),sep="")
+          ExecutionsRedis=createPNLSummary(executiondb,pattern,backteststart,backtestend)
+        }else{
+          ExecutionsRedis=read.csv(externalfile,header = TRUE,stringsAsFactors = FALSE)
+          ExecutionsRedis$entrytime=as.POSIXct(ExecutionsRedis$entrytime,format="%d-%m-%Y")
+          ExecutionsRedis$exittime=as.POSIXct(ExecutionsRedis$exittime,format="%d-%m-%Y")
+          ExecutionsRedis$netposition=ExecutionsRedis$size
+        }
+        ExecutionsRedis=revalPortfolio(ExecutionsRedis,kBrokerage,TRUE)
+        bizdays=unique(signals$date)
+        bizdays=bizdays[bizdays>=as.POSIXct(backteststart,tz=kTimeZone) & bizdays<=as.POSIXct(kBackTestEndDate,tz=kTimeZone)]
+        pnl<-data.frame(bizdays,realized=0,unrealized=0,brokerage=0)
+        cumpnl<-CalculateDailyPNL(ExecutionsRedis,pnl,kBrokerage,margin=kMargin,marginOnUnrealized = kMarginOnUnrealized)
+        cumpnl$idlecash=kCommittedCapital-cumpnl$cashdeployed
+        cumpnl$daysdeployed=as.numeric(c(diff.POSIXt(cumpnl$bizdays),0))
+        cumpnl$investmentreturn=ifelse(cumpnl$idlecash>0,cumpnl$idlecash*cumpnl$daysdeployed*kInvestmentReturn/365,-cumpnl$idlecash*cumpnl$daysdeployed*kOverdraftPenalty/365)
+        cumpnl$investmentreturn=cumsum(cumpnl$investmentreturn)
+
+        pnl <-  cumpnl$realized + cumpnl$unrealized - cumpnl$brokerage + cumpnl$investmentreturn
+        dailypnl <-  pnl - Ref(pnl, -1)
+        dailypnl <-  ifelse(is.na(dailypnl),0,dailypnl)
+        dailyreturn <-  ifelse(cumpnl$longnpv +cumpnl$shortnpv== 0, 0,dailypnl / kCommittedCapital)
+        sharpe <- sharpe(dailyreturn)
+        sharpe=formatC(sharpe,format="f",digits=2)
+
+        cumpnl$cashflow[nrow(cumpnl)]=cumpnl$cashflow[nrow(cumpnl)]+(cumpnl$longnpv+cumpnl$shortnpv)[nrow(cumpnl)]*kMargin
+        xirr=xirr(cumpnl$cashflow,cumpnl$bizdays,trace = TRUE)*100
+        xirr=formatC(xirr,format="f",digits=2)
+        xirr=paste0(xirr,"%")
+
+        annualizedSimpleReturn=formatC(sum(ExecutionsRedis$pnl)*36500/(daysOfStrategy*kCommittedCapital*yearsOfStrategy),format="f",digits=2)
+        annualizedSimpleReturn=paste0(annualizedSimpleReturn,"%")
+
+        WinRatio=sum(ExecutionsRedis$pnl>0)*100/nrow(ExecutionsRedis)
+        WinRatio=paste0(specify_decimal(WinRatio,2),"%")
+
+        Execution=c(formatC(specify_decimal(sum(ExecutionsRedis$pnl),0),format="d",big.mark = ","),annualizedSimpleReturn,xirr,sharpe,WinRatio)
+        Metrics=cbind(Metrics,Execution)
+
+        body=paste0("Key Metrics: StartDate=",backteststart,", EndDate=",BackTestEndTime,tableHTML(Metrics,border=1),"<br><br>")
+
+        # 2.0 Open Trades
+        trades.selected.columns=filter(trades,exitreason=="Open") %>% select(symbol,trade,size,entrytime,entryprice,exittime,mtmprice=exitprice,pnl=pnl)
+        trades.selected.columns$pnl=formatC(specify_decimal(trades.selected.columns$pnl,0),format="d",big.mark = ",")
+        body=paste0(body,"Open Trades Expected by Algorithm",tableHTML(trades.selected.columns,border=1),"<br>")
+
+        openTrades=filter(ExecutionsRedis,exitreason=="Open") %>% select(symbol,trade,size,entrytime,entryprice,exittime,mtmprice=exitprice,pnl=pnl)
+        if(nrow(openTrades)>0){
+          openTrades$entryprice=specify_decimal(openTrades$entryprice,2)
+          openTrades$pnl=formatC(specify_decimal(openTrades$pnl,0),format="d",big.mark = ",")
+          body= paste0(body,"Positions In Execution Logs.","</p>", tableHTML(openTrades,border = 1),"<br>")
+        }
+
+
+        # 3.0 Superfluous Trades
+        # Reconcile with Redis - Strategy DB.
+        if(is.na(externalfile)){
+          OrdersRedis=RTrade::createPNLSummary(strategydb,pattern,backteststart,backtestend)
+          OrdersRedis=OrdersRedis[OrdersRedis$netposition!=0,]
+          orderPositions=aggregate(netposition~symbol,OrdersRedis,FUN=sum)
+          strategyPositions=filter(trades,exitreason=="Open")
+          strategyPositions$size=ifelse(strategyPositions$trade=="BUY",strategyPositions$size,-strategyPositions$size)
+          strategyPositions=aggregate(size~symbol,strategyPositions,FUN=sum)
+          orderPositions.recon=merge(orderPositions,strategyPositions,all.x = TRUE,all.y = TRUE)
+          orderPositions.recon$netposition=ifelse(is.na(orderPositions.recon$netposition),0,orderPositions.recon$netposition)
+          orderPositions.recon$size=ifelse(is.na(orderPositions.recon$size),0,orderPositions.recon$size)
+          names(orderPositions.recon)=c("symbol","RedisPosition","StrategyRequirement")
+          excessInRedis=filter(orderPositions.recon,(RedisPosition>0 & RedisPosition > StrategyRequirement)| (RedisPosition<0 & RedisPosition < StrategyRequirement))
+          excessInRedis$excess=excessInRedis$RedisPosition-excessInRedis$StrategyRequirement
+          colnames(excessInRedis)=c("Symbol","Positions - Order Logs", "Positions - Algorithm", "Excess")
+
+          if(nrow(excessInRedis)>0){
+            body= paste0(body,"Superfluous Trades: The following positions in Order Logs are not required by strategy. Please correct manually - ",strategyname,".", tableHTML(excessInRedis,border = 1),"<br>")
+          }
+        }
+
+        executionPositions=aggregate(netposition~symbol,ExecutionsRedis,FUN=sum)
+        strategyPositions=filter(trades,exitreason=="Open")
+        strategyPositions$size=ifelse(strategyPositions$trade=="BUY",strategyPositions$size,-strategyPositions$size)
+        strategyPositions=aggregate(size~symbol,strategyPositions,FUN=sum)
+        executionPositions.recon=merge(executionPositions,strategyPositions,all.x = TRUE,all.y = TRUE)
+        executionPositions.recon$netposition=ifelse(is.na(executionPositions.recon$netposition),0,executionPositions.recon$netposition)
+        executionPositions.recon$size=ifelse(is.na(executionPositions.recon$size),0,executionPositions.recon$size)
+        names(executionPositions.recon)=c("symbol","RedisPosition","StrategyRequirement")
+        excessInRedis=filter(executionPositions.recon,(RedisPosition>0 & RedisPosition > StrategyRequirement)| (RedisPosition<0 & RedisPosition < StrategyRequirement))
+        excessInRedis$excess=excessInRedis$RedisPosition-excessInRedis$StrategyRequirement
+        colnames(excessInRedis)=c("Symbol","Positions - Execution Logs", "Positions - Algorithm", "Excess")
+
+        if(nrow(excessInRedis)>0){
+          body= paste0(body,"Superfluous Trades: The following positions in Execution Logs are not required by strategy. Please correct manually - ",strategyname,".", tableHTML(excessInRedis,border = 1),"<br>")
+        }
+
+        # 4.0 Catch Up Trades
+        if(is.na(externalfile)){
+          shortInRedis=filter(orderPositions.recon,(StrategyRequirement>0 & RedisPosition < StrategyRequirement)| (StrategyRequirement<0 & RedisPosition > StrategyRequirement))
+          shortInRedis$shortfall=shortInRedis$StrategyRequirement-shortInRedis$RedisPosition
+          colnames(shortInRedis)=c("Symbol","Positions - Order Logs", "Positions - Algorithm", "Shortfall")
+
+          if(nrow(shortInRedis)>0){
+            body= paste0(body," Catch Up: The following positions are required by strategy but not in order logs. Please consider if you would like to manually take these positions - ",strategyname,". </p>", tableHTML(shortInRedis,border=1),"<br>")
+          }
+
+        }
+
+        shortInRedis=filter(executionPositions.recon,(StrategyRequirement>0 & RedisPosition < StrategyRequirement)| (StrategyRequirement<0 & RedisPosition > StrategyRequirement))
+        shortInRedis$shortfall=shortInRedis$StrategyRequirement-shortInRedis$RedisPosition
+        colnames(shortInRedis)=c("Symbol","Positions - Execution Logs", "Positions - Algorithm", "Shortfall")
+
+        if(nrow(shortInRedis)>0){
+          body= paste0(body," Catch Up: The following positions are required by strategy but not in execution logs. Please consider if you would like to manually take these positions - ",strategyname,". </p>", tableHTML(shortInRedis,border=1),"<br>")
+        }
+
+
+        # 5.0 Redis Inconsistent
+        if(is.na(externalfile)){
+          # Excess Execution
+          colnames(executionPositions)=c("symbol","position.executionlog")
+          colnames(orderPositions)=c("symbol","position.orderlog")
+          redisrecon=merge(orderPositions,executionPositions)
+          IncorrectExecutionsInRedis=filter(redisrecon,(position.executionlog>position.orderlog))
+          colnames(IncorrectExecutionsInRedis)=c("Symbol","Positions - Order Logs", "Positions - Execution Logs")
+
+          if(nrow(IncorrectExecutionsInRedis)>0){
+            body= paste0(body,"Logs Recon Issue: The following positions in Execution logs are higher than Order logs. Please correct manually - ",strategyname,". </p>", tableHTML(IncorrectExecutionsInRedis,border=1),"<br>")
+          }
+
+          # Shortfall in Executions
+          IncorrectExecutionsInRedis=filter(redisrecon,(position.executionlog<position.orderlog))
+          colnames(IncorrectExecutionsInRedis)=c("Symbol","Positions - Order Logs", "Positions - Execution Logs")
+          if(nrow(IncorrectExecutionsInRedis)>0){
+            body= paste0(body,"Logs Recon Issue: The following positions in Execution logs are lower than order logs - ",strategyname,". </p>", tableHTML(IncorrectExecutionsInRedis,border=1),"<br>")
+          }
+
+        }
+
+        mime() %>%
+          to(receiver.email) %>%
+          from("reporting@incurrency.com") %>%
+          subject(paste0("Run Summary for ",strategyname)) %>%
+          html_body(body) %>%
+          send_message()
+      }
+    }
+  }
+}
+
+calculateBrokerage<-function(tradeRow,kBrokerage,calculation="BOTH"){
+  if(calculation=="ENTRY"){
+    entrybrokerage=ifelse(tradeRow$entryprice==0,0,ifelse(grepl("BUY",tradeRow$trade),kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTBuy)/100,kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTSell)/100))
+    exitbrokerage=0
+  }else if(calculation=="EXIT"){
+    entrybrokerage=0
+    exitbrokerage=ifelse(tradeRow$exitreason=="Open",0,ifelse(grepl("BUY",tradeRow$trade),kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTSell)/100,kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTBuy)/100))
+  }else{
+    entrybrokerage=ifelse(tradeRow$entryprice==0,0,ifelse(grepl("BUY",tradeRow$trade),kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTBuy)/100,kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTSell)/100))
+    exitbrokerage=ifelse(tradeRow$exitreason=="Open",0,ifelse(grepl("BUY",tradeRow$trade),kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTSell)/100,kBrokerage$PerContractBrokerage+tradeRow$entryprice*tradeRow$size*(kBrokerage$ValueBrokerage+kBrokerage$STTBuy)/100))
+  }
+  entrybrokerage+exitbrokerage
 }
