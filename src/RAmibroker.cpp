@@ -1118,6 +1118,7 @@ DataFrame ProcessSignals(const DataFrame all,NumericVector slamount,NumericVecto
             t_entryprice.push_back(buyprice[barstart]);
             t_exitprice.push_back(lsellprice[j]);
           }else{
+            //Rcout<<"Date: "<< timestamp[j]<<", Symbol:"<<symbol[j]<< ", shortprice: "<<shortprice[barstart]<<", coverprice: "<<lcoverprice[j]<<std::endl;
             t_trade.push_back("SHORT");
             t_entryprice.push_back(shortprice[barstart]);
             t_exitprice.push_back(lcoverprice[j]);
