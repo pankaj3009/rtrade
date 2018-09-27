@@ -927,7 +927,7 @@ futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice){
 
 }
 
-MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone){
+MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
   itrades$entrymonth <- as.Date(sapply(itrades$entrytime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   nextexpiry <- as.Date(sapply(as.Date(itrades$entrymonth + 20, tz = kTimeZone,,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,,origin="1970-01-01")
   itrades$entrycontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$entrytime, tz = kTimeZone,origin="1970-01-01"),itrades$entrymonth) < 1,nextexpiry,itrades$entrymonth),tz = kTimeZone,origin="1970-01-01")
@@ -960,8 +960,8 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone){
 
   # Substitute Price Array
   for(i in 1:nrow(itrades)){
-    itrades$entryprice[i]=optionTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i])
-    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,optionTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i]),0)
+    itrades$entryprice[i]=optionTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],...)
+    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,optionTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],...),0)
   }
   itrades$trade="BUY"
   itrades[order(itrades$entrytime),]
@@ -1002,9 +1002,22 @@ optionTradePrice<-function(optionSymbol,tradedate,underlyingtradeprice,closetime
       tradedate=as.POSIXct(paste(strftime(tradedate),closetime))
     }
     voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
-
     ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
     ytm=as.numeric(difftime(ExpiryFormattedDate,tradedate,units=c("days")))/365
+    if(ytmforvolcalc==0){
+      # we have option expiry price. Recalculate vol for prior date
+      md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
+      md<-unique(md)
+      underlyingprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+      underlyingprice=last(underlyingprice)
+      md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
+      md<-unique(md)
+      optionprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+      optionprice=last(optionprice)
+      voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
+      ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+
+    }
     vol=EuropeanOptionImpliedVolatility(tolower(vectorOptionSymbol[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)
   }
   if(vol>0){
@@ -1908,7 +1921,7 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       if(grepl("BUY",out[o,"trade"])){
         change=out[o,"size"]
         side="BUY"
-      }else{
+      }else if (grepl("SHORT",out[o,"trade"])){
         change=-out[o,"size"]
         side="SHORT"
       }
