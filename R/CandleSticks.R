@@ -780,7 +780,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
 
   #26 BULLISH SQUEEZE ALERT # VERIFIED
   duration=2
-  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & !Ref(md$blackcandle,-2) & !Ref(md$shortblack,-2) &
+  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-2) & !Ref(md$shortblack,-2) &
     Ref(md$ahigh,-1)<Ref(md$ahigh,-2) & Ref(md$alow,-1)>Ref(md$alow,-2) &
     md$ahigh<Ref(md$ahigh,-1) & md$alow>Ref(md$alow,-1)
   confirmationprice=md$asettle
