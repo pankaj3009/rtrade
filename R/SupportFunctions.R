@@ -2205,3 +2205,54 @@ calculateBrokerage<-function(tradeRow,kBrokerage,calculation="BOTH"){
   }
   entrybrokerage+exitbrokerage
 }
+
+getTrendMetrics<-function(symbol,dest="daily",realtime=FALSE,...){
+  md=loadSymbol(symbol,dest = dest,realtime=realtime,...)
+  t=Trend(md$date,md$ahigh,md$alow,md$aclose)
+  t=t[,c("date","trend","numberhh","numberll","movementhighlow","movementsettle")]
+  t=merge(t,md[,c("date","asettle")])
+  t$group=c(0, diff(t$trend))
+  t$group=ifelse(t$group!=0,1,0)
+  t$group=cumsum(t$group)
+  summary<-t %>%
+    dplyr::group_by(group) %>%
+    dplyr::summarize(start=first(date),end=last(date),trend=first(trend),bars=n(),hlmove=round(last(movementhighlow)*100/first(asettle),2),settlemove=round(last(movementsettle)*100/first(asettle),2))
+  summary=as.data.frame(summary)
+  # analyze uptrend
+  up_max_bars=max(filter(summary,trend==1)$bars)
+  up_min_bars=min(filter(summary,trend==1)$bars)
+  up_avg_bars=mean(filter(summary,trend==1)$bars)
+  up_sd_bars=sd(filter(summary,trend==1)$bars)
+  up_count=nrow(filter(summary,trend==1))
+  up_total=sum(filter(summary,trend==1)$settlemove)
+  up_total_move=sum(filter(summary,trend==1)$settlemove)
+  up_avg_move=mean(filter(summary,trend==1)$settlemove)
+  up_max_move=max(filter(summary,trend==1)$settlemove)
+  up_min_move=min(filter(summary,trend==1)$settlemove)
+  up_move=c(up_count,up_max_bars,up_min_bars,up_avg_bars,up_sd_bars,up_max_move,up_min_move,up_avg_move)
+  # analyze dntrend
+  dn_max_bars=max(filter(summary,trend==-1)$bars)
+  dn_min_bars=min(filter(summary,trend==-1)$bars)
+  dn_avg_bars=mean(filter(summary,trend==-1)$bars)
+  dn_sd_bars=sd(filter(summary,trend==-1)$bars)
+  dn_count=nrow(filter(summary,trend==-1))
+  dn_total_move=sum(filter(summary,trend==-1)$settlemove)
+  dn_avg_move=mean(filter(summary,trend==-1)$settlemove)
+  dn_max_move=max(filter(summary,trend==-1)$settlemove)
+  dn_min_move=min(filter(summary,trend==-1)$settlemove)
+  dn_move=c(dn_count,dn_max_bars,dn_min_bars,dn_avg_bars,dn_sd_bars,dn_max_move,dn_min_move,dn_avg_move)
+  # analyze neutral trend
+  nt_max_bars=max(filter(summary,trend==0)$bars)
+  nt_min_bars=min(filter(summary,trend==0)$bars)
+  nt_avg_bars=mean(filter(summary,trend==0)$bars)
+  nt_sd_bars=sd(filter(summary,trend==0)$bars)
+  nt_count=nrow(filter(summary,trend==0))
+  nt_total_move=sum(filter(summary,trend==0)$settlemove)
+  nt_avg_move=mean(filter(summary,trend==0)$settlemove)
+  nt_max_move=max(filter(summary,trend==0)$settlemove)
+  nt_min_move=min(filter(summary,trend==0)$settlemove)
+  nt_move=c(nt_count,nt_max_bars,nt_min_bars,nt_avg_bars,nt_sd_bars,nt_max_move,nt_min_move,nt_avg_move)
+  out=cbind(up_move,dn_move,nt_move)
+  rownames(out)=c("Number of Moves","Max Bars in Move","Min Bars in Move","Avg Bars in Move","SD of Bars","Largest Size of Move", "Lowest Size of Move","Average Size of Move")
+  out
+}
