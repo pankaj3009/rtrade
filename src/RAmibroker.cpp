@@ -1589,18 +1589,32 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
   double hhsincetrend=0;
   double llsincetrend=100000000;
   int startoftrend=0;
-  for (int i = 1; i < nSize; i++) {
+  for (int i = 1; i < (nSize); i++) {
     if(result[i]!=result[i-1]){
       startoftrend=i;
-      hhsincetrend=high[i];
-      llsincetrend=low[i];
+      hhsincetrend=high[i+1];
+      llsincetrend=low[i+1];
+  //  Rcout << "Index: " << i <<",Result[i]: "<< result[i] << ",Result[i-1]: " <<result[i-1]<< ",hhsincetrend: " <<hhsincetrend << ",llsincetrend: " <<llsincetrend <<std::endl;
     }else{
-      hhsincetrend=high[i]>hhsincetrend?high[i]:hhsincetrend;
-      llsincetrend=low[i]<llsincetrend?low[i]:llsincetrend;
+      hhsincetrend=high[i+1]>hhsincetrend?high[i+1]:hhsincetrend;
+      llsincetrend=low[i+1]<llsincetrend?low[i+1]:llsincetrend;
+  //  Rcout << "Index: " << i <<",Result[i]: "<< result[i] << ",Result[i-1]: " <<result[i-1]<< ",hhsincetrend: " <<hhsincetrend << ",llsincetrend: " <<llsincetrend <<std::endl;
     }
-    movetotal[i]=hhsincetrend-llsincetrend;
-    movesettle[i]=close[i]-close[startoftrend];
+    if(i==nSize-1){
+      if(result[i]!=result[i-1]){
+        movetotal[i]=0;
+        movesettle[i]=0;
+      }else{
+        movetotal[i]=movetotal[i-1];
+        movesettle[i]=movesettle[i-1];
+      }
+    }else{
+      movetotal[i]=hhsincetrend-llsincetrend;
+      movesettle[i]=close[i+1]-close[startoftrend];
+    }
+//Rcout << "Index: " << i <<",MoveTotal: "<< movetotal[i] << ",MoveSettle: " <<movesettle[i]<< std::endl;
   }
+
 
   //        DataFrame out=create()(Named("trend")=result,Named("updownbar")=updownbar);
   return DataFrame::create(_("date")=date,_("trend")=result,_("updownbar")=updownbar,
