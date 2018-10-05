@@ -1858,7 +1858,7 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
     trades$exit.splitadjust=1
   }
 
-  if(!"barrierlimitprice" in %in% names(trades)){
+  if(!"barrierlimitprice" %in% names(trades)){
     trades$barrierlimitprice=0
   }
 
