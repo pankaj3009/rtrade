@@ -1479,7 +1479,7 @@ loadSymbol<-function(symbol,realtime=FALSE,cutoff=NULL,src="daily",dest="daily",
     }
     return(md)
   }
-  md
+  md[md$date<=as.POSIXct(cutoff,tz=tz),]
 
 }
 
@@ -1983,8 +1983,8 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
         BackTestEndTime=max(exittime)
         bizdays=bizdays[bizdays>=as.POSIXct(backteststart,tz=kTimeZone) & bizdays<=as.POSIXct(backtestend,tz=kTimeZone)]
         pnl<-data.frame(bizdays,realized=0,unrealized=0,brokerage=0)
-#        cumpnl<-CalculateDailyPNL(itrades,pnl,kBrokerage,margin=1,marginOnUnrealized = kMarginOnUnrealized,realtime=TRUE)
-        cumpnl<-CalculateDailyPNL(itrades,pnl,kBrokerage,margin=1,marginOnUnrealized = kMarginOnUnrealized,...)
+#        cumpnl<-CalculateDailyPNL(itrades,pnl,kBrokerage,margin=kMargin,marginOnUnrealized = kMarginOnUnrealized,realtime=TRUE)
+        cumpnl<-CalculateDailyPNL(itrades,pnl,kBrokerage,margin=kMargin,marginOnUnrealized = kMarginOnUnrealized,...)
         cumpnl$idlecash=kCommittedCapital*allocation-cumpnl$cashdeployed
         cumpnl$daysdeployed=as.numeric(c(diff.POSIXt(cumpnl$bizdays),0))
         cumpnl$investmentreturn=ifelse(cumpnl$idlecash>0,cumpnl$idlecash*cumpnl$daysdeployed*kInvestmentReturn/365,-cumpnl$idlecash*cumpnl$daysdeployed*kOverdraftPenalty/365)
@@ -2012,7 +2012,7 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
         WinRatio=sum(itrades$pnl>0)*100/nrow(itrades)
         WinRatio=paste0(specify_decimal(WinRatio,2),"%")
 
-        Exposure=last(cumpnl$cashdeployed)
+        Exposure=last(cumpnl$longnpv+cumpnl$shortnpv)*kMargin
         Exposure=formatC(Exposure,format="d",big.mark = ",", digits = 0)
 
         ProfitToday=last(dailypnl)
@@ -2060,7 +2060,7 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
         WinRatio=sum(ExecutionsRedis$pnl>0)*100/nrow(ExecutionsRedis)
         WinRatio=paste0(specify_decimal(WinRatio,2),"%")
 
-        Exposure=last(cumpnl$cashdeployed)
+        Exposure=last(cumpnl$longnpv+cumpnl$shortnpv)*kMargin
         Exposure=formatC(Exposure,format="d",big.mark = ",", digits = 0)
 
         ProfitToday=last(dailypnl)
