@@ -1858,6 +1858,10 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
     trades$exit.splitadjust=1
   }
 
+  if(!"barrierlimitprice" in %in% names(trades)){
+    trades$barrierlimitprice=0
+  }
+
   if(reverse){
     trades$side=ifelse(trades$side=="BUY","SHORT","BUY")
   }
@@ -1901,6 +1905,8 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       if(setLimitPrice){
         parameters$LimitPrice=out[o,"exitprice"]
       }
+      parameters$BarrierLimitPrice=out[o,"barrierlimitprice"]
+
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
