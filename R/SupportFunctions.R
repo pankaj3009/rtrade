@@ -855,14 +855,13 @@ CalculateDailyPNL <-
   }
 
 
-MapToFutureTrades<-function(itrades,rollover=FALSE,tz=kTimeZone){
+MapToFutureTrades<-function(itrades,rollover=FALSE,tz="Asia/Kolkata"){
   itrades$entrymonth <- as.Date(sapply(itrades$entrytime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   nextexpiry <- as.Date(sapply(as.Date(itrades$entrymonth + 20, tz = kTimeZone,,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,,origin="1970-01-01")
   itrades$entrycontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$entrytime, tz = kTimeZone,origin="1970-01-01"),itrades$entrymonth) < 1,nextexpiry,itrades$entrymonth),tz = kTimeZone,origin="1970-01-01")
   itrades$exitmonth <- as.Date(sapply(itrades$exittime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   nextexpiry <- as.Date(sapply(as.Date(itrades$exitmonth + 20, tz = kTimeZone,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   itrades$exitcontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$exittime, tz = kTimeZone,origin="1970-01-01"),itrades$exitmonth) < 1,nextexpiry,itrades$exitmonth),tz = kTimeZone,origin="1970-01-01")
-  itrades<-getStrikeByClosestSettlePrice(itrades,kTimeZone)
 
   tradesToBeRolledOver=data.frame()
   if(rollover){
@@ -888,44 +887,44 @@ MapToFutureTrades<-function(itrades,rollover=FALSE,tz=kTimeZone){
 
   # Substitute Price Array
   for(i in 1:nrow(itrades)){
-    itrades$entryprice[i]=futureTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i])
-    itrades$exitprice[i]=futureTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i])
+    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i])
+    itrades$exitprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i])
   }
   itrades[order(itrades$entrytime),]
 }
 
-futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice){
-  # Return unadjusted futureprice for the tradedate
-  underlying=sapply(strsplit(futureSymbol[1],"_"),"[",1)
-  expiry=sapply(strsplit(futureSymbol[1],"_"),"[",3)
-  md=loadUnderlyingSymbol(futureSymbol[1],days=1000000)
-  if(!("splitadjust" %in% names(md))){
-    md$splitadjust=1
-  }
-  md<-unique(md)
-  underlyingprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-  if(nrow(underlyingprice)==0){
-    indicesForUnderlyingPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-    underlyingprice=md[last(indicesForUnderlyingPrice,1),]
-  }
-  adjustment=0
-  md=loadSymbol(futureSymbol[1],days=1000000)
-  md<-unique(md)
-  futureprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-  if(nrow(futureprice)==0){
-    indicesForFuturePrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-    futureprice=md[last(indicesForFuturePrice,1),]
-  }
-
-  if(nrow(futureprice)==1 & nrow(underlyingprice)==1){
-      adjustment=futureprice$settle-underlyingprice$settle
-      return (underlyingtradeprice+adjustment)
-  }else{
-    print(paste("Future price not found for symbol",futureSymbol, "for date",tradedate,sep=" "))
-    return (0)
-  }
-
-}
+# futureTradePrice<-function(futureSymbol,tradedate,underlyingtradeprice){
+#   # Return unadjusted futureprice for the tradedate
+#   underlying=sapply(strsplit(futureSymbol[1],"_"),"[",1)
+#   expiry=sapply(strsplit(futureSymbol[1],"_"),"[",3)
+#   md=loadUnderlyingSymbol(futureSymbol[1],days=1000000)
+#   if(!("splitadjust" %in% names(md))){
+#     md$splitadjust=1
+#   }
+#   md<-unique(md)
+#   underlyingprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#   if(nrow(underlyingprice)==0){
+#     indicesForUnderlyingPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+#     underlyingprice=md[last(indicesForUnderlyingPrice,1),]
+#   }
+#   adjustment=0
+#   md=loadSymbol(futureSymbol[1],days=1000000)
+#   md<-unique(md)
+#   futureprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#   if(nrow(futureprice)==0){
+#     indicesForFuturePrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+#     futureprice=md[last(indicesForFuturePrice,1),]
+#   }
+#
+#   if(nrow(futureprice)==1 & nrow(underlyingprice)==1){
+#       adjustment=futureprice$settle-underlyingprice$settle
+#       return (underlyingtradeprice+adjustment)
+#   }else{
+#     print(paste("Future price not found for symbol",futureSymbol, "for date",tradedate,sep=" "))
+#     return (0)
+#   }
+#
+# }
 
 MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
   itrades$entrymonth <- as.Date(sapply(itrades$entrytime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
@@ -935,7 +934,6 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
   nextexpiry <- as.Date(sapply(as.Date(itrades$exitmonth + 20, tz = kTimeZone,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   itrades$exitcontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$exittime, tz = kTimeZone,origin="1970-01-01"),itrades$exitmonth) < 1,nextexpiry,itrades$exitmonth),tz = kTimeZone,origin="1970-01-01")
   itrades<-getStrikeByClosestSettlePrice(itrades,kTimeZone)
-
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
@@ -945,6 +943,7 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
         df.copy = itrades[i, ]
         df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
+        df.copy=getStrikeByClosestSettlePrice(df.copy,kTimeZone)
         itrades$exittime[i]=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         itrades$exitreason[i]="Rollover"
         tradesToBeRolledOver=rbind(tradesToBeRolledOver,df.copy)
@@ -960,94 +959,182 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
 
   # Substitute Price Array
   for(i in 1:nrow(itrades)){
-    itrades$entryprice[i]=optionTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],...)
-    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,optionTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],...),0)
+    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying="FUT")
+    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying="FUT"),0)
+    # itrades$entryprice[i]=optionTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],...)
+    #itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,optionTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],...),0)
   }
   itrades$trade="BUY"
   itrades[order(itrades$entrytime),]
 
 }
 
-optionTradePrice<-function(optionSymbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
-  # Return unadjusted futureprice for the tradedate
-  expiry=sapply(strsplit(optionSymbol[1],"_"),"[",3)
-  # if(as.Date(substring(strftime(tradedate),1,10))==Sys.Date()){
-  #   realtime=TRUE
-  # }else{
-  #   realtime=FALSE
-  # }
-  md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
-  if(!("splitadjust" %in% names(md))){
-    md$splitadjust=1
-  }
-  md<-unique(md)
+MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
+  symbolvector=unlist(strsplit(symbol,"_"))
+  expiry=symbolvector[3]
+  md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
   underlyingprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
   if(nrow(underlyingprice)==0){
     indicesForUnderlyingPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
     underlyingprice=md[last(indicesForUnderlyingPrice,1),]
   }
-  adjustment=0
-  md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
-  md<-unique(md)
-  vectorOptionSymbol=unlist(strsplit(optionSymbol, "_"))
-  optionprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-  if(nrow(optionprice)==0){
-    indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-    optionprice=md[last(indicesForOptionPrice,1),]
+  if(nrow(underlyingprice)==0){
+    return (NA_real_)
   }
-  vol=0
-  if(nrow(optionprice)==1){
-    ExpiryFormattedDate=as.POSIXct(paste(strftime(as.POSIXct(vectorOptionSymbol[3],format="%Y%m%d")),closetime))
+  if(symbolvector[2]=="OPT"){
+    voldate=tradedate
+    md=loadSymbol(symbol,days=1000000)
+    optionprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+    if(nrow(optionprice)==0){
+      indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+      optionprice=md[last(indicesForOptionPrice,1),]
+      voldate=optionprice$date
+      voldate=as.POSIXct(strftime(voldate,format="%Y-%m-%d"))
+      md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
+      underlyingprice=md[md$date==as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+    }
+    if(nrow(optionprice)==0 | nrow(underlyingprice)==0){
+      return (-1)
+    }
+    vol=0
+    ExpiryFormattedDate=as.POSIXct(paste(strftime(as.POSIXct(symbolvector[3],format="%Y%m%d")),closetime))
     if(as.numeric(format(tradedate, "%H"))==0 && as.numeric(format(tradedate, "%M"))==0 && as.numeric(format(tradedate, "%S"))==0 ){
       tradedate=as.POSIXct(paste(strftime(tradedate),closetime))
     }
-    voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
+    voldate=as.POSIXct(paste(strftime(voldate),closetime))
     ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
     ytm=as.numeric(difftime(ExpiryFormattedDate,tradedate,units=c("days")))/365
-    if(ytmforvolcalc==0){
+    if(ytm==0){
+      if(symbolvector[4]=="CALL"){
+        return(max(0,underlyingprice$asettle-as.numeric(symbolvector[5])))
+      }else{
+        return(max(0,as.numeric(symbolvector[5])-underlyingprice$asettle))
+      }
+    }
+    if(ytmforvolcalc==0 ){
       # we have option expiry price. Recalculate vol for prior date
-      md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
-      md<-unique(md)
-      underlyingprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+      md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
+      underlyingprice=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
       underlyingprice=last(underlyingprice)
-      md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
-      md<-unique(md)
-      optionprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+      md=loadSymbol(symbol,days=1000000,realtime=FALSE)
+      optionprice=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
       optionprice=last(optionprice)
       voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
       ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
-
     }
-    vol=EuropeanOptionImpliedVolatility(tolower(vectorOptionSymbol[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)
+    vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(symbolvector[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
+    return (EuropeanOption(tolower(symbolvector[4]),underlying=underlyingtradeprice,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value)
+
   }
-  if(vol>0){
-    return (EuropeanOption(tolower(vectorOptionSymbol[4]),underlying=underlyingtradeprice,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value)
+  else if(symbolvector[2]=="FUT"){
+    # Return unadjusted futureprice for the tradedate
+    md=loadSymbol(symbol,days=1000000)
+    futureprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+    if(nrow(futureprice)==0){
+      indicesForFuturePrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+      futureprice=md[last(indicesForFuturePrice,1),]
+      voldate=futureprice$date
+      voldate=as.POSIXct(strftime(voldate,format="%Y-%m-%d"))
+      md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
+      underlyingprice=md[md$date==as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+    }
+    if(nrow(futureprice)==0 | nrow(underlyingprice)==0){
+      return (NA_real_)
+    }
+    adjustment=0
+    if(nrow(futureprice)==1 & nrow(underlyingprice)==1){
+      adjustment=futureprice$settle-underlyingprice$settle
+      return (underlyingtradeprice+adjustment)
+    }else{
+      print(paste("Future price not found for symbol",futureSymbol, "for date",tradedate,sep=" "))
+      return (NA_real_)
+    }
+  }
+}
+
+OptionPriceFromVolSurface<-function(symbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
+  RQuantLib::plotOptionSurface()
+}
+
+# optionTradePrice<-function(optionSymbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
+#   # Return unadjusted futureprice for the tradedate
+#   expiry=sapply(strsplit(optionSymbol[1],"_"),"[",3)
+#   md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
+#   if(!("splitadjust" %in% names(md))){
+#     md$splitadjust=1
+#   }
+#   md<-unique(md)
+#   underlyingprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#   if(nrow(underlyingprice)==0){
+#     indicesForUnderlyingPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+#     underlyingprice=md[last(indicesForUnderlyingPrice,1),]
+#   }
+#   adjustment=0
+#   md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
+#   md<-unique(md)
+#   vectorOptionSymbol=unlist(strsplit(optionSymbol, "_"))
+#   optionprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#   if(nrow(optionprice)==0){
+#     indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+#     optionprice=md[last(indicesForOptionPrice,1),]
+#   }
+#   vol=0
+#   if(nrow(optionprice)==1){
+#     ExpiryFormattedDate=as.POSIXct(paste(strftime(as.POSIXct(vectorOptionSymbol[3],format="%Y%m%d")),closetime))
+#     if(as.numeric(format(tradedate, "%H"))==0 && as.numeric(format(tradedate, "%M"))==0 && as.numeric(format(tradedate, "%S"))==0 ){
+#       tradedate=as.POSIXct(paste(strftime(tradedate),closetime))
+#     }
+#     voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
+#     ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+#     ytm=as.numeric(difftime(ExpiryFormattedDate,tradedate,units=c("days")))/365
+#     if(ytmforvolcalc==0 & ytm>0){
+#       # we have option expiry price. Recalculate vol for prior date
+#       md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
+#       md<-unique(md)
+#       underlyingprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#       underlyingprice=last(underlyingprice)
+#       md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
+#       md<-unique(md)
+#       optionprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+#       optionprice=last(optionprice)
+#       voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
+#       ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+#     }
+#     if(ytm>0){
+#       vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(vectorOptionSymbol[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
+#     }
+#   }
+#   if(vol>0){
+#     return (EuropeanOption(tolower(vectorOptionSymbol[4]),underlying=underlyingtradeprice,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value)
+#   }else if(vol==0 && ytm==0 && nrow(optionprice)==1){
+#     # we are on expiry
+#     return (optionprice$asettle)
+#     }else{
+#     return (NA_real_)
+#   }
+#
+# }
+
+
+getmtm<-function(symbol,date=NULL,realtime=FALSE,redisdb=9,tz="Asia/Kolkata"){
+  if(realtime){
+    rredis::redisConnect()
+    rredis::redisSelect(as.numeric(redisdb))
+    key=paste(symbol,"tick","close",sep=":")
+    json=rredis::redisZRange(key,-1,-1)
+    if(!is.null(json)){
+      json=jsonlite::fromJSON(as.character(json))
+      json$time=as.POSIXct(json$time/1000,tz=tz,origin="1970-01-01")
+      json$value=as.numeric(json$value)
+    }
+    return(json)
   }else{
-    return (NA_real_)
+    md=loadSymbol(symbol,cutoff=date,days=365)
+    mtm=list()
+    mtm$value=last(md[md$date<=date,c("asettle")])
+    mtm$time=last(md[md$date<=date,c("date")])
+    return(mtm)
   }
-
-}
-
-
-getmtm<-function(symbol,date){
-  md=loadSymbol(symbol,cutoff=date,days=365)
-  mtm=list()
-  mtm$value=last(md[md$date<=date,c("asettle")])
-  mtm$time=last(md[md$date<=date,c("date")])
-  mtm
-}
-
-getmtmRealTime<-function(symbol,redisdb=9,tz="Asia/Kolkata"){
-  rredis::redisConnect()
-  rredis::redisSelect(as.numeric(redisdb))
-  key=paste(symbol,"tick","close",sep=":")
-  json=rredis::redisZRange(key,-1,-1)
-  if(!is.null(json)){
-    json=jsonlite::fromJSON(as.character(json))
-    json$time=as.POSIXct(json$time/1000,tz=tz,origin="1970-01-01")
-    json$value=as.numeric(json$value)
-  }
-  json
 }
 
 revalPortfolio<-function(trades,kBrokerage,realtime=FALSE,allocation=1){
@@ -1056,7 +1143,7 @@ revalPortfolio<-function(trades,kBrokerage,realtime=FALSE,allocation=1){
     index=indicesToMTM[i]
     symbol=trades$symbol[index]
     if(realtime){
-      mtm=getmtmRealTime(symbol)
+      mtm=getmtm(symbol,realtime=TRUE)
     }else{
       mtm=getmtm(symbol,Sys.time())
     }
@@ -1077,13 +1164,12 @@ sharpe <- function(returns, risk.free.rate = 0.07) {
   sqrt(252) * (mean(returns) - (risk.free.rate / 365)) / sd(returns)
 }
 
-getAllStrikesForExpiry <-
-  function(underlyingshortname,
-           expiry) {
+getAllStrikesForExpiry <- function(derivSymbol) {
     datafolder=paste(datafolder,"daily/opt/",sep="")
+    symbolsvector=unlist(strsplit(derivSymbol,"_"))
     potentialSymbols = list.files(
-      paste(datafolder, expiry, sep = ""),
-      pattern = paste(underlyingshortname, "_OPT", sep = "")
+      paste(datafolder, symbolsvector[3], sep = ""),
+      pattern = paste(symbolsvector[1], "_OPT", sep = "")
     )
     b <- lapply(potentialSymbols, strsplit, split = "_")
     c <- sapply(b, tail, n = 1L)
@@ -1091,7 +1177,7 @@ getAllStrikesForExpiry <-
     e <- sapply(d, strsplit, "\\.rds")
     #as.numeric(sapply(e,function(x){x[length(x)-1]}))
     e<-as.numeric(e)
-    if(underlyingshortname=="NSENIFTY"){
+    if(symbolsvector[1]=="NSENIFTY"){
       inclusion=which(e%%100==0)
       e<-e[inclusion]
     }
@@ -1099,46 +1185,40 @@ getAllStrikesForExpiry <-
   }
 
 getClosestStrike <-
-  function(dates,
-           underlyingshortname,
-           expiry) {
+  function(tradedate,
+           futureSymbol,
+           underlyingprice,
+           tz="Asia/Kolkata") {
     # date is posixct
     # expiry is string %Y%m%d
     # underlyingshortname is just the symbol short name like RELIANCE
-    strikes <-
-      getAllStrikesForExpiry(underlyingshortname, expiry)
+    symbolsvector=unlist(strsplit(futureSymbol,"_"))
+    date=strftime(tradedate,format="%Y%m%d",tz=tz)
+    folder=paste(datafolder,"static/strikes/",sep="")
+    strikeFile=paste(folder,date,"_strikes.rds",sep="")
+    strikes=readRDS2(strikeFile)
+    if(nrow(strikes)==0){
+      # get last available strikes for date.
+      files=list.files(folder,pattern="*.rds")
+      files.date=sapply(strsplit(files,"_"),"[",1)
+      index=last(which(files.date<=date))
+      strikefile=paste(folder,files[index],sep="")
+      strikes=readRDS2(strikefile)
+    }
+    strikes=filter(strikes,SYMBOL==symbolsvector[1],EXPIRY_DT==symbolsvector[3])$allstrikes
+    strikes=as.numeric(unlist(strsplit(strikes,",")))
     strikes = strikes[complete.cases(strikes)]
-    md=loadSymbol(paste(underlyingshortname,"_FUT_",expiry,"__",sep=""))
-    dates=as.POSIXct(strftime(dates,"%Y-%m-%d"),tz="Asia/Kolkata")
-    datesubset = md$date %in% dates
-    prices = md[datesubset, 'settle']
-    #datesubset=md[md$date %in% dates,'date']
-    #strikes=strikes[complete.cases(prices)]
-    #strikes=strikes[complete.cases(strikes)]
-    if (length(prices) > 0) {
+    price=MarkToModelPrice(futureSymbol,tradedate,underlyingprice)
+    if (price > 0) {
       strikeIndex <-
-        sapply(prices[1], function(x, s) {
+        sapply(price, function(x, s) {
           which.min(abs(s - x))
         }, s = strikes)
       out = strikes[strikeIndex]
     } else{
-      longsymbol=paste(underlyingshortname,"_FUT_",expiry,"__",sep="")
-      today<-strftime(as.Date(dates[1],format="%Y%m%d",tz=kTimeZone),format="%Y-%m-%d",tz=kTimeZone)
-      newrow <- getPriceArrayFromRedis(9,longsymbol,"tick","close",paste(today, " 09:12:00"), paste(today, "15:30:00"))
-      if(nrow(newrow)==1){
-        prices = newrow$close
-        strikeIndex <-
-          sapply(prices[1], function(x, s) {
-            which.min(abs(s - x))
-          }, s = strikes)
-        out = strikes[strikeIndex]
-      }else{
-        out = NA_real_
-      }
-
+      out = NA_real_
     }
     out
-    #data.frame(date=as.POSIXct(datesubset,tz="Asia/Kolkata"),strike=strikes[strikeIndex])
   }
 
 getClosestStrikeUniverse <-
@@ -1157,16 +1237,15 @@ getClosestStrikeUniverse <-
 
   }
 
-getStrikeByClosestSettlePrice <-
-  function(trades,timeZone) {
-    trades$strike = NA_real_
-    for (i in 1:nrow(trades)) {
-      symbolsvector = unlist(strsplit(trades$symbol[i], "_"))
-      trades$strike[i] = getClosestStrike(trades$entrytime[i],symbolsvector[1],strftime(trades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone))
+getStrikeByClosestSettlePrice <- function(itrades,timeZone,realtime=FALSE) {
+    itrades$strike = NA_real_
+    for (i in 1:nrow(itrades)) {
+      symbolsvector = unlist(strsplit(itrades$symbol[i], "_"))
+      expiry=strftime(itrades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone)
+      futureSymbol=paste(symbolsvector[1],"_FUT_",expiry,"__",sep="")
+      itrades$strike[i] = getClosestStrike(itrades$entrytime[i],futureSymbol,itrades$entryprice[i])
     }
-    trades
-    #dfsignals[!is.na(dfsignals$strike),]
-
+    itrades
   }
 
 getMaxOIStrike <-
