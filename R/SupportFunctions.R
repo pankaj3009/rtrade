@@ -926,14 +926,14 @@ MapToFutureTrades<-function(itrades,rollover=FALSE,tz="Asia/Kolkata"){
 #
 # }
 
-MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
+MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,sourceInstrument="CASH",underlying="FUT",...){
   itrades$entrymonth <- as.Date(sapply(itrades$entrytime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   nextexpiry <- as.Date(sapply(as.Date(itrades$entrymonth + 20, tz = kTimeZone,,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,,origin="1970-01-01")
   itrades$entrycontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$entrytime, tz = kTimeZone,origin="1970-01-01"),itrades$entrymonth) < 1,nextexpiry,itrades$entrymonth),tz = kTimeZone,origin="1970-01-01")
   itrades$exitmonth <- as.Date(sapply(itrades$exittime, getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   nextexpiry <- as.Date(sapply(as.Date(itrades$exitmonth + 20, tz = kTimeZone,origin="1970-01-01"), getExpiryDate), tz = kTimeZone,origin="1970-01-01")
   itrades$exitcontractexpiry <- as.Date(ifelse(businessDaysBetween("India",as.Date(itrades$exittime, tz = kTimeZone,origin="1970-01-01"),itrades$exitmonth) < 1,nextexpiry,itrades$exitmonth),tz = kTimeZone,origin="1970-01-01")
-  itrades<-getStrikeByClosestSettlePrice(itrades,kTimeZone)
+  itrades<-getStrikeByClosestSettlePrice(itrades,kTimeZone,sourceInstrument,underlying)
   tradesToBeRolledOver=data.frame()
   if(rollover){
     for (i in 1:nrow(itrades)) {
@@ -943,7 +943,7 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
         df.copy = itrades[i, ]
         df.copy$entrytime=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         df.copy$entrycontractexpiry=itrades$exitcontractexpiry[i]
-        df.copy=getStrikeByClosestSettlePrice(df.copy,kTimeZone)
+        df.copy=getStrikeByClosestSettlePrice(df.copy,kTimeZone,sourceInstrument,underlying)
         itrades$exittime[i]=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
         itrades$exitreason[i]="Rollover"
         tradesToBeRolledOver=rbind(tradesToBeRolledOver,df.copy)
@@ -959,17 +959,17 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz=kTimeZone,...){
 
   # Substitute Price Array
   for(i in 1:nrow(itrades)){
-    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying="FUT")
-    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying="FUT"),0)
-    # itrades$entryprice[i]=optionTradePrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],...)
-    #itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,optionTradePrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],...),0)
+    #itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying="FUT")
+    #itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying="FUT"),0)
+    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying=underlying,sourceInstrument=sourceInstrument)
+    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying=underlying,sourceInstrument=sourceInstrument),0)
   }
   itrades$trade="BUY"
   itrades[order(itrades$entrytime),]
 
 }
 
-MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
+MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CASH",sourceInstrument="CASH",closetime="15:30:00",ticksize=0.05){
   symbolvector=unlist(strsplit(symbol,"_"))
   expiry=symbolvector[3]
   md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
@@ -1023,8 +1023,14 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,closetime="15:3
       ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
     }
     vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(symbolvector[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
-    return (EuropeanOption(tolower(symbolvector[4]),underlying=underlyingtradeprice,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value)
-
+    if(sourceInstrument=="CASH" && underlying!="CASH"){
+      futureSymbol=paste(symbolvector[1],"_FUT_",symbolvector[3],"__",sep="")
+      underlyingtradeprice=MarkToModelPrice(futureSymbol,tradedate,underlyingtradeprice)
+    }
+    out=EuropeanOption(tolower(symbolvector[4]),underlying=underlyingtradeprice,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value
+    # round
+    out=round(out/ticksize)*ticksize
+    return (out)
   }
   else if(symbolvector[2]=="FUT"){
     # Return unadjusted futureprice for the tradedate
@@ -1050,11 +1056,11 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,closetime="15:3
       return (NA_real_)
     }
   }
+  else if (symbolvector[2]=="STK" ||symbolvector[2]=="IND"){
+    return (underlyingprice$asettle)
+  }
 }
 
-OptionPriceFromVolSurface<-function(symbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
-  RQuantLib::plotOptionSurface()
-}
 
 # optionTradePrice<-function(optionSymbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
 #   # Return unadjusted futureprice for the tradedate
@@ -1188,6 +1194,7 @@ getClosestStrike <-
   function(tradedate,
            futureSymbol,
            underlyingprice,
+           sourceInstrument,
            tz="Asia/Kolkata") {
     # date is posixct
     # expiry is string %Y%m%d
@@ -1208,7 +1215,15 @@ getClosestStrike <-
     strikes=filter(strikes,SYMBOL==symbolsvector[1],EXPIRY_DT==symbolsvector[3])$allstrikes
     strikes=as.numeric(unlist(strsplit(strikes,",")))
     strikes = strikes[complete.cases(strikes)]
-    price=MarkToModelPrice(futureSymbol,tradedate,underlyingprice)
+    if(symbolsvector[1]=="NSENIFTY"){
+      inclusion=which(strikes%%100==0)
+      strikes<-strikes[inclusion]
+    }
+    if(sourceInstrument=="CASH"){
+      price=MarkToModelPrice(futureSymbol,tradedate,underlyingprice)
+    }else{
+      price=underlyingprice
+    }
     if (price > 0) {
       strikeIndex <-
         sapply(price, function(x, s) {
@@ -1237,13 +1252,13 @@ getClosestStrikeUniverse <-
 
   }
 
-getStrikeByClosestSettlePrice <- function(itrades,timeZone,realtime=FALSE) {
+getStrikeByClosestSettlePrice <- function(itrades,timeZone,sourceInstrument="CASH",underlying="FUT",realtime=FALSE) {
     itrades$strike = NA_real_
     for (i in 1:nrow(itrades)) {
       symbolsvector = unlist(strsplit(itrades$symbol[i], "_"))
       expiry=strftime(itrades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone)
       futureSymbol=paste(symbolsvector[1],"_FUT_",expiry,"__",sep="")
-      itrades$strike[i] = getClosestStrike(itrades$entrytime[i],futureSymbol,itrades$entryprice[i])
+      itrades$strike[i] = getClosestStrike(itrades$entrytime[i],futureSymbol,itrades$entryprice[i],sourceInstrument,tz=kTimeZone)
     }
     itrades
   }
@@ -1937,10 +1952,6 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
     trades$exit.splitadjust=1
   }
 
-  if(!"barrierlimitprice" %in% names(trades)){
-    trades$barrierlimitprice=0
-  }
-
   if(reverse){
     trades$side=ifelse(trades$side=="BUY","SHORT","BUY")
   }
@@ -1984,7 +1995,10 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       if(setLimitPrice){
         parameters$LimitPrice=out[o,"exitprice"]
       }
-      parameters$BarrierLimitPrice=out[o,"barrierlimitprice"]
+      parameters$BarrierLimitPrice=out[o,"barrierlimitprice.exit"]
+      if("barrierlimitprice.exit" %in% names(trades)){
+        parameters$BarrierLimitPrice=out[o,"barrierlimitprice.exit"]
+      }
 
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
@@ -2035,6 +2049,9 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       }
       if("sl" %in% names(trades)){
         parameters$StopLoss=out[o,"sl"]
+      }
+      if("barrierlimitprice.entry" %in% names(trades)){
+        parameters$BarrierLimitPrice=out[o,"barrierlimitprice.entry"]
       }
 
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
@@ -2134,8 +2151,7 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
         dailyreturn <-  ifelse(cumpnl$longnpv +cumpnl$shortnpv== 0, 0,dailypnl / kCommittedCapital)
         sharpe <- sharpe(dailyreturn)
         sharpe=formatC(sharpe,format="f",digits=2)
-
-        xirr=xirr(cumpnl$cashflow,cumpnl$bizdays,trace = TRUE)*100
+        xirr=tryCatch(xirr(cumpnl$cashflow,cumpnl$bizdays,trace = TRUE)*100,error=function(err){NA_real_})
         xirr=formatC(xirr,format="f",digits=2)
         xirr=paste0(xirr,"%")
 
