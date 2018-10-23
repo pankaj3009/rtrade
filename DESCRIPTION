@@ -16,7 +16,8 @@ Imports:
     rredis,
     RQuantLib,
     BH,
-    quantmod
+    quantmod,
+    tvm
 Depends:
     httr,
     dplyr,
@@ -25,7 +26,8 @@ Depends:
     rredis,
     RQuantLib,
     BH,
-    quantmod
+    quantmod,
+    tvm
 LinkingTo:
     BH,
     Rcpp
