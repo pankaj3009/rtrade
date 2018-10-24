@@ -1415,8 +1415,7 @@ changeTimeFrame<-function(md,src=NULL, dest=NULL){
           mdtoday$symbol=symbol
           mdtoday$volume=0
           md=mdtoday
-          md$date=round(md$date,"mins")
-          md$date=as.POSIXct(md$date)
+          md$date=lubridate::floor_date(md$date, paste(k,period))
         }
       }
     }
@@ -2422,4 +2421,18 @@ get_os <- function(){
       os <- "linux"
   }
   tolower(os)
+}
+
+thisFile <- function() {
+  #https://stackoverflow.com/questions/1815606/rscript-determine-path-of-the-executing-script
+  cmdArgs <- commandArgs(trailingOnly = FALSE)
+  needle <- "--file="
+  match <- grep(needle, cmdArgs)
+  if (length(match) > 0) {
+    # Rscript
+    return(normalizePath(sub(needle, "", cmdArgs[match])))
+  } else {
+    # 'source'd via R console
+    return(normalizePath(sys.frames()[[1]]$ofile))
+  }
 }
