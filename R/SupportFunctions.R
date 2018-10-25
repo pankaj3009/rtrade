@@ -1064,86 +1064,27 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CAS
 }
 
 
-# optionTradePrice<-function(optionSymbol,tradedate,underlyingtradeprice,closetime="15:30:00",underlying="CASH"){
-#   # Return unadjusted futureprice for the tradedate
-#   expiry=sapply(strsplit(optionSymbol[1],"_"),"[",3)
-#   md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
-#   if(!("splitadjust" %in% names(md))){
-#     md$splitadjust=1
-#   }
-#   md<-unique(md)
-#   underlyingprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-#   if(nrow(underlyingprice)==0){
-#     indicesForUnderlyingPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-#     underlyingprice=md[last(indicesForUnderlyingPrice,1),]
-#   }
-#   adjustment=0
-#   md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
-#   md<-unique(md)
-#   vectorOptionSymbol=unlist(strsplit(optionSymbol, "_"))
-#   optionprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-#   if(nrow(optionprice)==0){
-#     indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-#     optionprice=md[last(indicesForOptionPrice,1),]
-#   }
-#   vol=0
-#   if(nrow(optionprice)==1){
-#     ExpiryFormattedDate=as.POSIXct(paste(strftime(as.POSIXct(vectorOptionSymbol[3],format="%Y%m%d")),closetime))
-#     if(as.numeric(format(tradedate, "%H"))==0 && as.numeric(format(tradedate, "%M"))==0 && as.numeric(format(tradedate, "%S"))==0 ){
-#       tradedate=as.POSIXct(paste(strftime(tradedate),closetime))
-#     }
-#     voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
-#     ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
-#     ytm=as.numeric(difftime(ExpiryFormattedDate,tradedate,units=c("days")))/365
-#     if(ytmforvolcalc==0 & ytm>0){
-#       # we have option expiry price. Recalculate vol for prior date
-#       md=loadUnderlyingSymbol(optionSymbol[1],underlyingType=underlying,days=1000000)
-#       md<-unique(md)
-#       underlyingprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-#       underlyingprice=last(underlyingprice)
-#       md=loadSymbol(optionSymbol[1],days=1000000,realtime=FALSE)
-#       md<-unique(md)
-#       optionprice=md[md$date<as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-#       optionprice=last(optionprice)
-#       voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
-#       ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
-#     }
-#     if(ytm>0){
-#       vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(vectorOptionSymbol[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
-#     }
-#   }
-#   if(vol>0){
-#     return (EuropeanOption(tolower(vectorOptionSymbol[4]),underlying=underlyingtradeprice,strike=as.numeric(vectorOptionSymbol[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value)
-#   }else if(vol==0 && ytm==0 && nrow(optionprice)==1){
-#     # we are on expiry
-#     return (optionprice$asettle)
-#     }else{
-#     return (NA_real_)
-#   }
-#
-# }
+getSplitAdjustment<-function(cashsymbol,startdate,enddate){
+  realtime=FALSE
+  if(as.Date(enddate,tz)==Sys.Date()){
+    realtime=TRUE
+  }
+  md=loadSymbol(cashsymbol,days=1000000,realtime=realtime)
+  splitstart=last(md[md$date<=startdate,c("splitadjust")])
+  splitend=last(md[md$date<=enddate,c("splitadjust")])
+  return(splitend/splitstart)
+}
 
-
-# getmtm<-function(symbol,date=NULL,realtime=FALSE,redisdb=9,tz="Asia/Kolkata"){
-#   if(realtime){
-#     rredis::redisConnect()
-#     rredis::redisSelect(as.numeric(redisdb))
-#     key=paste(symbol,"tick","close",sep=":")
-#     json=rredis::redisZRange(key,-1,-1)
-#     if(!is.null(json)){
-#       json=jsonlite::fromJSON(as.character(json))
-#       json$time=as.POSIXct(json$time/1000,tz=tz,origin="1970-01-01")
-#       json$value=as.numeric(json$value)
-#     }
-#     return(json)
-#   }else{
-#     md=loadSymbol(symbol,cutoff=date,days=365)
-#     mtm=list()
-#     mtm$value=last(md[md$date<=date,c("asettle")])
-#     mtm$time=last(md[md$date<=date,c("date")])
-#     return(mtm)
-#   }
-# }
+getUnderlyingCash<-function(symbol){
+  symbolsvector=unlist(strsplit(symbol,"_"))
+  if(symbolsvector[2]=="FUT" | symbolsvector[2]=="OPT"){
+    symbolsvector[2]="STK"
+    symbolsvector[3]=""
+    symbolsvector[4]=""
+    symbolsvector[5]=""
+  }
+  return(paste(symbolsvector,collapse="_"))
+}
 
 getmtm<-function(symbol,date=Sys.time(),realtime=FALSE,notfound=-0.01){
   md=loadSymbol(symbol,cutoff=date,days=365,realtime=realtime)
