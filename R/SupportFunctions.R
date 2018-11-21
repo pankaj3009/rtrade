@@ -952,6 +952,14 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz="Asia/Kolkata",sourceIns
       }
     }
     itrades=rbind(itrades,tradesToBeRolledOver)
+  }else{
+    for (i in 1:nrow(itrades)) {
+      if (as.Date(itrades$exittime[i],tz=tz)>itrades$entrycontractexpiry[i])
+      {
+        itrades$exittime[i]=as.POSIXct(format(itrades$entrycontractexpiry[i]),tz="Asia/Kolkata")
+        itrades$exitreason[i]="NoRollover"
+      }
+    }
   }
 
   # Substitute contract
@@ -963,15 +971,15 @@ MapToOptionTradesLO<-function(itrades,rollover=FALSE,tz="Asia/Kolkata",sourceIns
   for(i in 1:nrow(itrades)){
     #itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying="FUT")
     #itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying="FUT"),0)
-    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i],underlying=underlying,sourceInstrument=sourceInstrument)
-    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i],underlying=underlying,sourceInstrument=sourceInstrument),0)
+    itrades$entryprice[i]=MarkToModelPrice(itrades$symbol[i],itrades$entrytime[i],itrades$entryprice[i]*itrades$entry.splitadjust[i],underlying=underlying,sourceInstrument=sourceInstrument)
+    itrades$exitprice[i]=ifelse(itrades$exitprice[i]>0,MarkToModelPrice(itrades$symbol[i],itrades$exittime[i],itrades$exitprice[i]*itrades$exit.splitadjust[i],underlying=underlying,sourceInstrument=sourceInstrument,relsplitadjust=itrades$entry.splitadjust[i]/itrades$exit.splitadjust[i]),0)
   }
   itrades$trade="BUY"
   itrades[order(itrades$entrytime),]
 
 }
 
-MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CASH",sourceInstrument="CASH",closetime="15:30:00",ticksize=0.05){
+MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CASH",sourceInstrument="CASH",closetime="15:30:00",ticksize=0.05,relsplitadjust=1,volOnExpiryDate=0.1){
   symbolvector=unlist(strsplit(symbol,"_"))
   expiry=symbolvector[3]
   md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
@@ -984,18 +992,39 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CAS
     return (NA_real_)
   }
   if(symbolvector[2]=="OPT"){
-    voldate=tradedate
-    md=loadSymbol(symbol,days=1000000)
-    optionprice=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
-    if(nrow(optionprice)==0){
-      indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
-      optionprice=md[last(indicesForOptionPrice,1),]
-      voldate=optionprice$date
-      voldate=as.POSIXct(strftime(voldate,format="%Y-%m-%d"))
-      md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
-      underlyingprice=md[md$date==as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+    if(relsplitadjust!=1){
+      newstrike=symbolsvector[5]=as.numeric(symbolsvector[5])/relsplitadjust
+      newstrike=round(newstrike/ticksize)*ticksize
+      symbolsvector[5]=as.character(newstrike)
+      newsymbol=paste(symbolsvector,collapse="_")
+    }else{
+      newsymbol=symbol
     }
-    if(nrow(optionprice)==0 | nrow(underlyingprice)==0){
+    voldate=tradedate
+    md=loadSymbol(newsymbol,days=1000000)
+    optionpricedf=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+    if(nrow(optionpricedf)==0 && relsplitadjust==1){
+      indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+      optionpricedf=md[last(indicesForOptionPrice,1),]
+      optionprice=optionprice$settle
+      voldate=optionpricedf$date
+      voldate=as.POSIXct(strftime(voldate,format="%Y-%m-%d"))
+      md=loadUnderlyingSymbol(newsymbol,underlyingType=underlying,days=1000000)
+      underlyingprice=md[md$date==as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+    }else if(nrow(optionpricedf)==0 && relsplitadjust!=1){ # probably 1st day of splitadjustment
+      md=loadSymbol(symbol,days=1000000) # try option price using original symbol without split adjustment
+      optionpricedf=md[md$date==as.POSIXct(strftime(tradedate,format="%Y-%m-%d")),]
+      indicesForOptionPrice=which(md$date<=as.POSIXct(strftime(tradedate,format="%Y-%m-%d")))
+      optionpricedf=md[last(indicesForOptionPrice,1),]
+      optionprice=optionpricedf$settle/relsplitadjust
+      voldate=optionpricedf$date
+      voldate=as.POSIXct(strftime(voldate,format="%Y-%m-%d"))
+      md=loadUnderlyingSymbol(newsymbol,underlyingType=underlying,days=1000000)
+      underlyingprice=md[md$date==as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+    }else{
+      optionprice=optionpricedf$settle
+    }
+    if(nrow(optionpricedf)==0 | nrow(underlyingprice)==0){
       return (-1)
     }
     vol=0
@@ -1014,23 +1043,38 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CAS
       }
     }
     if(ytmforvolcalc==0 ){
-      # we have option expiry price. Recalculate vol for prior date
+      # we have option price on expiry date. Recalculate vol for prior date.
+      # this condition  will only be hit in backtest. Never in realtime trading
       md=loadUnderlyingSymbol(symbol,underlyingType=underlying,days=1000000)
       underlyingprice=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
       underlyingprice=last(underlyingprice)
-      md=loadSymbol(symbol,days=1000000,realtime=FALSE)
-      optionprice=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
-      optionprice=last(optionprice)
-      voldate=as.POSIXct(paste(strftime(optionprice$date),closetime))
-      ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+      md=loadSymbol(newsymbol,days=1000000,realtime=FALSE)
+      if(nrow(md)>0 & relsplitadjust==1){
+        optionpricedf=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+        optionpricedf=last(optionpricedf)
+        voldate=as.POSIXct(paste(strftime(optionpricedf$date),closetime))
+        optionprice=optionpricedf$settle
+        ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+      }else if(nrow(md)==0 && relsplitadjust!=1){
+        md=loadSymbol(symbol,days=1000000,realtime=FALSE)
+        optionpricedf=md[md$date<as.POSIXct(strftime(voldate,format="%Y-%m-%d")),]
+        optionpricedf=last(optionpricedf)
+        voldate=as.POSIXct(paste(strftime(optionpricedf$date),closetime))
+        optionprice=optionprice$df$settle/relsplitadjust
+        ytmforvolcalc=as.numeric(difftime(ExpiryFormattedDate,voldate,units=c("days")))/365
+      }
     }
-    vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(symbolvector[4]),value=optionprice$asettle,underlying=underlyingprice$asettle,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
+    vol=tryCatch( {EuropeanOptionImpliedVolatility(tolower(symbolvector[4]),value=optionprice,underlying=underlyingprice$asettle,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytmforvolcalc,volatility=0.1)},error=function(err){0.01})
+    if(strftime(tradedate,format="%Y%m%d")==symbolvector[3]){
+      vol=volOnExpiryDate
+    }
     if(sourceInstrument=="CASH" && underlying!="CASH"){
       futureSymbol=paste(symbolvector[1],"_FUT_",symbolvector[3],"__",sep="")
       underlyingtradeprice=MarkToModelPrice(futureSymbol,tradedate,underlyingtradeprice)
     }
     out=EuropeanOption(tolower(symbolvector[4]),underlying=underlyingtradeprice,strike=as.numeric(symbolvector[5]),dividendYield=0.01,riskFreeRate=0.065,maturity=ytm,volatility=vol)$value
     # round
+    out=out*relsplitadjust
     out=round(out/ticksize)*ticksize
     return (out)
   }
@@ -1063,16 +1107,25 @@ MarkToModelPrice<-function(symbol,tradedate,underlyingtradeprice,underlying="CAS
   }
 }
 
+# Return the value  of splitadjust for enddate
+# if startdate is also provided, provide value  of splitadjust on startdate/splitadjust on enddate
+# Generally expect the value to be >=1
 
-getSplitAdjustment<-function(cashsymbol,startdate,enddate){
+getSplitAdjustment<-function(symbol,enddate,startdate=NULL){
   realtime=FALSE
   if(as.Date(enddate,tz)==Sys.Date()){
     realtime=TRUE
   }
+  cashsymbol=getUnderlyingCash(symbol)
   md=loadSymbol(cashsymbol,days=1000000,realtime=realtime)
-  splitstart=last(md[md$date<=startdate,c("splitadjust")])
   splitend=last(md[md$date<=enddate,c("splitadjust")])
-  return(splitend/splitstart)
+  splitsstart=1
+  if(!is.null(startdate)){
+    splitstart=last(md[md$date<=startdate,c("splitadjust")])
+    return(splitstart/splitend)
+  }else{
+    return(splitend)
+  }
 }
 
 getUnderlyingCash<-function(symbol){
@@ -1212,7 +1265,7 @@ getStrikeByClosestSettlePrice <- function(itrades,timeZone,sourceInstrument="CAS
     }else{
       expiry=strftime(itrades$entrycontractexpiry[i],"%Y%m%d",tz = timeZone)
       futureSymbol=paste(symbolsvector[1],"_FUT_",expiry,"__",sep="")
-      itrades$strike[i] = getClosestStrike(itrades$entrytime[i],futureSymbol,itrades$entryprice[i],sourceInstrument,tz=tz)
+      itrades$strike[i] = getClosestStrike(itrades$entrytime[i],futureSymbol,itrades$entryprice[i]*itrades$entry.splitadjust[i],sourceInstrument,tz=tz)
     }
   }
   itrades
