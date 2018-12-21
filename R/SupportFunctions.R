@@ -1752,9 +1752,12 @@ getSymbolChange<-function(){
 }
 
 slope <- function (x,array=TRUE,period=252) {
-  if(!array){
-    pointslope(x)
-  }else{
+  if(!array && length(x)>=period){
+    pointslope(x[(length(x)-period+1):length(x)])
+  }else if (!array && length(x)<period){
+    NA_real_
+  }
+  else{
     value<-rollapply(x,period,pointslope)
     value=c(rep(0,(length(x)-length(value))),value)
     unname(value)
@@ -1763,9 +1766,12 @@ slope <- function (x,array=TRUE,period=252) {
 }
 
 r2 <- function (x,array=TRUE,period=252) {
-  if(!array){
-    pointr2(x)
-  }else{
+  if(!array && length(x)>=period){
+    pointr2(x[(length(x)-period+1):length(x)])
+  }else if (!array && length(x)<period){
+    NA_real_
+  }
+  else{
     value<-rollapply(x,period,pointr2)
     value<-c(rep(0,(length(x)-length(value))),value)
     unname(value)
