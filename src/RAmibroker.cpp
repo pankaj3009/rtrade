@@ -635,7 +635,6 @@ NumericVector Shift(NumericVector vec1,NumericVector vec2, int ref){
   return result;
 }
 
-// [[Rcpp::export]]
 IntegerVector whichDate2(DatetimeVector x, Datetime condition) {
   //Rcout<<"Size of x: "<<x.size()<<",Condition: "<<condition<<std::endl;
   IntegerVector v = Rcpp::seq(0, x.size()-1);
