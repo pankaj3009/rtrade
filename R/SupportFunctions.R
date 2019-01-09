@@ -1,5 +1,5 @@
 # Tabulate index changes
-library(rredis)
+library(redux)
 library(RQuantLib)
 library(quantmod)
 library(zoo)
@@ -26,9 +26,9 @@ reverseEngRSI<-function(C,targetRSI,n){
 
 createIndexConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    rredis::redisConnect()
-    rredis::redisSelect(redisdb)
-    rediskeys = redisKeys()
+    r <- redux::hiredis()
+    r$SELECT(redisdb)
+    rediskeys=r$KEYS()
     dfstage1 <- data.frame(
       symbol = character(),
       startdate = as.Date(character()),
@@ -132,16 +132,16 @@ createIndexConstituents <-
         }
       }
     }
-    rredis::redisClose()
+    r$QUIT()
     dfstage2
 
   }
 
 createFNOConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    rredis::redisConnect()
-    rredis::redisSelect(redisdb)
-    rediskeys = redisKeys()
+    r=redux::hiredis()
+    r$SELECT(redisdb)
+    rediskeys = r$KEYS()
     dfstage1 <- data.frame(
       symbol = character(),
       startdate = as.Date(character()),
@@ -196,7 +196,7 @@ createFNOConstituents <-
       symbols <-
         data.frame(
           symbol = names(unlist(
-            redisHGetAll(rediskeysShortList[i])
+            r$HGETALL(rediskeysShortList[i])
           )),
           startdate = as.Date(
             seriesstartdate,
@@ -233,16 +233,16 @@ createFNOConstituents <-
         }
       }
     }
-    rredis::redisClose()
+    r$QUIT()
     dfstage2
 
   }
 
 createFNOSize <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    rredis::redisConnect()
-    rredis::redisSelect(redisdb)
-    rediskeys = redisKeys()
+    r<-redux::hiredis()
+    r$SELECT(redisdb)
+    rediskeys = r$KEYS()
     dfstage2 <- data.frame(
       symbol = character(),
       contractsize = numeric(),
@@ -286,7 +286,7 @@ createFNOSize <-
         ) + 1
       )
       symbolsunformatted <-
-        unlist(redisHGetAll(rediskeysShortList[i]))
+        unlist(r$HGETALL(rediskeysShortList[i]))
       symbols <-
         data.frame(
           symbol = names(symbolsunformatted),
@@ -329,7 +329,7 @@ createFNOSize <-
         }
       }
     }
-    rredis::redisClose()
+    r$QUIT()
     dfstage2
 
   }
@@ -348,9 +348,9 @@ getMostRecentSymbol <- function(symbol) {
 
 readAllSymbols <-
   function(redisdb, pattern, threshold = "2000-01-01") {
-    rredis::redisConnect()
-    rredis::redisSelect(redisdb)
-    rediskeys = redisKeys()
+    r<-redux::hiredis()
+    r$SELECT(redisdb)
+    rediskeys = r$KEYS()
     symbols <- data.frame(
       brokersymbol = character(),
       exchangesymbol = character(),
@@ -366,13 +366,14 @@ readAllSymbols <-
     rediskeysShortList <- sort(rediskeysShortList)
     rediskeysShortList <-
       rediskeysShortList[length(rediskeysShortList)]
-    symbols <- unlist(redisHGetAll(rediskeysShortList))
+    symbols <- unlist(r$HGETALL(rediskeysShortList))
     symbols <-
       data.frame(
         exchangesymbol = names(symbols),
         brokersymbol = symbols,
         stringsAsFactors = FALSE
       )
+    r$QUIT()
     return(symbols)
   }
 
@@ -381,8 +382,8 @@ createPNLSummary <- function(redisdb,pattern,start,end) {
   #start,end = string as "yyyy-mm-dd"
   #mdpath = path to market data files for valuing open positions
   #realtrades<-createPNLSummary(0,"swing01","2017-01-01","2017-01-31","/home/psharma/Seafile/rfiles/daily-fno/")
-  rredis::redisConnect()
-  rredis::redisSelect(redisdb)
+  r<-redux::hiredis()
+  r$SELECT(redisdb)
   actualtrades <-
     data.frame(
       symbol = character(),
@@ -406,12 +407,12 @@ createPNLSummary <- function(redisdb,pattern,start,end) {
   periodenddate = as.Date(end, tz = "Asia/Kolkata")
 
   rediskeysShortList <- as.character()
-  rediskeysShortList=rredis::redisKeys(pattern)
+  rediskeysShortList=r$KEYS(pattern)
   if(!is.null(rediskeysShortList)){
     rediskeysShortList <- sort(rediskeysShortList)
     # loop through keys and generate pnl
     for (i in 1:length(rediskeysShortList)) {
-      data <- unlist(redisHGetAll(rediskeysShortList[i]))
+      data <- unlist(r$HGETALL(rediskeysShortList[i]))
       exitprice = 0
       entrydate = data["entrytime"]
       exitdate = data["exittime"]
@@ -483,6 +484,7 @@ createPNLSummary <- function(redisdb,pattern,start,end) {
       }
     }
   }
+  r$QUIT()
   actualtrades
 }
 
@@ -522,13 +524,13 @@ getPriceArrayFromRedis <-
     #duration = [tick,daily]
     # type = [OPT,STK,FUT]
     # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
-    rredis::redisConnect()
-    rredis::redisSelect(as.numeric(redisdb))
+    r<-redux::hiredis()
+    r$SELECT(as.numeric(redisdb))
     start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     a <-
-      redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
-    rredis::redisClose()
+      r$ZRANGEBYSCORE(paste(symbol, duration, type, sep = ":"), min = start, max=end)
+    r$QUIT()
     price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
     if (nrow(price) > 0) {
       price$value = as.numeric(price$value)
@@ -583,13 +585,13 @@ getPriceHistoryFromRedis <-
     #duration = [tick,daily]
     # type = [OPT,STK,FUT]
     # todaydate = starting timestamp for retrieving prices formatted as "YYYY-mm-dd HH:mm:ss"
-    rredis::redisConnect()
-    rredis::redisSelect(as.numeric(redisdb))
+    r<-redux::hiredis()
+    r$SELECT(as.numeric(redisdb))
     start = as.numeric(as.POSIXct(starttime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     end = as.numeric(as.POSIXct(endtime, format = "%Y-%m-%d %H:%M:%S", tz = "Asia/Kolkata")) * 1000
     a <-
-      redisZRangeByScore(paste(symbol, duration, type, sep = ":"), min = start, max=end)
-    rredis::redisClose()
+      r$ZRANGEBYSCORE(paste(symbol, duration, type, sep = ":"), min = start, max=end)
+    r$QUIT()
     price = jsonlite::stream_in(textConnection(gsub("\\n", "", unlist(a))))
     if (nrow(price) > 0) {
       price$value = as.numeric(price$value)
@@ -1655,12 +1657,12 @@ getTickDataToDF<-function(symbol,date=NULL,redisdb=9,tz="Asia/Kolkata"){
   endtime=paste(date,"15:35:00")
   starttime=as.numeric(as.POSIXct(starttime,origin="1970-01-01",tz=tz))*1000
   endtime=as.numeric(as.POSIXct(endtime,origin="1970-01-01",tz=tz))*1000
-  redisConnect()
-  redisSelect(redisdb)
-  keys=rredis::redisKeys(pattern=paste(symbol,"tick*",sep=":"))
+  r<-redux::hiredis()
+  r$SELECT(redisdb)
+  keys=r$KEYS(pattern=paste(symbol,"tick*",sep=":"))
   df=data.frame()
   for(k in keys){
-    values=rredis::redisZRangeByScore(k,starttime,endtime)
+    values=r$ZRANGEBYSCORE(k,starttime,endtime)
     values=unlist(values)
     if(!is.null(values)){
       time=sapply(values,function(x) fromJSON(x)$time)/1000
@@ -1676,7 +1678,7 @@ getTickDataToDF<-function(symbol,date=NULL,redisdb=9,tz="Asia/Kolkata"){
       }
     }
   }
-  redisClose()
+  r$QUIT
   #df <- mutate_all(df, function(x) as.numeric(as.character(x)))
   if(nrow(df)>0){
     df$date=as.POSIXct(df$date,origin="1970-01-01",tz="Asia/Kolkata")
@@ -1931,8 +1933,8 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
 
   # Exit
   if(length(exitindices)>0){
-    redisConnect()
-    redisSelect(redisdb)
+    r<-redux::hiredis()
+    r$SELECT(redisdb)
     out <- trades[exitindices,]
     for (o in 1:nrow(out)) {
       change = 0
@@ -1973,15 +1975,15 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
-      redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
+      r$RPUSH(paste("trades", parameters$OrderReference, sep = ":"),(redisString))
     }
-
+    r$QUIT()
   }
 
   #Entry
   if(length(entryindices)>0){
-    redisConnect()
-    redisSelect(redisdb)
+    r <- redux::hiredis()
+    r$SELECT(redisdb)
     out <- trades[entryindices,]
     for (o in 1:nrow(out)) {
       endingposition=GetCurrentPosition(out[o, "symbol"], trades,position.on = referenceDate)
@@ -2027,8 +2029,9 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
       redisString=toJSON(parameters,dataframe = c("columns"),auto_unbox = TRUE)
       redisString<-gsub("\\[","",redisString)
       redisString<-gsub("\\]","",redisString)
-      redisRPush(paste("trades", parameters$OrderReference, sep = ":"),charToRaw(redisString))
+      r$RPUSH(paste("trades", parameters$OrderReference, sep = ":"),(redisString))
     }
+    r$QUIT()
   }
 }
 
