@@ -28,7 +28,7 @@ createIndexConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
     r <- redux::hiredis()
     r$SELECT(redisdb)
-    rediskeys=r$KEYS()
+    rediskeys=unlist(r$KEYS("*"))
     dfstage1 <- data.frame(
       symbol = character(),
       startdate = as.Date(character()),
@@ -96,7 +96,7 @@ createIndexConstituents <-
       )
       symbols <-
         data.frame(
-          symbol = unlist(rredis::redisSMembers(rediskeysShortList[i])),
+          symbol = unlist(r$SMEMBERS(rediskeysShortList[i])),
           startdate = as.Date(
             seriesstartdate,
             format = "%Y%m%d",
@@ -141,7 +141,7 @@ createFNOConstituents <-
   function(redisdb, pattern, threshold = "2000-01-01") {
     r=redux::hiredis()
     r$SELECT(redisdb)
-    rediskeys = r$KEYS()
+    rediskeys = unlist(r$KEYS("*"))
     dfstage1 <- data.frame(
       symbol = character(),
       startdate = as.Date(character()),
@@ -242,7 +242,7 @@ createFNOSize <-
   function(redisdb, pattern, threshold = "2000-01-01") {
     r<-redux::hiredis()
     r$SELECT(redisdb)
-    rediskeys = r$KEYS()
+    rediskeys = unlist(r$KEYS("*"))
     dfstage2 <- data.frame(
       symbol = character(),
       contractsize = numeric(),
@@ -350,7 +350,7 @@ readAllSymbols <-
   function(redisdb, pattern, threshold = "2000-01-01") {
     r<-redux::hiredis()
     r$SELECT(redisdb)
-    rediskeys = r$KEYS()
+    rediskeys = unlist(r$KEYS("*"))
     symbols <- data.frame(
       brokersymbol = character(),
       exchangesymbol = character(),
@@ -407,7 +407,7 @@ createPNLSummary <- function(redisdb,pattern,start,end) {
   periodenddate = as.Date(end, tz = "Asia/Kolkata")
 
   rediskeysShortList <- as.character()
-  rediskeysShortList=r$KEYS(pattern)
+  rediskeysShortList=unlist(r$KEYS(pattern))
   if(!is.null(rediskeysShortList)){
     rediskeysShortList <- sort(rediskeysShortList)
     # loop through keys and generate pnl
@@ -1659,7 +1659,7 @@ getTickDataToDF<-function(symbol,date=NULL,redisdb=9,tz="Asia/Kolkata"){
   endtime=as.numeric(as.POSIXct(endtime,origin="1970-01-01",tz=tz))*1000
   r<-redux::hiredis()
   r$SELECT(redisdb)
-  keys=r$KEYS(pattern=paste(symbol,"tick*",sep=":"))
+  keys=unlist(r$KEYS(pattern=paste(symbol,"tick*",sep=":")))
   df=data.frame()
   for(k in keys){
     values=r$ZRANGEBYSCORE(k,starttime,endtime)
@@ -2278,7 +2278,7 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
           }
 
         }
-
+        httr::set_config(httr::config(http_version = 0))
         mime() %>%
           to(receiver.email) %>%
           from("reporting@incurrency.com") %>%
