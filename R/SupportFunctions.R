@@ -2037,19 +2037,19 @@ placeRedisOrder<-function(trades,referenceDate,parameters,redisdb,map=FALSE,reve
 
 generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,strategyname,kSubscribers,kBrokerage,kCommittedCapital,kMargin=1,kMarginOnUnrealized=FALSE,kInvestmentReturn=0.06,kOverdraftPenalty=0.2,executiondb=0,realtime=FALSE,...){
   # print parameters
-  print(paste("bizdays:",paste(bizdays,collapse = ",")))
-  print(paste("backteststart",backteststart,sep = ":"))
-  print(paste("backtestend",backtestend,sep = ":"))
-  print(paste("strategyname",strategyname,sep = ":"))
-  print(paste("kSubscribers:",paste(kSubscribers,collapse = ",")))
-  print(paste("kBrokerage",kBrokerage,sep=":"))
-  print(paste("kCommittedCapital",kCommittedCapital,sep=":"))
-  print(paste("kMargin",kMargin,sep=":"))
-  print(paste("kMarginOnUnrealized",kMarginOnUnrealized,sep=":"))
-  print(paste("kInvestmentReturn",kInvestmentReturn,sep=":"))
-  print(paste("kOverdraftPenalty",kOverdraftPenalty,sep=":"))
-  print(paste("executiondb",executiondb,sep=":"))
-  print(paste("realtime",realtime,sep=":"))
+  # print(paste("bizdays:",paste(bizdays,collapse = ",")))
+  # print(paste("backteststart",backteststart,sep = ":"))
+  # print(paste("backtestend",backtestend,sep = ":"))
+  # print(paste("strategyname",strategyname,sep = ":"))
+  # print(paste("kSubscribers:",paste(kSubscribers,collapse = ",")))
+  # print(paste("kBrokerage",kBrokerage,sep=":"))
+  # print(paste("kCommittedCapital",kCommittedCapital,sep=":"))
+  # print(paste("kMargin",kMargin,sep=":"))
+  # print(paste("kMarginOnUnrealized",kMarginOnUnrealized,sep=":"))
+  # print(paste("kInvestmentReturn",kInvestmentReturn,sep=":"))
+  # print(paste("kOverdraftPenalty",kOverdraftPenalty,sep=":"))
+  # print(paste("executiondb",executiondb,sep=":"))
+  # print(paste("realtime",realtime,sep=":"))
 
 
 
