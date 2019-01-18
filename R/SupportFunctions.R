@@ -287,6 +287,10 @@ createFNOSize <-
       )
       symbolsunformatted <-
         unlist(r$HGETALL(rediskeysShortList[i]))
+      symbolsunformattednames=symbolsunformatted[c(TRUE,FALSE)]
+      symbolsunformatted=symbolsunformatted[c(FALSE,TRUE)]
+      names(symbolsunformatted)=symbolsunformattednames
+
       symbols <-
         data.frame(
           symbol = names(symbolsunformatted),
@@ -367,6 +371,9 @@ readAllSymbols <-
     rediskeysShortList <-
       rediskeysShortList[length(rediskeysShortList)]
     symbols <- unlist(r$HGETALL(rediskeysShortList))
+    symbolsnames=symbols[c(TRUE,FALSE)]
+    symbols=symbols[c(FALSE,TRUE)]
+    names(symbols)=symbolsnames
     symbols <-
       data.frame(
         exchangesymbol = names(symbols),
@@ -413,6 +420,9 @@ createPNLSummary <- function(redisdb,pattern,start,end) {
     # loop through keys and generate pnl
     for (i in 1:length(rediskeysShortList)) {
       data <- unlist(r$HGETALL(rediskeysShortList[i]))
+      datanames=data[c(TRUE,FALSE)]
+      data=data[c(FALSE,TRUE)]
+      names(data)=datanames
       exitprice = 0
       entrydate = data["entrytime"]
       exitdate = data["exittime"]
@@ -2116,8 +2126,8 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
           ExecutionsRedis=createPNLSummary(executiondb,pattern,backteststart,backtestend)
         }else{
           ExecutionsRedis=read.csv(externalfile,header = TRUE,stringsAsFactors = FALSE)
-          ExecutionsRedis$entrytime=as.POSIXct(ExecutionsRedis$entrytime,format="%d-%m-%Y")
-          ExecutionsRedis$exittime=as.POSIXct(ExecutionsRedis$exittime,format="%d-%m-%Y")
+          ExecutionsRedis$entrytime=as.POSIXct(ExecutionsRedis$entrytime,format="%d/%m/%Y")
+          ExecutionsRedis$exittime=as.POSIXct(ExecutionsRedis$exittime,format="%d/%m/%Y")
           ExecutionsRedis$netposition=ifelse(ExecutionsRedis$exitreason=="Open",ExecutionsRedis$size,0)
         }
         ExecutionsRedis=revalPortfolio(ExecutionsRedis,kBrokerage,realtime=realtime,1)
