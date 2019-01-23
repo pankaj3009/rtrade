@@ -2126,8 +2126,8 @@ generateExecutionSummary<-function(trades,bizdays,backteststart,backtestend,stra
           ExecutionsRedis=createPNLSummary(executiondb,pattern,backteststart,backtestend)
         }else{
           ExecutionsRedis=read.csv(externalfile,header = TRUE,stringsAsFactors = FALSE)
-          ExecutionsRedis$entrytime=as.POSIXct(ExecutionsRedis$entrytime,format="%d/%m/%Y")
-          ExecutionsRedis$exittime=as.POSIXct(ExecutionsRedis$exittime,format="%d/%m/%Y")
+          ExecutionsRedis$entrytime=as.POSIXct(ExecutionsRedis$entrytime,format="%d-%m-%Y")
+          ExecutionsRedis$exittime=as.POSIXct(ExecutionsRedis$exittime,format="%d-%m-%Y")
           ExecutionsRedis$netposition=ifelse(ExecutionsRedis$exitreason=="Open",ExecutionsRedis$size,0)
         }
         ExecutionsRedis=revalPortfolio(ExecutionsRedis,kBrokerage,realtime=realtime,1)
