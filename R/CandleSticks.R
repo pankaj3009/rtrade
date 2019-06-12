@@ -58,7 +58,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   duration=2
   pattern= Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & md$alow<Ref(md$alow,-2) & # Day 3
     md$alow<Ref(md$alow,-1) & # Day 2
-    md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$bodyavg*0.2 # Day 1
+    md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$lowershadow*0.3 # Day 1
   confirmationprice=pmax(md$asettle,md$aopen)
   stoploss=md$alow
   ##entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
@@ -74,7 +74,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
   duration=2
   pattern= Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & md$ahigh>Ref(md$ahigh,-2) & # Day 3
     md$ahigh>Ref(md$ahigh,-1) & # Day 2
-    md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$bodyavg*0.2 # Day 1
+    md$body<0.4*md$bodyavg & md$lowershadow>2*md$body & md$lowershadow>md$lowershadowavg & md$uppershadow<md$lowershadow*0.3 # Day 1
   confirmationprice=pmin(md$asettle,md$aopen)
   stoploss=md$ahigh
   #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
@@ -144,7 +144,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
 
   #4 BULLISH HARAMI #VERIFIED
   duration=1
-  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$whitecandle & md$asettle<Ref(md$aopen,-1) & md$aopen>Ref(md$asettle,-1)
+  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & !Ref(md$shortblack,-1) & md$whitecandle & md$asettle<Ref(md$aopen,-1) & md$aopen>Ref(md$asettle,-1) & md$ahigh<=Ref(md$ahigh,-1) & md$alow>=Ref(md$alow,-1)
   confirmationprice=pmax(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmin(md$alow,Ref(md$alow,-1))
   #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
@@ -158,7 +158,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
 
   #4 BEARISH HARAMI #VERIFIED
   duration=1
-  pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$blackcandle & md$asettle>Ref(md$aopen,-1) & md$aopen<Ref(md$asettle,-1)
+  pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & !Ref(md$shortwhite,-1) & md$blackcandle & md$asettle>Ref(md$aopen,-1) & md$aopen<Ref(md$asettle,-1) & md$ahigh<=Ref(md$ahigh,-1) & md$alow>=Ref(md$alow,-1)
   confirmationprice=pmin(md$asettle,Ref((md$aopen+md$asettle)/2,-1))
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
   #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
@@ -172,7 +172,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
 
   #5 BULLISH HARAMI CROSS #VERIFIED
   duration=1
-  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$aopen,-1) & pmin(md$asettle,md$aopen)>Ref(md$asettle,-1)
+  pattern=Ref((md$candlesticktrend==-1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$blackcandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$aopen,-1) & pmin(md$asettle,md$aopen)>Ref(md$asettle,-1) & md$ahigh<=Ref(md$ahigh,-1) & md$alow>=Ref(md$alow,-1)
   confirmationprice=ifelse(Ref(md$shortblack,-1),Ref(md$aopen,-1),pmax(md$asettle,Ref((md$aopen+md$asettle)/2,-1)))
   stoploss=pmin(md$alow,Ref(md$alow,-1))
   #entryprice=ifelse(Ref(md$whitecandle,1) & pattern & conservative & Ref(md$asettle,1)>confirmationprice & Ref(md$alow,1)>stoploss,Ref(md$asettle,1),ifelse(Ref(md$whitecandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss<Ref(md$alow,1))|Ref(md$alow,1)>=confirmationprice),Ref(md$asettle,1),0))
@@ -186,7 +186,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK
 
   #5 BEARISH HARAMI CROSS #VERIFIED
   duration=1
-  pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$asettle,-1) & pmin(md$asettle,md$aopen)>Ref(md$aopen,-1)
+  pattern=Ref((md$candlesticktrend==1|md$candlesticktrend==0),-trendBeginning*duration) & Ref(md$whitecandle,-1) & md$doji & pmax(md$asettle,md$aopen)<Ref(md$asettle,-1) & pmin(md$asettle,md$aopen)>Ref(md$aopen,-1) & md$ahigh<=Ref(md$ahigh,-1) & md$alow>=Ref(md$alow,-1)
   confirmationprice=ifelse(Ref(md$shortwhite,-1),Ref(md$aopen,-1),pmin(md$asettle,Ref((md$aopen+md$asettle)/2,-1)))
   stoploss=pmax(md$ahigh,Ref(md$ahigh,-1))
   #entryprice=ifelse(Ref(md$blackcandle,1) & pattern & conservative & Ref(md$asettle,1)<confirmationprice & Ref(md$ahigh,1)<stoploss,Ref(md$asettle,1),ifelse(Ref(md$blackcandle,1) & pattern & !conservative & ((confirmationprice<Ref(md$ahigh,1) & confirmationprice>Ref(md$alow,1) & stoploss>Ref(md$ahigh,1))|Ref(md$ahigh,1)<=confirmationprice),Ref(md$asettle,1),0))
