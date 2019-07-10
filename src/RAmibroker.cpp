@@ -1924,7 +1924,8 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
         //Rcout<<"open[j]: "<<open[j]<<",close[j]: "<<close[j]<<",high[j]: "<<high[j]<<",confprice: "<<price<<",sl: "<<sl<<std::endl;
         if(low[j]<sl | (j-mdindex)>maxWait){
           break;
-        }else if(close[j]>open[j] & high[j]>price & low[j]>sl){ //low[j]
+        }//else if(close[j]>open[j] & high[j]>price & low[j]>sl){ //low[j]
+          else if(high[j]>price & low[j]>sl){ //low[j]
           outdate[i]=date[j];
           outtradeprice[i]=close[j];
           // Rcout<<"BULLISH,i: "<<i<<",j: "<<j<<",outtradeprice[i]: "<<outtradeprice[i]<<std::endl;
@@ -1937,7 +1938,8 @@ DataFrame getCandleStickConfirmation(DataFrame all, StringVector pattern, Dateti
       for(int j=mdindex+1;j<nSize;j++){
         if(high[j]>sl|(j-mdindex)>maxWait){
           break;
-        }else if(close[j]<open[j] & low[j]<price & high[j]<sl){//high[j]
+        }//else if(close[j]<open[j] & low[j]<price & high[j]<sl){//high[j]
+          else if(low[j]<price & high[j]<sl){//high[j]
           outdate[i]=date[j];
           outtradeprice[i]=close[j];
           break;

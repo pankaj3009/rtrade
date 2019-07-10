@@ -1,8 +1,9 @@
-candleStickPattern<-function(s,trendBeginning=FALSE,conservative=FALSE,type="STK",realtime=FALSE,maxWait=1){
+candleStickPattern<-function(s,trendBeginning=FALSE,type="STK",realtime=FALSE,maxWait=1,...){
   if(is.data.frame(s)){
     md=s
   }else{
-    md<-loadSymbol(s,realtime)
+      md<-loadSymbol(s,realtime,...)
+
   }
   t<-Trend(md$date,md$ahigh,md$alow,md$asettle)
   md<-merge(md,t,by="date")
