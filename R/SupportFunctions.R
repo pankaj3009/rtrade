@@ -195,9 +195,9 @@ createFNOConstituents <-
       )
       symbols <-
         data.frame(
-          symbol = names(unlist(
+          symbol = unlist(
             r$HGETALL(rediskeysShortList[i])
-          )),
+          )[c(TRUE,FALSE)],
           startdate = as.Date(
             seriesstartdate,
             format = "%Y%m%d",
