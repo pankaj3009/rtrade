@@ -1012,8 +1012,8 @@ getCandleStickPerformance<-function(symbol,search,days=1){
   candlesticks.all=a$pattern
   marketdata=a$marketdata
   candlesticks.all=merge(candlesticks.all,marketdata[,c("date","trend")])
-  rows.selection=grepl("BEARISH",candlesticks$pattern) & (candlesticks$trend==1 |candlesticks$trend==0) |
-    grepl("BULLISH",candlesticks$pattern) & (candlesticks$trend==-1 |candlesticks$trend==0)
+  rows.selection=grepl("BEARISH",candlesticks.all$pattern) & (candlesticks.all$trend==1 |candlesticks.all$trend==0) |
+    grepl("BULLISH",candlesticks.all$pattern) & (candlesticks.all$trend==-1 |candlesticks.all$trend==0)
   candlesticks=candlesticks.all[rows.selection,]
   if(grepl("BULLISH",search)){
     b=filter(candlesticks,pattern==search,trend==-1 |trend==0)
