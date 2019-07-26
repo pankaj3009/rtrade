@@ -1031,11 +1031,12 @@ getCandleStickPerformance<-function(symbol,search,days=1){
   }else{
     confirmed$return=(confirmed$confirmationprice-confirmed$exitprice)/confirmed$confirmationprice
   }
+  events=nrow(confirmed)
   confirmed=na.exclude(confirmed)
   return=mean(confirmed$return)
   wins=sum(confirmed$return>0)/nrow(confirmed)
   print(select(tail(candlesticks),"date","pattern","confirmationdate","confirmationprice"))
-  out= list("incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturn"=round(return,4)*100)
+  out= list("events"=events,"incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturn"=round(return,4)*100)
   out
 
 }
