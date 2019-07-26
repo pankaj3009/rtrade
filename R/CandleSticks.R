@@ -1026,17 +1026,21 @@ getCandleStickPerformance<-function(symbol,search,days=1){
   confirmed$exitdate=advance("India",as.Date(strftime(confirmed$confirmationdate,"%Y-%m-%d")),n=days,timeUnit=0,bdc=0,emr=0)
   confirmed$exitdate=as.POSIXct(strftime(confirmed$exitdate,"%Y-%m-%d"))
   confirmed$exitprice=marketdata[match(confirmed$exitdate,marketdata$date),c("asettle")]
+  confirmed$entryprice=marketdata[match(confirmed$confirmationdate,marketdata$date),c("asettle")]
   if(grepl("BULLISH",search)){
-    confirmed$return=(confirmed$exitprice-confirmed$confirmationprice)/confirmed$confirmationprice
+    confirmed$return.best=(confirmed$exitprice-confirmed$confirmationprice)/confirmed$confirmationprice
+    confirmed$return.act=(confirmed$exitprice-confirmed$entryprice)/confirmed$entryprice
   }else{
-    confirmed$return=(confirmed$confirmationprice-confirmed$exitprice)/confirmed$confirmationprice
+    confirmed$return.best=(confirmed$confirmationprice-confirmed$exitprice)/confirmed$confirmationprice
+    confirmed$return.act=(confirmed$entryprice-confirmed$exitprice)/confirmed$entryprice
   }
   events=nrow(confirmed)
   confirmed=na.exclude(confirmed)
-  return=mean(confirmed$return)
-  wins=sum(confirmed$return>0)/nrow(confirmed)
+  return.best=mean(confirmed$return.best)
+  return.act=mean(confirmed$return.act)
+  wins=sum(confirmed$return.best>0)/nrow(confirmed)
   print(select(tail(candlesticks),"date","pattern","confirmationdate","confirmationprice"))
-  out= list("events"=events,"incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturn"=round(return,4)*100)
+  out= list("events"=events,"incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturnBest"=round(return.best,4)*100,"PercentReturnAct"=round(return.act,4)*100)
   out
 
 }
