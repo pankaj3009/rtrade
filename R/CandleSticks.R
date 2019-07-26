@@ -1006,3 +1006,36 @@ candleStickPattern<-function(s,trendBeginning=FALSE,type="STK",realtime=FALSE,ma
   signals1$confirmed=ifelse(!is.na(signals1$confirmationdate),TRUE,FALSE)
   list("marketdata"=md,"pattern"=signals1)
 }
+
+getCandleStickPerformance<-function(symbol,search,days=1){
+  a=candleStickPattern(symbol,days=100000)
+  candlesticks.all=a$pattern
+  marketdata=a$marketdata
+  candlesticks.all=merge(candlesticks.all,marketdata[,c("date","trend")])
+  rows.selection=grepl("BEARISH",candlesticks$pattern) & (candlesticks$trend==1 |candlesticks$trend==0) |
+    grepl("BULLISH",candlesticks$pattern) & (candlesticks$trend==-1 |candlesticks$trend==0)
+  candlesticks=candlesticks.all[rows.selection,]
+  if(grepl("BULLISH",search)){
+    b=filter(candlesticks,pattern==search,trend==-1 |trend==0)
+  }else{
+    b=filter(candlesticks,pattern==search,trend==1 |trend==0)
+  }
+  confirmed=b[!is.na(b$confirmationdate),]
+  confirmed.percent=nrow(confirmed)/nrow(b)
+  incidence = nrow(b)/nrow(candlesticks)
+  confirmed$exitdate=advance("India",as.Date(strftime(confirmed$confirmationdate,"%Y-%m-%d")),n=days,timeUnit=0,bdc=0,emr=0)
+  confirmed$exitdate=as.POSIXct(strftime(confirmed$exitdate,"%Y-%m-%d"))
+  confirmed$exitprice=marketdata[match(confirmed$exitdate,marketdata$date),c("asettle")]
+  if(grepl("BULLISH",search)){
+    confirmed$return=(confirmed$exitprice-confirmed$confirmationprice)/confirmed$confirmationprice
+  }else{
+    confirmed$return=(confirmed$confirmationprice-confirmed$exitprice)/confirmed$confirmationprice
+  }
+  confirmed=na.exclude(confirmed)
+  return=mean(confirmed$return)
+  wins=sum(confirmed$return>0)/nrow(confirmed)
+  print(select(tail(candlesticks),"date","pattern","confirmationdate","confirmationprice"))
+  out= list("incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturn"=round(return,4)*100)
+  out
+
+}
