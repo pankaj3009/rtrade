@@ -1348,6 +1348,8 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
   //int swingHighEndIndex;
   int nSize=close.size();
   NumericVector trendtype(nSize);
+  NumericVector swingtype(nSize);
+  NumericVector daysinswing(nSize);
   NumericVector result(nSize);
   NumericVector updownbarclean(nSize);
   NumericVector updownbar(nSize);
@@ -1381,6 +1383,8 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
     updownbar[i] = 0;
     outsidebar[i] = 0;
     insidebar[i] = 0;
+    swingtype[i]=0;
+    daysinswing[i]=0;
 
     bool hh = high[i] > high[i - 1];
     bool lh = high[i] < high[i - 1];
@@ -1419,7 +1423,9 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
     swinghigh[i], swinghighhigh[i], swinghighhigh_1[i] = 0;
     swinglow[i], swinglowlow[i], swinglowlow_1[i] = 0;
     if (updownbar[i] == 1) {//we are in upswing
+      swingtype[i]=1;
       if (updownbar[i - 1] == 1) {//continuing upswing
+        daysinswing[i]=daysinswing[i-1]+1;
         swinghigh[i] = high[i]>swinghigh[i-1]?high[i]:swinghigh[i-1];
         //swinghighhigh will be updated when the upswing ends or if its the last upswing.
         //update swinglow and swinglowlow for "i"
@@ -1429,6 +1435,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         }
       }
       else { //first day of upswing
+        daysinswing[i]=1;
         swingHighStartIndex = i;
         //swingLowEndIndex = i - 1;
 
@@ -1452,7 +1459,9 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         }
       }
     }		else if (updownbar[i] == -1) {//we are in a downswing
+      swingtype[i]=-1;
       if (updownbar[i - 1] == -1) {//continuing downswing
+        daysinswing[i]=daysinswing[i-1]+1;
         swinglow[i] = min(low[i], swinglow[i - 1]);
         //swinglowlow will be updated when the downswing ends or if its the last downswing.
         //update swinghigh and swinghighhigh for "i"
@@ -1462,6 +1471,7 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
         }
       }
       else { //first day of downswing
+        daysinswing[i]=1;
         swingLowStartIndex = i;
         //swingHighEndIndex = i - 1;
 
@@ -1616,7 +1626,9 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
 
 
   //        DataFrame out=create()(Named("trend")=result,Named("updownbar")=updownbar);
-  return DataFrame::create(_("date")=date,_("trend")=result,_("updownbar")=updownbar,
+/*
+    return DataFrame::create(_("date")=date,_("trend")=result,
+                             _("updownbar")=updownbar,
                              _("outsidebar")=outsidebar,_("insidebar")=insidebar,
                              _("swinghigh")=swinghigh,_("swinglow")=swinglow,
                              _("swinghighhigh")=swinghighhigh,_("swinglowlow")=swinglowlow,
@@ -1624,7 +1636,19 @@ DataFrame Trend(DatetimeVector date,NumericVector high,NumericVector low, Numeri
                              _("swinghighhigh_2")=swinghighhigh_2,_("swinglowlow_2")=swinglowlow_2,
                              _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow,
                              _("movementhighlow")=movetotal,_("movementsettle")=movesettle,
-                             _("updownbarclean")=updownbarclean,_("trendtype")=trendtype);
+                             _("updownbarclean")=updownbarclean,_("trendtype")=trendtype,
+                             _("swingtype")=swingtype);
+  */
+  return DataFrame::create(_("date")=date,_("trend")=result,
+                           _("swingtype")=swingtype,_("daysinswing")=daysinswing,
+                           _("updownbar")=updownbar,
+                           _("outsidebar")=outsidebar,_("insidebar")=insidebar,
+                           _("swinghigh")=swinghigh,_("swinglow")=swinglow,
+                           _("swinghighhigh")=swinghighhigh,_("swinglowlow")=swinglowlow,
+                           _("swinghighhigh_1")=swinghighhigh_1,_("swinglowlow_1")=swinglowlow_1,
+                           _("swinglevel")=swinglevel,_("numberhh")=higherhigh,_("numberll")=lowerlow,
+                           _("movementhighlow")=movetotal,_("movementsettle")=movesettle,
+                           _("updownbarclean")=updownbarclean,_("trendtype")=trendtype);
 }
 
 bool highestSinceNBars(NumericVector price,int index, int level=1){
