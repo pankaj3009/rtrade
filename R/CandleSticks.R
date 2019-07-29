@@ -1007,18 +1007,18 @@ candleStickPattern<-function(s,trendBeginning=FALSE,type="STK",realtime=FALSE,ma
   list("marketdata"=md,"pattern"=signals1)
 }
 
-getCandleStickPerformance<-function(symbol,search,days=1){
-  a=candleStickPattern(symbol,days=100000)
+getCandleStickPerformance<-function(symbol,search,days=1,...){
+  a=candleStickPattern(symbol,days=100000,...)
   candlesticks.all=a$pattern
   marketdata=a$marketdata
-  candlesticks.all=merge(candlesticks.all,marketdata[,c("date","trend")])
+  candlesticks.all=merge(candlesticks.all,marketdata[,c("date","trend","swingtype","daysinswing")])
   rows.selection=grepl("BEARISH",candlesticks.all$pattern) & (candlesticks.all$trend==1 |candlesticks.all$trend==0) |
     grepl("BULLISH",candlesticks.all$pattern) & (candlesticks.all$trend==-1 |candlesticks.all$trend==0)
   candlesticks=candlesticks.all[rows.selection,]
   if(grepl("BULLISH",search)){
-    b=filter(candlesticks,pattern==search,trend==-1 |trend==0)
+    b=filter(candlesticks,pattern==search,trend==-1 |trend==0|(swingtype==-1 & daysinswing>4))
   }else{
-    b=filter(candlesticks,pattern==search,trend==1 |trend==0)
+    b=filter(candlesticks,pattern==search,trend==1 |trend==0|(swingtype==1 & daysinswing>4))
   }
   confirmed=b[!is.na(b$confirmationdate),]
   confirmed.percent=nrow(confirmed)/nrow(b)
