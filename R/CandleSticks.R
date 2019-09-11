@@ -2,7 +2,7 @@ candleStickPattern<-function(s,trendBeginning=FALSE,type="STK",realtime=FALSE,ma
   if(is.data.frame(s)){
     md=s
   }else{
-      md<-loadSymbol(s,realtime,...)
+    md<-loadSymbol(s,realtime,...)
 
   }
   t<-Trend(md$date,md$ahigh,md$alow,md$asettle)
@@ -1021,26 +1021,41 @@ getCandleStickPerformance<-function(symbol,search,days=1,...){
     b=filter(candlesticks,pattern==search,trend==1 |trend==0|(swingtype==1 & daysinswing>4))
   }
   confirmed=b[!is.na(b$confirmationdate),]
+  failed=b[is.na(b$confirmationdate),]
   confirmed.percent=nrow(confirmed)/nrow(b)
   incidence = nrow(b)/nrow(candlesticks)
-  confirmed$exitdate=advance("India",as.Date(strftime(confirmed$confirmationdate,"%Y-%m-%d")),n=days,timeUnit=0,bdc=0,emr=0)
+  confirmed$exitdate=RQuantLib::advance("India",as.Date(strftime(confirmed$confirmationdate,"%Y-%m-%d")),n=days,timeUnit=0,bdc=0,emr=0)
   confirmed$exitdate=as.POSIXct(strftime(confirmed$exitdate,"%Y-%m-%d"))
   confirmed$exitprice=marketdata[match(confirmed$exitdate,marketdata$date),c("asettle")]
   confirmed$entryprice=marketdata[match(confirmed$confirmationdate,marketdata$date),c("asettle")]
+  failed$confirmationdate=RQuantLib::advance("India",as.Date(strftime(failed$date,"%Y-%m-%d")),n=1,timeUnit=0,bdc=0,emr=0)
+  failed$confirmationdate=as.POSIXct(strftime(failed$confirmationdate))
+  failed$exitdate=RQuantLib::advance("India",as.Date(strftime(failed$confirmationdate,"%Y-%m-%d")),n=days,timeUnit=0,bdc=0,emr=0)
+  failed$exitdate=as.POSIXct(strftime(failed$exitdate,"%Y-%m-%d"))
+  failed$exitprice=marketdata[match(failed$exitdate,marketdata$date),c("asettle")]
+  failed$entryprice=marketdata[match(failed$confirmationdate,marketdata$date),c("asettle")]
   if(grepl("BULLISH",search)){
     confirmed$return.best=(confirmed$exitprice-confirmed$confirmationprice)/confirmed$confirmationprice
     confirmed$return.act=(confirmed$exitprice-confirmed$entryprice)/confirmed$entryprice
+    failed$return.best=(failed$confirmationprice-failed$exitprice)/failed$confirmationprice
+    failed$return.act=(failed$entryprice-failed$exitprice)/failed$entryprice
+
   }else{
     confirmed$return.best=(confirmed$confirmationprice-confirmed$exitprice)/confirmed$confirmationprice
     confirmed$return.act=(confirmed$entryprice-confirmed$exitprice)/confirmed$entryprice
+    failed$return.best=(failed$exitprice-failed$confirmationprice)/failed$confirmationprice
+    failed$return.act=(failed$exitprice-failed$entryprice)/failed$entryprice
   }
   events=nrow(confirmed)
   confirmed=na.exclude(confirmed)
+  failed=failed[!with(failed,is.na(entryprice) | is.na(exitprice)),]
   return.best=mean(confirmed$return.best)
   return.act=mean(confirmed$return.act)
+  failed.return.best=mean(failed$return.best)
+  failed.return.act=mean(failed$return.act)
   wins=sum(confirmed$return.best>0)/nrow(confirmed)
   print(select(tail(candlesticks),"date","pattern","confirmationdate","confirmationprice"))
-  out= list("events"=events,"incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturnBest"=round(return.best,4)*100,"PercentReturnAct"=round(return.act,4)*100)
+  out= list("events"=events,"incidence"=round(incidence,2),"ConfirmationProbability"=round(confirmed.percent,2),"Wins"=round(wins,2),"PercentReturnBest"=round(return.best,4)*100,"PercentReturnAct"=round(return.act,4)*100,"FailedPercentReturnBest"=round(failed.return.best,4)*100,"FailedPercentReturnAct"=round(failed.return.act,4)*100)
   out
 
 }
